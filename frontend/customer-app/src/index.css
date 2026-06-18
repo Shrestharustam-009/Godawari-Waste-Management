@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ── */
+:root {
+  --color-brand: #059669;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

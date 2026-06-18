@@ -1,0 +1,53 @@
+{
+  "name": "godawari-waste-management-backend",
+  "version": "1.0.0",
+  "description": "Production-grade ERP backend for Godawari Waste Management System — Node.js, Express, Prisma, PostgreSQL",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:prod": "npx prisma migrate deploy",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "node prisma/seed.js",
+    "prisma:reset": "npx prisma migrate reset",
+    "lint": "eslint .",
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": [
+    "waste-management",
+    "erp",
+    "prisma",
+    "express",
+    "postgresql"
+  ],
+  "author": "Godawari WMS Engineering",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^5.1.1",
+    "cookie": "^1.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^4.2.1",
+    "socket.io": "^4.8.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+}

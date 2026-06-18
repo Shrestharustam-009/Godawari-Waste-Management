@@ -1,0 +1,20 @@
+{
+  "name": "godawari-waste-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start:backend": "cd backend && npm run dev",
+    "start:admin": "cd frontend/admin-portal && npm run dev",
+    "start:staff": "cd frontend/staff-app && npm run dev",
+    "start:customer": "cd frontend/customer-app && npm run dev",
+    "dev:all": "concurrently --kill-others \"npm run start:backend\" \"npm run start:admin\" \"npm run start:staff\" \"npm run start:customer\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.3"
+  }
+}

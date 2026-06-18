@@ -1,0 +1,452 @@
+// ============================================================================
+// GODAWARI WASTE MANAGEMENT SYSTEM — Prisma Schema
+// ============================================================================
+// Target DB  : PostgreSQL 15+
+// ORM        : Prisma 5.x with Decimal.js integration
+// Precision  : ALL monetary fields use Decimal(10,2) — NO floats allowed.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  STAFF
+  DRIVER
+  NORMAL_EMPLOYEE
+}
+
+enum PaymentMethod {
+  CASH
+  DIGITAL_GATEWAY
+}
+
+enum IncomeSource {
+  FIELD_APP
+  MANUAL_ENTRY
+}
+
+enum PaymentStatus {
+  SUCCESSFUL
+  PENDING
+  FAILED
+}
+
+enum NotificationType {
+  LOGIN
+  DEBT_WARNING_15_DAY
+  SYSTEM_ALERT
+  ACCOUNT_DEACTIVATION
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// GLOBAL SETTINGS (Singleton configuration row)
+// ────────────────────────────────────────────────────────────────────────────
+
+model GlobalSettings {
+  id               Int      @id @default(autoincrement())
+  monthlyFeeAmount Decimal  @default(500.00) @db.Decimal(10, 2)
+  billingCycleDay  Int      @default(1) // Day of month (1–28) when billing triggers
+  customDeductions Json?    @default("[]")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("global_settings")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// USER (Admin, Staff, Driver — internal operators)
+// ────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(120)
+  username     String?  @unique @db.VarChar(60)
+  passwordHash String?  @db.VarChar(255)
+  role         Role     @default(STAFF)
+  jobTitle     String?  @db.VarChar(100)
+  isActive     Boolean  @default(true)
+  isLoginEnabled Boolean @default(true)
+
+  // Optional vehicle assignment (for DRIVER role)
+  vehicleId    Int?
+  vehicle      Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  // Reverse relations
+  incomeEntries  IncomeLedger[]
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
+  salaryEntries  SalaryLedger[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CUSTOMER (4,500+ waste collection subscribers)
+// ────────────────────────────────────────────────────────────────────────────
+// NOTE: customerId is a MANUAL string key (e.g., "GDW-0001") — NOT auto-generated.
+// outstandingPayment and advanceBalance use Decimal to prevent paisa-level drift.
+
+model Customer {
+  customerId         String   @id @db.VarChar(30)
+  name               String   @db.VarChar(150)
+  phone              String   @db.VarChar(15)
+  pinHash            String   @db.VarChar(255) // bcrypt hash of 4-digit PIN
+  assignedArea       String   @db.VarChar(100)
+
+  // ── Financial balances (Decimal-strict) ──
+  outstandingPayment Decimal  @default(0.00) @db.Decimal(10, 2)
+  advanceBalance     Decimal  @default(0.00) @db.Decimal(10, 2) // Smart Wallet
+
+  // ── Billing period overrides ──
+  dueStartDate       DateTime?
+  dueEndDate         DateTime?
+
+  // ── Background automation tracking ──
+  debtStartDate      DateTime? // Date when outstandingPayment first > 0
+  lastBilledDate     DateTime? // Prevents double-billing if worker restarts
+
+  isActive           Boolean  @default(true)
+
+  // Reverse relations
+  incomeEntries      IncomeLedger[]
+  refreshTokens      RefreshToken[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([assignedArea])
+  @@index([phone])
+  @@index([isActive])
+  @@map("customers")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CHART OF ACCOUNTS — Isolated Category Models
+// ────────────────────────────────────────────────────────────────────────────
+// Income and Expense categories are COMPLETELY separate models to prevent
+// accidental ledger category mixing in queries or joins.
+
+model IncomeCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true)
+
+  // Reverse relation
+  incomeEntries IncomeLedger[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("income_categories")
+}
+
+model ExpenseCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true)
+
+  // Reverse relation
+  expenseEntries ExpenseLedger[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("expense_categories")
+}
+
+model VehicleExpenseCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true)
+
+  // Reverse relation
+  vehicleExpenseEntries VehicleExpenseLedger[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("vehicle_expense_categories")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// INCOME LEDGER
+// ────────────────────────────────────────────────────────────────────────────
+// Every rupee collected — from field app or manual entry — lands here.
+// idempotencyKey prevents duplicate field submissions.
+// referenceId tracks external payment gateway transaction IDs.
+
+model IncomeLedger {
+  id              Int           @id @default(autoincrement())
+  date            DateTime
+  amount          Decimal       @db.Decimal(10, 2) // Gross (VAT-inclusive)
+  baseAmount      Decimal       @db.Decimal(10, 2) // Revenue excl. VAT
+  vatRate         Decimal       @default(0.00) @db.Decimal(5, 2) // User defined VAT rate
+  vatAmount       Decimal       @db.Decimal(10, 2) // VAT component
+  paymentMethod   PaymentMethod
+  source          IncomeSource
+  status          PaymentStatus @default(SUCCESSFUL)
+
+  // ── Idempotency & external reference ──
+  idempotencyKey  String?       @unique @db.VarChar(128)
+  referenceId     String?       @unique @db.VarChar(128)
+
+  // ── Relations ──
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+
+  collectedById   Int
+  collectedBy     User          @relation(fields: [collectedById], references: [id], onDelete: Restrict)
+
+  incomeCategoryId Int
+  incomeCategory   IncomeCategory @relation(fields: [incomeCategoryId], references: [id], onDelete: Restrict)
+  subCategory      String?        @db.VarChar(100)
+
+  note            String?       @db.Text
+
+  createdAt       DateTime      @default(now())
+  isDeleted       Boolean       @default(false)
+
+  @@index([customerId])
+  @@index([collectedById])
+  @@index([date])
+  @@index([paymentMethod])
+  @@map("income_ledger")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// EXPENSE LEDGER
+// ────────────────────────────────────────────────────────────────────────────
+// Tracks all outflows — fuel, maintenance, salaries, etc.
+// subCategory is a typed string for flexible sub-classification under main category.
+
+model ExpenseLedger {
+  id                Int             @id @default(autoincrement())
+  date              DateTime
+  amount            Decimal         @db.Decimal(10, 2)
+  baseAmount        Decimal         @default(0.00) @db.Decimal(10, 2)
+  vatRate           Decimal         @default(0.00) @db.Decimal(5, 2)
+  inputVat          Decimal         @default(0.00) @db.Decimal(10, 2)
+  tdsRate           Decimal         @default(0.00) @db.Decimal(5, 2)
+  tdsAmount         Decimal         @default(0.00) @db.Decimal(10, 2)
+  netPayable        Decimal         @default(0.00) @db.Decimal(10, 2)
+
+  // ── Category breakdown ──
+  expenseCategoryId Int
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id], onDelete: Restrict)
+  subCategory       String          @db.VarChar(100) // e.g., "Diesel", "Tyre Replacement"
+
+  note              String          @db.Text
+
+  // ── Optional vehicle relation (for fleet-related expenses) ──
+  vehicleId         Int?
+  vehicle           Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  createdAt         DateTime        @default(now())
+  isDeleted         Boolean         @default(false)
+
+  @@index([expenseCategoryId])
+  @@index([date])
+  @@index([vehicleId])
+  @@map("expense_ledger")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// VEHICLE EXPENSE LEDGER
+// ────────────────────────────────────────────────────────────────────────────
+// Completely isolated from standard expense ledger
+
+model VehicleExpenseLedger {
+  id                       Int                    @id @default(autoincrement())
+  date                     DateTime
+  amount                   Decimal                @db.Decimal(10, 2)
+  note                     String?                @db.Text
+
+  vehicleId                Int
+  vehicle                  Vehicle                @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  
+  vehicleExpenseCategoryId Int
+  vehicleExpenseCategory   VehicleExpenseCategory @relation(fields: [vehicleExpenseCategoryId], references: [id], onDelete: Restrict)
+
+  createdAt                DateTime               @default(now())
+  isDeleted                Boolean                @default(false)
+
+  @@index([vehicleId])
+  @@index([vehicleExpenseCategoryId])
+  @@index([date])
+  @@map("vehicle_expense_ledger")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// FLEET — Vehicle & GPS Tracking
+// ────────────────────────────────────────────────────────────────────────────
+// Supports up to 5 concurrent transport trackers.
+// VehicleLocation uses a composite index on [vehicleId, timestamp] for
+// high-performance time-series queries.
+
+model Vehicle {
+  id                 Int      @id @default(autoincrement())
+  vehicleId          String   @unique @default(uuid()) @db.VarChar(50)
+  registrationNumber String?  @unique @db.VarChar(20)
+  type               String   @db.VarChar(50) // e.g., "Compactor", "Tipper"
+  isActive           Boolean  @default(true)
+
+  // Reverse relations
+  assignedUsers      User[]
+  locations          VehicleLocation[]
+  expenseEntries     ExpenseLedger[]
+  vehicleExpenseEntries VehicleExpenseLedger[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("vehicles")
+}
+
+model VehicleLocation {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  latitude  Decimal  @db.Decimal(10, 7) // ±90.0000000
+  longitude Decimal  @db.Decimal(10, 7) // ±180.0000000
+  speed     Decimal? @db.Decimal(6, 2)  // km/h, optional
+  heading   Decimal? @db.Decimal(5, 2)  // 0–360 degrees, optional
+
+  timestamp DateTime
+
+  // HIGH-PERFORMANCE composite index for time-series GPS queries
+  @@index([vehicleId, timestamp])
+  @@map("vehicle_locations")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AUDIT LOG (Append-Only)
+// ────────────────────────────────────────────────────────────────────────────
+// This model is APPEND-ONLY. Application layer MUST enforce:
+//   - No UPDATE operations
+//   - No DELETE operations
+// Consider PostgreSQL Row-Level Security (RLS) for DB-level enforcement.
+
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  action        String   @db.VarChar(100) // e.g., "LOGIN", "PAYMENT_COLLECTED", "CUSTOMER_CREATED"
+  entityType    String   @db.VarChar(60)  // e.g., "Customer", "IncomeLedger"
+  entityId      String   @db.VarChar(60)  // PK of the affected entity
+  details       Json?                      // Structured payload (before/after diff, metadata)
+
+  // ── Who performed the action ──
+  performedById Int?
+  performedBy   User?    @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  ipAddress     String?  @db.VarChar(45) // IPv4 or IPv6
+  userAgent     String?  @db.VarChar(255)
+
+  createdAt     DateTime @default(now())
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION LOG (System alerts & debt warnings)
+// ────────────────────────────────────────────────────────────────────────────
+// Tracks system log-ins, 15-day debt warnings, and all automated alerts.
+
+model NotificationLog {
+  id          Int              @id @default(autoincrement())
+  type        NotificationType
+  recipientId String?          @db.VarChar(60) // customerId or "SYSTEM"
+  message     String           @db.Text
+  metadata    Json?                             // Additional context (e.g., debtAmount, loginIP)
+  isRead      Boolean          @default(false)
+
+  createdAt   DateTime         @default(now())
+
+  @@index([type])
+  @@index([recipientId])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// REFRESH TOKEN (Database-backed session persistence)
+// ────────────────────────────────────────────────────────────────────────────
+// Opaque 512-bit hex tokens stored in PostgreSQL.
+// Each token is linked to EITHER a User OR a Customer (polymorphic).
+// Tokens auto-expire after 7 days and are rotated on every use.
+//
+// SECURITY PROPERTIES:
+//   • One-time use: rotated on each /refresh call (replay attack defense)
+//   • Device tracking: ipAddress + userAgent recorded for audit
+//   • Cascade delete: deactivating a User/Customer wipes their tokens
+
+model RefreshToken {
+  id          Int      @id @default(autoincrement())
+  token       String   @unique @db.VarChar(255)
+
+  // ── Polymorphic owner: exactly ONE of these is set ──
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+
+  // ── Token lifecycle ──
+  expiresAt   DateTime
+
+  // ── Device fingerprint (for audit and forensics) ──
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.VarChar(512)
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SALARY LEDGER
+// ────────────────────────────────────────────────────────────────────────────
+// Dedicated model for staff compensation, separating payroll from operational expenses.
+
+model SalaryLedger {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  basicPay     Decimal  @db.Decimal(10, 2)
+  deductions   Json?
+  netPay       Decimal  @db.Decimal(10, 2)
+  note         String?  @db.Text
+
+  // ── Relations ──
+  staffId      Int
+  staff        User     @relation(fields: [staffId], references: [id], onDelete: Restrict)
+
+  createdAt    DateTime @default(now())
+  isDeleted    Boolean  @default(false)
+
+  @@index([staffId])
+  @@index([date])
+  @@map("salary_ledger")
+}
+
