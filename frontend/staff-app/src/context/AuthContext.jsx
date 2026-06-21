@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success && res.data.data) {
-        setUser(res.data.data.user);
+        setUser(res.data.data);
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
@@ -38,9 +38,8 @@ export const AuthProvider = ({ children }) => {
       if (res.data?.success) {
         setUser(res.data.data.user);
         setIsAuthenticated(true);
-        if (res.data.data.refreshToken) {
-          localStorage.setItem('staff_refresh_token', res.data.data.refreshToken);
-        }
+        // SECURITY: Refresh token is set as HttpOnly cookie by the server.
+        // No localStorage storage needed.
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -54,13 +53,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('staff_refresh_token');
-      const payload = token ? { refreshToken: token } : {};
-      await api.post('/auth/logout', payload);
+      // Server reads refresh token from HttpOnly cookie
+      await api.post('/auth/logout');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('staff_refresh_token');
+      // SECURITY: No localStorage cleanup for tokens
       setIsAuthenticated(false);
       setUser(null);
     }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TrackingProvider } from './context/TrackingContext'; 
 import MobileLayout from './components/MobileLayout';
 import Login from './pages/Login';
 import Search from './pages/Search';
@@ -28,16 +29,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          
-          <Route path="/" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
-            <Route index element={<Search />} />
-            <Route path="collection/:customerId" element={<Collection />} />
-            <Route path="recent" element={<Recent />} />
-            <Route path="profile" element={<Profile />} />
-          </Route>
-        </Routes>
+        {/* 🧠 Placed here so tracking stays completely alive across all pages and layouts */}
+        <TrackingProvider> 
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route path="/" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+              <Route index element={<Search />} />
+              <Route path="collection/:customerId" element={<Collection />} />
+              <Route path="recent" element={<Recent />} />
+              <Route path="profile" element={<Profile />} /> 
+            </Route>
+          </Routes>
+        </TrackingProvider>
       </AuthProvider>
     </BrowserRouter>
   );

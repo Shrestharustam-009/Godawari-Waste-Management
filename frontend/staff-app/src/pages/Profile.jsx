@@ -1,28 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTracking } from '../context/TrackingContext'; // 👈 Connected to global tracking brain
 import api from '../services/api';
-import { io } from 'socket.io-client';
-import NoSleep from 'nosleep.js';
 import {
   User, MapPin, LogOut, Loader2, Radio, RadioOff,
   IndianRupee, Activity, Shield, Clock
 } from 'lucide-react';
 
 // ============================================================================
-// PROFILE & LIVE TRACKING ENGINE
+// PROFILE & LIVE TRACKING INTERFACE
 // ============================================================================
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // ── Shift / Tracking State ──
-  const [isTracking, setIsTracking] = useState(false);
-  const [lastCoords, setLastCoords] = useState(null);
-  const socketRef = useRef(null);
-  const watchIdRef = useRef(null);
-  const noSleepRef = useRef(null);
+  // ── Pulling background tracking states from Global Context ──
+  const { isTracking, lastCoords, startTracking, stopTracking } = useTracking();
 
   // ── Today's Stats ──
   const [todayTotal, setTodayTotal] = useState(0);
@@ -62,121 +57,22 @@ export default function Profile() {
   }, []);
 
   // ────────────────────────────────────────────────────────────────────────
-  // Initialize NoSleep instance once
+  // UI Interaction Handlers (Connected to Global Background Tracking)
   // ────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    noSleepRef.current = new NoSleep();
-    return () => {
-      // Cleanup on unmount
-      if (noSleepRef.current) {
-        noSleepRef.current.disable();
-      }
-    };
-  }, []);
+  const handleStartShift = () => {
+    startTracking(); 
+  };
 
-  // ────────────────────────────────────────────────────────────────────────
-  // Start / Stop Tracking
-  // ────────────────────────────────────────────────────────────────────────
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    // 1. Enable screen wake lock
-    try {
-      noSleepRef.current?.enable();
-    } catch (err) {
-      console.warn('NoSleep enable failed:', err);
-    }
-
-    // 2. Initialize Socket.IO connection
-    const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-    const socket = io(backendUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-    });
-
-    socket.on('connect', () => {
-      console.log('[Profile] Socket connected for GPS streaming');
-    });
-
-    socketRef.current = socket;
-
-    // 3. Start watching position
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setLastCoords({ lat: latitude, lng: longitude });
-
-        // Emit location to backend
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('live_staff_location', {
-            staffId: user?.id,
-            name: user?.username || user?.name,
-            role: user?.role,
-            lat: latitude,
-            lng: longitude,
-            timestamp: new Date().toISOString(),
-          });
-        }
-      },
-      (error) => {
-        console.error('Geolocation error:', error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000,
-      }
-    );
-
-    watchIdRef.current = watchId;
-    setIsTracking(true);
-  }, [user]);
-
-  const stopTracking = useCallback(() => {
-    // 1. Clear geolocation watch
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-
-    // 2. Disconnect socket
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-
-    // 3. Disable wake lock
-    try {
-      noSleepRef.current?.disable();
-    } catch (err) {
-      console.warn('NoSleep disable failed:', err);
-    }
-
-    setIsTracking(false);
-    setLastCoords(null);
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
+  const handleEndShift = () => {
+    stopTracking();  
+  };
 
   // ────────────────────────────────────────────────────────────────────────
   // Logout Handler
   // ────────────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     setLoggingOut(true);
-    stopTracking();
+    stopTracking(); // Ensure they are wiped from the admin map when they log out
     await logout();
     navigate('/login');
   };
@@ -272,7 +168,7 @@ export default function Profile() {
 
           {/* Toggle Button */}
           <button
-            onClick={isTracking ? stopTracking : startTracking}
+            onClick={isTracking ? handleEndShift : handleStartShift}
             className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md ${
               isTracking
                 ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-200'

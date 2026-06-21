@@ -5,7 +5,7 @@ import MasterLogin from './pages/MasterLogin';
 import Dashboard from './pages/Dashboard';
 
 // ============================================================================
-// AUTH CONTEXT — Session state derived from HttpOnly cookie
+// AUTH CONTEXT — Session state derived from HttpOnly cookie (Security-Hardened)
 // ============================================================================
 
 const AuthContext = createContext();
@@ -43,9 +43,8 @@ function AuthProvider({ children }) {
     if (res.data?.success) {
       setCustomer(res.data.data.customer);
       setIsAuthenticated(true);
-      if (res.data.data.refreshToken) {
-        localStorage.setItem('customer_refresh_token', res.data.data.refreshToken);
-      }
+      // SECURITY: Refresh token is set as HttpOnly cookie by the server.
+      // No localStorage storage needed.
       return { success: true };
     }
     return { success: false, error: 'Login failed.' };
@@ -53,12 +52,12 @@ function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('customer_refresh_token');
-      await api.post('/auth/logout', token ? { refreshToken: token } : {});
+      // Server reads refresh token from HttpOnly cookie
+      await api.post('/auth/logout');
     } catch {
       // Logout should always succeed from the user's perspective
     } finally {
-      localStorage.removeItem('customer_refresh_token');
+      // SECURITY: No localStorage cleanup needed
       setIsAuthenticated(false);
       setCustomer(null);
     }

@@ -7,11 +7,17 @@
 //
 // LOGIC:
 // 1. Fetch current monthly fee and billing day.
-// 2. If today is the billing day, fetch all active customers who haven't been billed today.
-// 3. For each customer, deduct the fee from their advanceBalance (Smart Wallet) first.
-// 4. If advanceBalance is insufficient, add the remaining fee to outstandingPayment.
-// 5. Update lastBilledDate and debtStartDate (if they just went into debt).
-// 6. Wrap each batch in an ACID transaction.
+// 2. Adjust target billing day for months shorter than the configured day.
+// 3. If today is the target billing day, fetch all active customers who haven't been billed today.
+// 4. For each customer, deduct the fee from their advanceBalance (Smart Wallet) first.
+// 5. If advanceBalance is insufficient, add the remaining fee to outstandingPayment.
+// 6. Update lastBilledDate and debtStartDate (if they just went into debt).
+// 7. Wrap each batch in an ACID transaction.
+//
+// ACCOUNTING NOTE: This engine operates on a Cash-Basis. It does NOT create
+// IncomeLedger records because no actual cash is collected here. IncomeLedger
+// records are ONLY created when physical cash or digital payments are received
+// (e.g., during field collection or advance wallet top-ups).
 // ============================================================================
 
 const cron = require('node-cron');
@@ -38,18 +44,22 @@ async function runBillingCycle() {
     const today = new Date();
     const currentDay = today.getDate();
     
-    // 2. Only run if today matches the billing cycle day
-    if (currentDay !== settings.billingCycleDay) {
-      console.log(`[WORKER: BILLING] Today (day ${currentDay}) is not the billing day (day ${settings.billingCycleDay}). Skipping.`);
+    // 2. Adjust target billing day for shorter months (e.g., Feb, Apr, Jun, Sep, Nov)
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const targetBillingDay = Math.min(settings.billingCycleDay, daysInMonth);
+    
+    // 3. Only run if today matches the target billing day
+    if (currentDay !== targetBillingDay) {
+      console.log(`[WORKER: BILLING] Today (day ${currentDay}) is not the target billing day (day ${targetBillingDay}). Skipping.`);
       return;
     }
 
     const feeAmount = new Decimal(settings.monthlyFeeAmount.toString());
     
-    // Calculate the start of today to check lastBilledDate
+    // Calculate the start of today to check lastBilledDate (idempotency check)
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    // 3. Process customers in batches of 500 to prevent memory/lock issues
+    // 4. Process customers in batches of 500 to prevent memory/lock issues
     let cursor = null;
     const BATCH_SIZE = 500;
     let totalBilled = 0;
@@ -72,7 +82,7 @@ async function runBillingCycle() {
 
       if (customers.length === 0) break;
 
-      // 4. Process the batch within a transaction
+      // 5. Process the batch within a transaction
       await prisma.$transaction(async (tx) => {
         for (const customer of customers) {
           const currentAdvance = new Decimal(customer.advanceBalance.toString());
@@ -81,15 +91,18 @@ async function runBillingCycle() {
           let newAdvance = currentAdvance;
           let newOutstanding = currentOutstanding;
 
-          // Deduct from advance first (Smart Wallet logic)
+          // ── Smart Wallet deduction logic ──
           if (currentAdvance.gte(feeAmount)) {
-            // Fully covered by advance
+            // Fully covered by advance wallet
             newAdvance = currentAdvance.minus(feeAmount);
-          } else {
-            // Partially covered by advance or no advance
+          } else if (currentAdvance.gt(0)) {
+            // Partially covered by advance
             const remainingFee = feeAmount.minus(currentAdvance);
             newAdvance = new Decimal('0.00');
             newOutstanding = currentOutstanding.plus(remainingFee);
+          } else {
+            // No advance at all — full amount added to debt
+            newOutstanding = currentOutstanding.plus(feeAmount);
           }
 
           // Determine if they just went into debt
@@ -100,7 +113,7 @@ async function runBillingCycle() {
             newDebtStartDate = null; // Cleared debt
           }
 
-          // Update the customer
+          // ── Update the customer balances ──
           await tx.customer.update({
             where: { customerId: customer.customerId },
             data: {
@@ -113,7 +126,7 @@ async function runBillingCycle() {
           
           totalBilled++;
         }
-      });
+      }, { isolationLevel: 'Serializable' });
 
       console.log(`[WORKER: BILLING] Billed batch of ${customers.length} customers.`);
       cursor = customers[customers.length - 1].customerId;

@@ -7,6 +7,9 @@
 
 const express = require('express');
 const router = express.Router();
+//  1. ADD PRISMA CLIENT IMPORTS AT THE TOP
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 const {
   getAllStaff,
@@ -26,6 +29,48 @@ router.use(authorizeRoles('ADMIN'));
 
 // ── Staff Roster ──
 router.get('/staff', getAllStaff);
+
+// ── Live Map Hydration (Survives Refresh) ──
+router.get('/latest-locations', async (req, res) => {
+  try {
+    // Fetch snapshots from both tables concurrently
+    const [staffRows, driverRows] = await Promise.all([
+      prisma.latestStaffLocation.findMany(),
+      prisma.latestDriverLocation.findMany()
+    ]);
+    
+    // Structure Staff Map Dictionary
+    const staffData = {};
+    staffRows.forEach(loc => {
+      staffData[loc.staffId] = {
+        staffId: loc.staffId,
+        lat: loc.lat,
+        lng: loc.lng,
+        timestamp: loc.updatedAt
+      };
+    });
+
+    // Structure Driver Map Dictionary
+    const driverData = {};
+    driverRows.forEach(loc => {
+      driverData[loc.vehicleId] = {
+        vehicleId: loc.vehicleId,
+        lat: loc.lat,
+        lng: loc.lng,
+        timestamp: loc.updatedAt
+      };
+    });
+
+    res.json({ 
+      success: true, 
+      staff: staffData, 
+      drivers: driverData 
+    });
+  } catch (err) {
+    console.error('[API ERROR] Failed to hydrate map networks:', err.message);
+    res.status(500).json({ success: false, message: 'Server Error loading locations' });
+  }
+});
 
 // ── Profile Creation ──
 router.post('/collectors', createCollector);

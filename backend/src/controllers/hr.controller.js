@@ -11,8 +11,12 @@
 const bcrypt = require('bcrypt');
 const { Decimal } = require('decimal.js');
 const prisma = require('../lib/prisma');
-const { addToBlacklist, removeFromBlacklist } = require('../utils/blacklist');
+const { addToBlacklist, removeFromBlacklist,isBlacklisted } = require('../utils/blacklist');
 const { createCollectorSchema, createDriverSchema } = require('../validators/hr.validator');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+
+
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
@@ -161,6 +165,100 @@ async function createCollector(req, res) {
     });
   }
 }
+
+function initSocketServer(httpServer) {
+  const io = new Server(httpServer, {
+    cors: {
+      origin: process.env.FRONTEND_URL || '*',
+      credentials: true,
+    },
+  });
+
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token;
+      if (!token) return next(new Error('Authentication required'));
+
+      const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
+      if (isBlacklisted('user', payload.id)) {
+        return next(new Error('Account deactivated'));
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.id },
+        select: { id: true, name: true, role: true, isActive: true, vehicleId: true },
+      });
+
+      if (!user || !user.isActive) {
+        return next(new Error('User not found or inactive'));
+      }
+
+      socket.user = user;
+      next();
+    } catch (err) {
+      next(new Error('Invalid or expired token'));
+    }
+  });
+
+  // Helper function to validate coordinates
+  const isValidCoordinate = (lat, lng) => {
+    return typeof lat === 'number' && typeof lng === 'number' &&
+           lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  };
+
+  io.on('connection', (socket) => {
+    const { id: userId, name, role, vehicleId } = socket.user;
+    console.log(`[Socket] ${role} "${name}" (#${userId}) connected`);
+
+    socket.on('join_map', () => {
+      if (socket.user.role !== 'ADMIN') {
+        return socket.emit('error', { message: 'Unauthorized' });
+      }
+      socket.join('map_updates');
+    });
+
+    socket.on('live_staff_location', (data) => {
+      if (role !== 'STAFF') return;
+      if (!isValidCoordinate(data.lat, data.lng)) return; // Failsafe
+
+      io.to('map_updates').emit('live_staff_location', {
+        staffId: userId,
+        name,
+        lat: data.lat,
+        lng: data.lng,
+        timestamp: new Date().toISOString(), // Server-enforced timestamp
+      });
+    });
+
+    socket.on('live_driver_location', (data) => {
+      if (role !== 'DRIVER') return;
+      if (!isValidCoordinate(data.lat, data.lng)) return; // Failsafe
+
+      io.to('map_updates').emit('live_driver_location', {
+        vehicleId,
+        driverId: userId,
+        name,
+        lat: data.lat,
+        lng: data.lng,
+        timestamp: new Date().toISOString(), // Server-enforced timestamp
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`[Socket] ${role} "${name}" (#${userId}) disconnected`);
+      if (role === 'STAFF') {
+        io.to('map_updates').emit('staff_offline', { staffId: userId });
+      } else if (role === 'DRIVER') {
+        io.to('map_updates').emit('driver_offline', { vehicleId });
+      }
+    });
+  });
+
+  return io;
+}
+
+
 
 // ============================================================================
 // 3. CREATE DRIVER (DRIVER role)
@@ -663,4 +761,5 @@ module.exports = {
   deactivateUser,
   reactivateUser,
   resetStaffPassword,
+  initSocketServer ,
 };

@@ -69,19 +69,17 @@ export default function Collection() {
     setError(null);
 
     const payload = {
-      amount: Number(amount),
-      categoryId: categoryId,
       customerId: customerId,
-      date: new Date().toISOString(),
-      notes: "Field Collection",
-      includesVat: true,
-      vatRate: 13,
-      source: "FIELD_APP",
-      paymentMethod: "CASH"
+      amount: Number(amount).toFixed(2),
+      isAdvancePayment: isAdvance,
+      paymentMethod: "CASH",
+      incomeCategoryId: categoryId,
+      note: "Field Collection",
+      idempotencyKey: `${Date.now()}-${Math.floor(Math.random() * 1000)}`
     };
 
     try {
-      const res = await api.post('/accounting/income', payload);
+      const res = await api.post('/payments/collect', payload);
       if (res.data?.success) {
         setSuccess(true);
         setShowConfirm(false);

@@ -177,17 +177,14 @@ async function processFieldPayment({
   // fails, the ledger entry is also rolled back — zero partial state.
 
   const result = await prisma.$transaction(async (tx) => {
-    // ── 5a. Fetch the customer (with row-level lock intent via transaction) ──
-    const customer = await tx.customer.findUnique({
-      where: { customerId },
-      select: {
-        customerId: true,
-        name: true,
-        outstandingPayment: true,
-        advanceBalance: true,
-        isActive: true,
-      },
-    });
+    // ── 5a. Fetch the customer with row-level lock (FOR UPDATE) ──
+    const lockedRows = await tx.$queryRaw`
+      SELECT "customerId", "name", "outstandingPayment"::text, "advanceBalance"::text, "isActive"
+      FROM "customers"
+      WHERE "customerId" = ${customerId}
+      FOR UPDATE
+    `;
+    const customer = lockedRows[0];
 
     if (!customer) {
       throw Object.assign(
@@ -295,7 +292,7 @@ async function processFieldPayment({
       newAdvance,
       route,
     };
-  });
+  }, { isolationLevel: 'Serializable' });
 
   // ──────────────────────────────────────────────────────────────────────
   // STEP 6: Return the complete financial breakdown
@@ -366,15 +363,13 @@ async function processManualIncome({
 
   // ── ACID transaction ──
   const result = await prisma.$transaction(async (tx) => {
-    const customer = await tx.customer.findUnique({
-      where: { customerId },
-      select: {
-        customerId: true,
-        outstandingPayment: true,
-        advanceBalance: true,
-        isActive: true,
-      },
-    });
+    const lockedRows = await tx.$queryRaw`
+      SELECT "customerId", "outstandingPayment"::text, "advanceBalance"::text, "isActive"
+      FROM "customers"
+      WHERE "customerId" = ${customerId}
+      FOR UPDATE
+    `;
+    const customer = lockedRows[0];
 
     if (!customer) {
       throw Object.assign(
@@ -441,7 +436,7 @@ async function processManualIncome({
     });
 
     return { income, previousOutstanding, newOutstanding, previousAdvance, newAdvance, route };
-  });
+  }, { isolationLevel: 'Serializable' });
 
   return {
     isIdempotent: false,

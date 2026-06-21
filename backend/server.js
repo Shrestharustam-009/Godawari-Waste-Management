@@ -14,6 +14,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const { Decimal } = require('decimal.js');
 
@@ -60,6 +61,9 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // Cookie parser (for JWT in HttpOnly cookies)
 app.use(cookieParser());
+
+// HPP: Prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // ────────────────────────────────────────────────────────────────────────────
 // 2. RATE LIMITING — Auth Route Protection
@@ -249,9 +253,16 @@ app.post('/api/demo/collect-payment', checkAuth, async (req, res) => {
 
   // ── Validate amount is a proper decimal string ──
   let paymentAmount;
+  let baseRevenue;
+  let vatAmount;
   try {
     paymentAmount = new Decimal(amount);
     if (paymentAmount.lte(0)) throw new Error('Amount must be positive');
+    
+    // Nepal VAT: 13% inclusive
+    const VAT_RATE = new Decimal('1.13');
+    baseRevenue = paymentAmount.dividedBy(VAT_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    vatAmount = paymentAmount.minus(baseRevenue);
   } catch {
     return res.status(400).json({ success: false, error: 'Invalid payment amount.' });
   }
@@ -311,6 +322,8 @@ app.post('/api/demo/collect-payment', checkAuth, async (req, res) => {
         data: {
           date: new Date(),
           amount: paymentAmount.toFixed(2),
+          baseAmount: baseRevenue.toFixed(2),
+          vatAmount: vatAmount.toFixed(2),
           paymentMethod: paymentMethod || 'CASH',
           source: 'FIELD_APP',
           idempotencyKey: idempotencyKey || null,

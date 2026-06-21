@@ -5,7 +5,7 @@ import api from '../api/axios';
 import {
   Loader2, LogOut, Wallet, AlertTriangle,
   IndianRupee, Clock, CheckCircle2, XCircle,
-  Recycle, ChevronRight, CreditCard
+  Recycle, ChevronRight, CreditCard, Download,FileText
 } from 'lucide-react';
 
 // ============================================================================
@@ -66,6 +66,125 @@ export default function Dashboard() {
     return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
+  const handleExportCSV = () => {
+    if (!transactions || transactions.length === 0) return;
+
+    // Define CSV headers
+    const headers = ['Transaction ID', 'Amount (Rs)', 'Date', 'Time', 'Status', 'Payment Method'];
+    
+    // Map transactions data into rows safely
+    const rows = transactions.map(tx => [
+      tx.id || 'N/A',
+      tx.amount || 0,
+      tx.date ? new Date(tx.date).toLocaleDateString('en-IN') : 'N/A',
+      tx.date ? new Date(tx.date).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A',
+      tx.status || 'N/A',
+      tx.paymentMethod || 'N/A'
+    ]);
+
+    // Combine headers and rows, converting array fields into standard safe CSV syntax
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Trigger file download in browser using Blob object
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Transactions_${profile?.name || 'Statement'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleViewStatement = () => {
+    if (!transactions || transactions.length === 0) return;
+
+    // Open a empty printable clean viewport tab
+    const printWindow = window.open('', '_blank');
+    
+    // Generate transaction list HTML rows dynamic rendering
+    const txRows = transactions.map(tx => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)} ${formatTime(tx.date)}</td>
+        <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
+        <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.paymentMethod}</td>
+        <td style="padding: 12px; font-size: 13px; font-weight: bold; color: ${tx.status === 'SUCCESSFUL' ? '#16a34a' : '#d97706'}; text-transform: uppercase;">${tx.status}</td>
+        <td style="padding: 12px; font-size: 13px; font-weight: bold; text-align: right; color: #0f172a;">Rs. ${formatCurrency(tx.amount)}</td>
+      </tr>
+    `).join('');
+
+    // Inject pure plain statement HTML structure document frame
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Account Statement - ${profile?.name}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #334155; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .meta-box { background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; uppercase; color: #64748b; font-weight: bold; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            @media print { .no-print { display: none; } body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background: #10b981; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Print / Save as PDF</button>
+            <button onclick="window.close()" style="background: #64748b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Close Window</button>
+          </div>
+
+          <div class="header">
+            <div>
+              <h1 style="margin: 0; font-size: 24px; color: #065f46;">ACCOUNT STATEMENT</h1>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+            </div>
+            <div style="text-align: right;">
+              <h3 style="margin: 0; color: #1e293b;">${profile?.name}</h3>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">ID: ${profile?.customerId}</p>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div>
+              <span style="font-size: 12px; color: #64748b; font-weight: bold;">Outstanding Dues</span>
+              <h2 style="margin: 4px 0 0 0; color: #b91c1c;">Rs. ${formatCurrency(outstandingNum)}</h2>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 12px; color: #64748b; font-weight: bold;">Smart Wallet Balance</span>
+              <h2 style="margin: 4px 0 0 0; color: #047857;">Rs. ${formatCurrency(advanceNum)}</h2>
+            </div>
+          </div>
+
+          <h3>Transaction Records</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Transaction ID</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${txRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Thank you for your business. This is a system-generated account statement summary.</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+  
   // ── Loading State ──
   if (loading) {
     return (
@@ -200,11 +319,31 @@ export default function Dashboard() {
             <CreditCard className="w-4 h-4 text-slate-500" />
             Payment History
           </h2>
-          <span className="text-xs font-bold text-slate-400">
-            {transactions.length} record{transactions.length !== 1 ? 's' : ''}
-          </span>
-        </div>
+          
+          {transactions.length > 0 ? (
+            <div className="flex items-center gap-2">
+              {/* New View/Print Statement Button */}
+              <button
+                onClick={handleViewStatement}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                View Statement
+              </button>
 
+              <button
+                onClick={handleExportCSV}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs font-bold text-slate-400">0 records</span>
+          )}
+        </div>
+        
         {transactions.length > 0 ? (
           <div className="space-y-2.5">
             {transactions.map((tx) => {

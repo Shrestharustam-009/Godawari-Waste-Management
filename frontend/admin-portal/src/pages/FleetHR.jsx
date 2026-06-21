@@ -10,6 +10,19 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useAuth } from '../context/AuthContext';
+
+// import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+// import markerIcon from 'leaflet/dist/images/marker-icon.png';
+// import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// // Overwrite Leaflet's broken default icon paths
+// delete L.Icon.Default.prototype._getIconUrl;
+// L.Icon.Default.mergeOptions({
+//   iconUrl: markerIcon,
+//   iconRetinaUrl: markerIcon2x,
+//   shadowUrl: markerShadow,
+// });
 
 // ============================================================================
 // CUSTOM LEAFLET MARKER ICONS
@@ -369,6 +382,7 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
 
 export default function FleetHR() {
   // ── Staff Roster State ──
+  const { user } = useAuth(); 
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalCount: 0 });
@@ -387,7 +401,13 @@ export default function FleetHR() {
   // ── Live Map State ──
   const [driverMarkers, setDriverMarkers] = useState({});
   const [staffMarkers, setStaffMarkers] = useState({});
+  const [mapConnected, setMapConnected] = useState(false);
+  const [focusedCoords, setFocusedCoords] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [mapFeedback, setMapFeedback] = useState(null);
 
+  const STALE_THRESHOLD_MS = 3 * 60 * 1000; // 3 min with no ping = considered offline
+  const hasInitialFitRef = useRef(false);
   // ── Deactivation Loading ──
   const [deactivatingId, setDeactivatingId] = useState(null);
 
@@ -424,31 +444,148 @@ export default function FleetHR() {
     fetchStaff();
   }, [fetchStaff]);
 
+
+useEffect(() => {
+  const fetchInitialLocations = async () => {
+    try {
+      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+      
+      console.log("[FleetHR] Fetching initial map footprints from database...");
+      
+      // We hit the new endpoint we just added to your hr.routes file
+      const response = await fetch(`${backendUrl}/api/v1/hr/latest-locations`, {
+        method: 'GET',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        // CRITICAL: This sends your accessToken cookie along with the request
+        credentials: 'include', 
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("Database hydration successful! Active pins loaded:", result);
+        
+        // Populate your React states immediately on page load
+        if (result.staff) setStaffMarkers(result.staff);
+        if (result.drivers) setDriverMarkers(result.drivers);
+      } else {
+        console.warn("[FleetHR] Failed to load locations from database:", result.message);
+      }
+    } catch (error) {
+      console.error("[FleetHR] Network error downloading initial map pins:", error);
+    }
+  };
+
+  // Only run this if an authenticated admin user is present
+  if (user) {
+    fetchInitialLocations();
+  }
+}, [user]); // Fires the moment the admin securely logs in
+
   // ── Socket.IO: Live GPS Feed ──
-  useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000', { withCredentials: true, transports: ['websocket', 'polling'] });
+ useEffect(() => {
+  // 1. Guard: Just check if the user is logged in. Cookies handle the actual token!
+  if (!user) {
+    // console.log('[FleetHR] No user found, skipping socket initialization.');
+    return;
+  }
 
-    socket.on('connect', () => {
-      console.log('[FleetHR] Socket connected, joining map_updates room');
-      socket.emit('join_map');
+ 
+
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+  const socket = io(backendUrl, {
+    withCredentials: true,
+    transports: ['websocket', 'polling'],
+  });
+
+  socket.on('connect', () => {
+    console.log('[FleetHR] Map socket successfully connected! Sending join_admin...');
+    setMapConnected(true);
+    socket.emit('join_admin'); // Emitting join_admin matches your admin network profile
+  });
+
+  socket.on('disconnect', () => {
+    console.log('[FleetHR] Map socket disconnected.');
+    setMapConnected(false);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('[FleetHR] Map socket connection error:', err.message);
+    setMapConnected(false);
+  });
+
+  // LIVE COURIER/DRIVER CHANNEL
+  socket.on('live_driver_location', (data) => {
+    // console.log("📥 Driver location received:", data);
+    setDriverMarkers(prev => ({
+      ...prev,
+      [data.vehicleId]: { lat: data.lat, lng: data.lng, vehicleId: data.vehicleId, timestamp: data.timestamp },
+     }));
+  });
+
+  // LIVE COLLECTOR/STAFF CHANNEL
+  socket.on('live_staff_location', (data) => {
+    // console.log("MATCH! Frontend successfully caught staff event data:", data);
+    setStaffMarkers((prevMarkers) => ({
+      ...prevMarkers,
+      [data.staffId]: data 
+    }));
+  });
+
+  // CLEANUP CHANNELS (Removes markers instantly when shift ends)
+  
+  // 1. Staff goes offline
+  socket.on('staff_offline', (data) => {
+    console.log(`🧹 Removing staff pin from admin map: ${data.staffId}`);
+    setStaffMarkers(prev => {
+      const next = { ...prev };
+      delete next[data.staffId];
+      return next;
     });
+  });
 
-    socket.on('live_driver_location', (data) => {
-      setDriverMarkers(prev => ({
-        ...prev,
-        [data.vehicleId]: { lat: data.lat, lng: data.lng, vehicleId: data.vehicleId, timestamp: data.timestamp }
-      }));
+  // 2. Driver goes offline
+  socket.on('driver_offline', (data) => {
+    console.log(`Removing driver vehicle pin from admin map: ${data.vehicleId}`);
+    setDriverMarkers(prev => {
+      const next = { ...prev };
+      delete next[data.vehicleId];
+      return next;
     });
+  });
 
-    socket.on('live_staff_location', (data) => {
-      setStaffMarkers(prev => ({
-        ...prev,
-        [data.staffId]: { lat: data.lat, lng: data.lng, staffId: data.staffId, timestamp: data.timestamp }
-      }));
+
+
+  // 2. Clean up everything when the user leaves the page
+  return () => { 
+    console.log('[FleetHR] Cleaning up and disconnecting map socket...');
+    socket.disconnect(); 
+  };
+}, [user]);
+
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const cutoff = Date.now() - STALE_THRESHOLD_MS;
+    setDriverMarkers(prev => {
+      const next = {};
+      for (const [id, m] of Object.entries(prev)) {
+        if (new Date(m.timestamp).getTime() >= cutoff) next[id] = m;
+      }
+      return next;
     });
-
-    return () => { socket.disconnect(); };
-  }, []);
+    setStaffMarkers(prev => {
+      const next = {};
+      for (const [id, m] of Object.entries(prev)) {
+        if (new Date(m.timestamp).getTime() >= cutoff) next[id] = m;
+      }
+      return next;
+    });
+  }, 30000);
+  return () => clearInterval(interval);
+}, []);
 
   // ── Deactivate Handler ──
   const handleDeactivate = async (userId, userName) => {
@@ -502,11 +639,43 @@ export default function FleetHR() {
     }
   };
 
+  function MapAutoFit({ markers }) {
+  const map = useMap();
+  const hasFitRef = useRef(false);
+
+  useEffect(() => {
+    if (markers.length > 0 && !hasFitRef.current) {
+      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      hasFitRef.current = true; // only auto-fit once
+    }
+  }, [markers, map]);
+
+  return null;
+}
+
+ function MapController({ targetCoords }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetCoords) {
+      map.flyTo([targetCoords.lat, targetCoords.lng], 16, { animate: true, duration: 1 });
+    }
+  }, [targetCoords, map]);
+  return null;
+}
+
   // ── Aggregate all markers for map bounds ──
   const allMapMarkers = [
     ...Object.values(driverMarkers),
     ...Object.values(staffMarkers),
   ];
+
+  const filteredStaff = Array.isArray(staff) 
+  ? staff.filter(emp => 
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      emp.username.toLowerCase().includes(searchTerm.toLowerCase())
+    ) 
+  : [];
 
   // Godawari, Nepal coordinates
   const godawariCenter = [27.5935, 85.3876];
@@ -551,6 +720,7 @@ export default function FleetHR() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapController targetCoords={focusedCoords} />
 
             {allMapMarkers.length > 0 && <MapAutoFit markers={allMapMarkers} />}
 
@@ -562,19 +732,59 @@ export default function FleetHR() {
               </Marker>
             ))}
 
-            {Object.values(staffMarkers).map(m => (
+            {Object.values(staffMarkers).map(m => {
+            // Look up the matching employee to get their name/username
+            const employee = staff.find(s => s.id === m.staffId);
+            
+            return (
               <Marker key={`staff-${m.staffId}`} position={[m.lat, m.lng]} icon={collectorIcon}>
                 <Popup>
-                  <div className="text-sm"><strong className="text-blue-700">👤 Collector #{m.staffId}</strong><br /><span className="text-slate-500">Last ping: {new Date(m.timestamp).toLocaleTimeString('en-IN')}</span></div>
+                  <div className="text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                        {employee?.name?.charAt(0) || '?'}
+                      </span>
+                      <strong className="text-blue-700">
+                        {employee ? employee.name : `Collector #${m.staffId}`}
+                      </strong>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono mb-2">
+                      @{employee?.username || 'n/a'}
+                    </div>
+                    <div className="text-[11px] text-slate-400 border-t pt-1">
+                      Last seen: {new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
                 </Popup>
               </Marker>
-            ))}
+            );
+          })}
           </MapContainer>
         </div>
       </div>
 
+     
+
       {/* ── BOTTOM HALF: HR ROSTER TABLE ── */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-700 uppercase flex items-center">
+            <Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster
+          </h2>
+          
+          {/* Search Input */}
+          <input
+            type="text"
+            placeholder="Search by name or username..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          
+          <span className="text-xs font-bold text-slate-400">
+            {filteredStaff.length} employees found
+          </span>
+        </div>
         <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center"><Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster</h2>
           <span className="text-xs font-bold text-slate-400">{pagination.totalCount} employees • Page {pagination.page} of {pagination.totalPages}</span>
@@ -585,6 +795,12 @@ export default function FleetHR() {
         {!loading && (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-sm text-left">
+               {mapFeedback && (
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-full shadow-lg flex items-center animate-bounce">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      {mapFeedback}
+                    </div>
+                  )}
               <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-4">ID</th>
@@ -596,81 +812,124 @@ export default function FleetHR() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {Array.isArray(staff) && staff.length > 0 ? (
-                  staff.map(emp => (
-                    <tr key={emp.id} className={`transition-colors ${emp.isActive ? 'bg-white hover:bg-slate-50/80' : 'bg-red-50/30'}`}>
-                      <td className="px-6 py-4 text-slate-500 font-mono text-xs">#{emp.id}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${emp.role === 'DRIVER' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
-                            {emp.name?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900">{emp.name}</p>
-                            <p className="text-xs text-slate-400">@{emp.username}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${emp.role === 'DRIVER' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {emp.role === 'DRIVER' ? 'Driver' : 'Collector'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-600 font-medium text-sm">
-                        {emp.vehicle ? `🚛 ${emp.vehicle.registrationNumber}` : '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        {emp.isActive ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"><ShieldCheck className="w-3 h-3" /> Active</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold"><ShieldOff className="w-3 h-3" /> Inactive</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setProfilePanelId(emp.id)}
-                            className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5 mr-1" /> View
-                          </button>
-                          
-                          {emp.isLoginEnabled && emp.isActive && (
-                            <button
-                              onClick={() => setSudoConfig({ isOpen: true, staffId: emp.id })}
-                              className="inline-flex items-center px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-bold transition-colors"
-                            >
-                              <KeyRound className="w-3.5 h-3.5 mr-1" /> Reset Pwd
-                            </button>
-                          )}
+          {filteredStaff.length > 0 ? (
+            filteredStaff.map(emp => (
+              <tr key={emp.id} className={`transition-colors ${emp.isActive ? 'bg-white hover:bg-slate-50/80' : 'bg-red-50/30'}`}>
+                {/* Username Column */}
+                <td className="px-6 py-4">
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                    @{emp.username}
+                  </span>
+                </td>
 
-                          {emp.isActive ? (
-                            <button
-                              onClick={() => handleDeactivate(emp.id, emp.name)}
-                              disabled={deactivatingId === emp.id}
-                              className="inline-flex items-center px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                            >
-                              {deactivatingId === emp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShieldOff className="w-3.5 h-3.5 mr-1" /> Deactivate</>}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleReactivate(emp.id, emp.name)}
-                              disabled={deactivatingId === emp.id}
-                              className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                            >
-                              {deactivatingId === emp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShieldCheck className="w-3.5 h-3.5 mr-1" /> Reactivate</>}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="text-center py-16 text-slate-400 font-medium">No employees found. Add collectors or drivers to get started.</td>
-                  </tr>
-                )}
-              </tbody>
+        {/* Name Column */}
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${emp.role === 'DRIVER' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+              {emp.name?.charAt(0)?.toUpperCase()}
+            </div>
+            <div>
+              <p className="font-bold text-slate-900">{emp.name}</p>
+            </div>
+          </div>
+        </td>
+
+        {/* Role Column */}
+        <td className="px-6 py-4">
+          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${emp.role === 'DRIVER' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+            {emp.role === 'DRIVER' ? 'Driver' : 'Collector'}
+          </span>
+        </td>
+
+        {/* Assignment Column */}
+        <td className="px-6 py-4 text-slate-600 font-medium text-sm">
+          {emp.vehicle ? `🚛 ${emp.vehicle.registrationNumber}` : '—'}
+        </td>
+
+        {/* Status Column */}
+        <td className="px-6 py-4">
+          {emp.isActive ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"><ShieldCheck className="w-3 h-3" /> Active</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold"><ShieldOff className="w-3 h-3" /> Inactive</span>
+          )}
+        </td>
+
+        {/* Actions Column */}
+        <td className="px-6 py-4">
+          <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => {
+                    // 1. Safely default to empty objects if the markers aren't loaded yet
+                    const safeDriverMarkers = driverMarkers || {};
+                    const safeStaffMarkers = staffMarkers || {};
+                    
+                    // 2. Combine them safely
+                    const allMarkers = { ...safeDriverMarkers, ...safeStaffMarkers };
+                    
+                    // 3. Find the specific marker
+                    const marker = emp.role === 'DRIVER' 
+                      ? safeDriverMarkers[emp.vehicleId] 
+                      : safeStaffMarkers[emp.id];
+
+                    // 4. Perform the logic
+                    if (marker && marker.lat && marker.lng) {
+                      setFocusedCoords({ lat: marker.lat, lng: marker.lng });
+                    } else {
+                      // Use your existing successToast or a simple console log for now
+                      // to avoid the crash if the marker is missing
+                      console.log("Marker data not available for this employee");
+                      setSuccessToast(`@${emp.username} is currently offline or has no location.`);
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors"
+                >
+                  <MapPin className="w-3.5 h-3.5 mr-1" /> Focus
+                </button>
+                          
+            <button
+              onClick={() => setProfilePanelId(emp.id)}
+              className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5 mr-1" /> View
+            </button>
+            
+            {emp.isLoginEnabled && emp.isActive && (
+              <button
+                onClick={() => setSudoConfig({ isOpen: true, staffId: emp.id })}
+                className="inline-flex items-center px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-bold transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5 mr-1" /> Reset Pwd
+              </button>
+            )}
+
+            {emp.isActive ? (
+              <button
+                onClick={() => handleDeactivate(emp.id, emp.name)}
+                disabled={deactivatingId === emp.id}
+                className="inline-flex items-center px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {deactivatingId === emp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShieldOff className="w-3.5 h-3.5 mr-1" /> Deactivate</>}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleReactivate(emp.id, emp.name)}
+                disabled={deactivatingId === emp.id}
+                className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {deactivatingId === emp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><ShieldCheck className="w-3.5 h-3.5 mr-1" /> Reactivate</>}
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))
+          ) : (
+            <tr>
+              <td colSpan={6} className="text-center py-16 text-slate-400 font-medium">No results found.</td>
+            </tr>
+          )}
+        </tbody>
             </table>
           </div>
         )}

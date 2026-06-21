@@ -1,44 +1,68 @@
 // ============================================================================
-// checkAuth.js — Master Authentication & Authorization Middleware
+// checkAuth.js — Master Authentication & Authorization Middleware (Hardened)
 // ============================================================================
-// This middleware intercepts EVERY protected API request and enforces:
-//
-// 1. ACCESS TOKEN EXTRACTION — Reads the JWT from the HttpOnly cookie.
-// 2. TOKEN VERIFICATION — Validates signature + expiration (15-min window).
-// 3. BLACKLIST INTERCEPT — Checks the in-memory blacklist BEFORE processing.
-//    If an admin has set isActive=false on a User or Customer, this middleware
-//    instantly drops the request with 401, overriding the unexpired token.
-// 4. ROLE AUTHORIZATION — Optional role-gating via authorizeRoles() factory.
-//
-// Attack surface covered:
-//   ✓ Stolen/expired tokens → rejected at step 2
-//   ✓ Deactivated accounts with live tokens → rejected at step 3
-//   ✓ Privilege escalation attempts → rejected at step 4
+// SECURITY LAYERS:
+//   1. ACCESS TOKEN EXTRACTION from HttpOnly cookie
+//   2. TOKEN VERIFICATION (signature + expiration)
+//   3. IN-MEMORY BLACKLIST check (fast path)
+//   4. LIVE DATABASE VERIFICATION (30s cache) — ensures deactivated accounts
+//      are rejected even if the in-memory blacklist is stale
+//   5. ROLE AUTHORIZATION via authorizeRoles() factory
 // ============================================================================
 
 const { verifyAccessToken, clearAccessCookie } = require('../utils/token');
 const { isBlacklisted } = require('../utils/blacklist');
+const prisma = require('../lib/prisma');
 
-/**
- * Primary authentication middleware.
- *
- * Extracts the JWT access token from the HttpOnly cookie, verifies it,
- * checks the decoded principal against the in-memory deactivation blacklist,
- * and populates `req.user` on success.
- *
- * req.user shape:
- *   {
- *     id: number | string,   // userId (int) or customerId (string)
- *     role: string,           // 'ADMIN' | 'STAFF' | 'DRIVER' | 'CUSTOMER'
- *     type: string,           // 'user' | 'customer'
- *     username?: string,      // Staff/admin username (if present)
- *     name?: string,          // Display name (if present)
- *     iat: number,            // Issued-at timestamp
- *     exp: number,            // Expiration timestamp
- *   }
- */
-function checkAuth(req, res, next) {
-  // ── Step 1: Extract token from HttpOnly cookie ──
+// ── Live status cache: { `${type}:${id}` → { isActive, isLoginEnabled, expiresAt } } ──
+const statusCache = new Map();
+const CACHE_TTL_MS = 30_000; // 30 seconds
+
+async function verifyActiveStatus(type, id) {
+  const cacheKey = `${type}:${id}`;
+  const cached = statusCache.get(cacheKey);
+  
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached;
+  }
+
+  let status = { isActive: false, isLoginEnabled: false };
+
+  try {
+    if (type === 'user') {
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(id, 10) },
+        select: { isActive: true, isLoginEnabled: true },
+      });
+      if (user) {
+        status = { isActive: user.isActive, isLoginEnabled: user.isLoginEnabled };
+      }
+    } else if (type === 'customer') {
+      const customer = await prisma.customer.findUnique({
+        where: { customerId: String(id) },
+        select: { isActive: true },
+      });
+      if (customer) {
+        status = { isActive: customer.isActive, isLoginEnabled: true };
+      }
+    }
+  } catch (err) {
+    console.error(`[AUTH] DB status check failed for ${cacheKey}:`, err.message);
+    // On DB failure, deny access (fail-closed)
+    return { isActive: false, isLoginEnabled: false };
+  }
+
+  status.expiresAt = Date.now() + CACHE_TTL_MS;
+  statusCache.set(cacheKey, status);
+  return status;
+}
+
+// Export for use by deactivation/reactivation flows to invalidate cache
+function invalidateStatusCache(type, id) {
+  statusCache.delete(`${type}:${id}`);
+}
+
+async function checkAuth(req, res, next) {
   const token = req.cookies?.accessToken;
 
   if (!token) {
@@ -49,12 +73,10 @@ function checkAuth(req, res, next) {
     });
   }
 
-  // ── Step 2: Verify JWT signature and expiration ──
   let decoded;
   try {
     decoded = verifyAccessToken(token);
   } catch (err) {
-    // Clear the invalid/expired cookie so the client doesn't resend it
     clearAccessCookie(res);
 
     if (err.name === 'TokenExpiredError') {
@@ -72,10 +94,7 @@ function checkAuth(req, res, next) {
     });
   }
 
-  // ── Step 3: BLACKLIST INTERCEPT ──
-  // This is the critical "instant-deactivation" check.
-  // Even if the 15-minute token is still valid, a deactivated account
-  // is rejected here with ZERO database round-trips (in-memory Set lookup).
+  // ── Fast path: in-memory blacklist ──
   if (isBlacklisted(decoded.type, decoded.id)) {
     clearAccessCookie(res);
     return res.status(401).json({
@@ -85,21 +104,31 @@ function checkAuth(req, res, next) {
     });
   }
 
-  // ── Step 4: Populate req.user for downstream handlers ──
+  // ── CRITICAL: Live DB verification (cached 30s) ──
+  const status = await verifyActiveStatus(decoded.type, decoded.id);
+  
+  if (!status.isActive) {
+    clearAccessCookie(res);
+    return res.status(401).json({
+      success: false,
+      error: 'Account has been deactivated. Contact system administrator.',
+      code: 'ACCOUNT_DEACTIVATED',
+    });
+  }
+
+  if (decoded.type === 'user' && !status.isLoginEnabled) {
+    clearAccessCookie(res);
+    return res.status(401).json({
+      success: false,
+      error: 'Login has been disabled for this account.',
+      code: 'LOGIN_DISABLED',
+    });
+  }
+
   req.user = decoded;
   next();
 }
 
-/**
- * Role-based authorization middleware factory.
- *
- * Usage:
- *   router.get('/admin-only', checkAuth, authorizeRoles('ADMIN'), handler);
- *   router.get('/staff-area', checkAuth, authorizeRoles('ADMIN', 'STAFF'), handler);
- *
- * @param  {...string} allowedRoles — One or more of: 'ADMIN', 'STAFF', 'DRIVER', 'CUSTOMER'
- * @returns {Function} Express middleware
- */
 function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
@@ -122,10 +151,6 @@ function authorizeRoles(...allowedRoles) {
   };
 }
 
-/**
- * Convenience middleware: restricts to internal staff only (ADMIN, STAFF, DRIVER).
- * Rejects CUSTOMER-type tokens.
- */
 function staffOnly(req, res, next) {
   if (!req.user || req.user.type !== 'user') {
     return res.status(403).json({
@@ -137,10 +162,6 @@ function staffOnly(req, res, next) {
   next();
 }
 
-/**
- * Convenience middleware: restricts to customer portal users only.
- * Rejects User-type tokens.
- */
 function customerOnly(req, res, next) {
   if (!req.user || req.user.type !== 'customer') {
     return res.status(403).json({
@@ -157,4 +178,5 @@ module.exports = {
   authorizeRoles,
   staffOnly,
   customerOnly,
+  invalidateStatusCache,
 };

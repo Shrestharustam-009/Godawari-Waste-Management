@@ -106,7 +106,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, pin, assignedArea, outstandingPayment } = parseResult.data;
+    const { customerId, name, phone, pin, assignedArea, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -139,6 +139,8 @@ async function createCustomer(req, res) {
         assignedArea,
         outstandingPayment: startingDebt.toFixed(2),
         debtStartDate,
+        dueStartDate,
+        dueEndDate,
       },
     });
 
@@ -228,6 +230,8 @@ async function getCustomerProfile(req, res) {
       outstandingPayment: customer.outstandingPayment.toString(),
       advanceBalance: customer.advanceBalance.toString(),
       debtStartDate: customer.debtStartDate,
+      dueStartDate: customer.dueStartDate,
+      dueEndDate: customer.dueEndDate,
       lastBilledDate: customer.lastBilledDate,
       createdAt: customer.createdAt,
       transactions: customer.incomeEntries.map((tx) => ({

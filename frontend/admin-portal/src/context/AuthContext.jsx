@@ -7,19 +7,18 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Rehydrate session on mount
+  // Rehydrate session on mount via server check (NOT localStorage)
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Backend should ideally have a /auth/me endpoint.
-        // If it doesn't, we assume no session on hard reload and force login,
-        // or check localStorage for a user object (but rely on HttpOnly cookie for auth).
-        const storedUser = localStorage.getItem('gwms_user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        const res = await api.get('/auth/me');
+        if (res.data?.success && res.data.data) {
+          setUser(res.data.data);
         }
       } catch (err) {
-        console.error('Session restore failed');
+        // Access token expired or invalid — user will need to re-login
+        // The axios interceptor will attempt auto-refresh first
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -32,13 +31,10 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/staff/login', { username, password });
       
       if (response.data.success) {
-        // The HttpOnly cookie is automatically set by the browser.
-        // We just store the non-sensitive UI user data.
+        // Both access + refresh tokens are set as HttpOnly cookies by the server.
+        // We only store non-sensitive UI display data in React state (NOT localStorage).
         const userData = response.data.data.user;
-        const refreshToken = response.data.data.refreshToken;
         setUser(userData);
-        localStorage.setItem('gwms_user', JSON.stringify(userData));
-        localStorage.setItem('gwms_refresh_token', refreshToken);
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -57,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error', e);
     } finally {
       setUser(null);
-      localStorage.removeItem('gwms_user');
+      // SECURITY: No localStorage cleanup needed — tokens are only in HttpOnly cookies
     }
   };
 

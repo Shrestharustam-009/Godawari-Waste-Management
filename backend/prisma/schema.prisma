@@ -450,3 +450,23 @@ model SalaryLedger {
   @@map("salary_ledger")
 }
 
+model LatestStaffLocation {
+  staffId   Int      @id @map("staff_id")
+  lat       Float
+  lng       Float
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("latest_staff_locations")
+}
+
+model LatestDriverLocation {
+  vehicleId String   @id @map("vehicle_id") // String type protects against alphanumeric vehicle numbers/IDs
+  lat       Float
+  lng       Float
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("latest_driver_locations")
+}
+
+
+

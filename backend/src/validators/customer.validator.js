@@ -81,6 +81,9 @@ const createCustomerSchema = z.object({
     )
     .optional()
     .default('0.00'),
+
+  dueStartDate: z.coerce.date().optional(),
+  dueEndDate: z.coerce.date().optional(),
 }).strict();
 
 module.exports = {

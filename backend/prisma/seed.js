@@ -25,7 +25,11 @@ async function main() {
   console.log('✅ GlobalSettings:', settings);
 
   // ── 2. Default Admin User ──
-  const adminPasswordHash = await bcrypt.hash('admin@2024', 12);
+  const defaultAdminPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+  if (!defaultAdminPassword) {
+    throw new Error('ADMIN_DEFAULT_PASSWORD must be set in environment for seeding.');
+  }
+  const adminPasswordHash = await bcrypt.hash(defaultAdminPassword, 12);
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},

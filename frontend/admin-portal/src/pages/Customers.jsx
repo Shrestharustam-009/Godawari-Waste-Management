@@ -21,6 +21,9 @@ import {
   IndianRupee,
   KeyRound,
   CheckCircle2,
+  Calendar,
+  Download,  // Added for CSV export
+  FileText,  // Added for Statement generation
 } from 'lucide-react';
 
 // ============================================================================
@@ -62,6 +65,8 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     assignedArea: '',
     pin: '',
     outstandingPayment: '0.00',
+    dueStartDate: '',
+    dueEndDate: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -79,7 +84,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', form);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', pin: '', outstandingPayment: '0.00' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', pin: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
         onClose();
       }
     } catch (err) {
@@ -169,6 +174,25 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
             </div>
           </div>
 
+          {Number(form.outstandingPayment) > 0 && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Debt From Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="date" name="dueStartDate" value={form.dueStartDate} onChange={handleChange} className={inputClass} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Debt To Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="date" name="dueEndDate" value={form.dueEndDate} onChange={handleChange} className={inputClass} />
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -204,6 +228,119 @@ function CustomerProfile({ customerId, onClose }) {
       })
       .finally(() => setLoading(false));
   }, [customerId]);
+
+  // ── Export CSV Handler ──
+  const handleExportCSV = () => {
+    if (!profile || !profile.transactions || profile.transactions.length === 0) return;
+
+    const headers = ['Transaction ID', 'Method', 'Source', 'Collected By', 'Date', 'VAT Amount (INR)', 'Amount (INR)', 'Note'];
+    const rows = profile.transactions.map(tx => [
+      tx.id || 'N/A',
+      tx.paymentMethod,
+      tx.source,
+      tx.collectedBy,
+      new Date(tx.date).toLocaleDateString('en-IN'),
+      tx.vatAmount,
+      tx.amount,
+      tx.note || ''
+    ]);
+
+    const csvContent = [
+      `Customer Statement for ${profile.name} (${profile.customerId})`,
+      `Outstanding Due,₹${profile.outstandingPayment}`,
+      `Smart Wallet Balance,₹${profile.advanceBalance || 0}`,
+      [], // Empty spacer row
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Statement_${profile.customerId}_${profile.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ── View/Print Plain HTML Statement Document ──
+  const handleViewStatement = () => {
+    if (!profile) return;
+
+    const printWindow = window.open('', '_blank');
+    const txRows = (profile.transactions || []).map(tx => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${new Date(tx.date).toLocaleDateString('en-IN')}</td>
+        <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
+        <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.paymentMethod} · ${tx.source}</td>
+        <td style="padding: 12px; font-size: 13px; color: #64748b;">${tx.collectedBy}</td>
+        <td style="padding: 12px; font-size: 13px; font-weight: bold; text-align: right; color: #16a34a;">+₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Statement_${profile.customerId}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #334155; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .meta-box { background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: bold; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            @media print { .no-print { display: none; } body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background: #0284c7; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Print / Download PDF</button>
+            <button onclick="window.close()" style="background: #64748b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Close</button>
+          </div>
+          <div class="header">
+            <div>
+              <h1 style="margin: 0; font-size: 24px; color: #0f172a;">ACCOUNT STATEMENT</h1>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+            </div>
+            <div style="text-align: right;">
+              <h3 style="margin: 0; color: #1e293b;">${profile.name}</h3>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">ID: ${profile.customerId} · ${profile.assignedArea}</p>
+            </div>
+          </div>
+          <div class="meta-box">
+            <div>
+              <span style="font-size: 12px; color: #64748b; font-weight: bold;">Outstanding Balance</span>
+              <h2 style="margin: 4px 0 0 0; color: #dc2626;">₹${Number(profile.outstandingPayment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 12px; color: #64748b; font-weight: bold;">Smart Wallet Balance</span>
+              <h2 style="margin: 4px 0 0 0; color: #16a34a;">₹${Number(profile.advanceBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+            </div>
+          </div>
+          <h3>Transaction Records</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Transaction ID</th>
+                <th>Method & Source</th>
+                <th>Collected By</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${txRows || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #94a3b8;">No transactions found.</td></tr>'}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>This is a system-generated financial summary report statement documentation sheet.</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   if (!customerId) return null;
 
@@ -246,8 +383,13 @@ function CustomerProfile({ customerId, onClose }) {
                   <p className="text-sm text-slate-500">{profile.customerId} · {profile.assignedArea}</p>
                 </div>
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 mt-2 space-y-1">
                 <p>Registered: {new Date(profile.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                {profile.dueStartDate && profile.dueEndDate && (
+                  <p className="text-amber-700 font-medium bg-amber-50 inline-block px-2 py-0.5 rounded">
+                    Historical Debt Period: {new Date(profile.dueStartDate).toLocaleDateString('en-IN')} — {new Date(profile.dueEndDate).toLocaleDateString('en-IN')}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -267,12 +409,34 @@ function CustomerProfile({ customerId, onClose }) {
               </div>
             </div>
 
-            {/* Transaction History (The Ledger) */}
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3 flex items-center">
-                <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                Transaction History ({profile.transactions?.length || 0})
-              </h4>
+            {/* Transaction History (The Ledger Container) */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                  Transaction History ({profile.transactions?.length || 0})
+                </h4>
+
+                {/* Statements Action Buttons Trigger Toolbar */}
+                {profile.transactions && profile.transactions.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleViewStatement}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Statement
+                    </button>
+                    <button
+                      onClick={handleExportCSV}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      CSV
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {(!profile.transactions || profile.transactions.length === 0) ? (
                 <div className="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-300">
@@ -371,7 +535,6 @@ export default function Customers() {
   };
 
   const handleAddSuccess = (newCustomer) => {
-    // Optimistically prepend the new customer to the list
     setCustomers((prev) => [newCustomer, ...prev]);
     setPagination((prev) => ({ ...prev, totalCount: prev.totalCount + 1 }));
   };

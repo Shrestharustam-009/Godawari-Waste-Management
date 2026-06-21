@@ -101,7 +101,7 @@ const collectPaymentSchema = z.object({
     .max(1000, 'Note must not exceed 1,000 characters.')
     .transform(sanitizeText)
     .optional(),
-});
+}).strict();
 
 // ────────────────────────────────────────────────────────────────────────────
 // Manual Income Entry — POST /api/v1/income/manual

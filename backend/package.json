@@ -29,23 +29,26 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "bcrypt": "^5.1.1",
-    "cookie": "^1.1.1",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "decimal.js": "^10.4.3",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.1",
-    "express-rate-limit": "^7.4.1",
-    "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "node-cron": "^4.2.1",
-    "socket.io": "^4.8.3",
-    "zod": "^3.23.8"
+    "@prisma/client": "5.22.0",
+    "bcrypt": "5.1.1",
+    "cookie": "1.1.1",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.5",
+    "decimal.js": "10.4.3",
+    "dotenv": "16.6.1",
+    "express": "4.21.1",
+    "express-rate-limit": "7.4.1",
+    "helmet": "8.0.0",
+    "hpp": "0.2.3",
+    "jsonwebtoken": "9.0.2",
+    "node-cron": "4.2.1",
+    "pg": "8.22.0",
+    "sequelize": "6.37.8",
+    "socket.io": "4.8.3",
+    "zod": "3.23.8"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "5.22.0"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
