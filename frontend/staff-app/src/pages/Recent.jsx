@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ArrowLeft, History, IndianRupee } from 'lucide-react';
+import { Loader2, ArrowLeft, History, IndianRupee, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import Invoice from '../components/Invoice';
 
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTxToPrint, setSelectedTxToPrint] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -33,6 +37,14 @@ export default function Recent() {
     const d = new Date(dateString);
     const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return d.toLocaleDateString('en-US', options);
+  };
+
+  const handlePrint = (tx) => {
+    setSelectedTxToPrint(tx);
+    // Wait briefly for React to render the Invoice component with the selected tx data
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   return (
@@ -78,9 +90,18 @@ export default function Recent() {
                 </div>
                 
                 <div className="text-right flex flex-col items-end">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 mb-2 uppercase">
-                    {tx.paymentMethod}
-                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button 
+                      onClick={() => handlePrint(tx)}
+                      className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
+                      title="Print Invoice"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 uppercase">
+                      {tx.paymentMethod}
+                    </span>
+                  </div>
                   <span className="text-lg font-black text-emerald-600 flex items-center">
                     <IndianRupee className="w-4 h-4 mr-0.5" />
                     {formatCurrency(tx.amount)}
@@ -99,6 +120,19 @@ export default function Recent() {
           </div>
         )}
       </div>
+
+      {/* Hidden Invoice Component for Printing */}
+      {selectedTxToPrint && (
+        <Invoice 
+          customer={selectedTxToPrint.customer}
+          staffName={user?.name || user?.username}
+          amount={selectedTxToPrint.amount}
+          date={selectedTxToPrint.date}
+          receiptNo={`REC-${selectedTxToPrint.id}`}
+          paymentForStartDate={selectedTxToPrint.paymentForStartDate}
+          paymentForEndDate={selectedTxToPrint.paymentForEndDate}
+        />
+      )}
     </div>
   );
 }

@@ -31,6 +31,8 @@ async function collectPayment(req, res) {
       incomeCategoryId: req.body.incomeCategoryId,
       referenceId: req.body.referenceId || null,
       note: req.body.note || null,
+      paymentForStartDate: req.body.paymentForStartDate || null,
+      paymentForEndDate: req.body.paymentForEndDate || null,
     });
 
     // ── Idempotent duplicate — return existing record ──

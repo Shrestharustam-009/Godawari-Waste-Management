@@ -101,6 +101,9 @@ const collectPaymentSchema = z.object({
     .max(1000, 'Note must not exceed 1,000 characters.')
     .transform(sanitizeText)
     .optional(),
+
+  paymentForStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
+  paymentForEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
 }).strict();
 
 // ────────────────────────────────────────────────────────────────────────────

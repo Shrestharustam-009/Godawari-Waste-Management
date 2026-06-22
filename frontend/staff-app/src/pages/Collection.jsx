@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Loader2, IndianRupee, Printer } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, IndianRupee, Printer, Calendar } from 'lucide-react';
 import Swal from 'sweetalert2';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import Invoice from '../components/Invoice';
 
 export default function Collection() {
   const { customerId } = useParams();
@@ -12,12 +14,16 @@ export default function Collection() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [isAdvance, setIsAdvance] = useState(false);
+  const [paymentForStartDate, setPaymentForStartDate] = useState('');
+  const [paymentForEndDate, setPaymentForEndDate] = useState('');
+  const { user } = useAuth();
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [categoryId, setCategoryId] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
 
   useEffect(() => {
     const fetchCustomerAndCategory = async () => {
@@ -75,12 +81,15 @@ export default function Collection() {
       paymentMethod: "CASH",
       incomeCategoryId: categoryId,
       note: "Field Collection",
+      paymentForStartDate: paymentForStartDate || undefined,
+      paymentForEndDate: paymentForEndDate || undefined,
       idempotencyKey: `${Date.now()}-${Math.floor(Math.random() * 1000)}`
     };
 
     try {
       const res = await api.post('/payments/collect', payload);
       if (res.data?.success) {
+        setReceiptData(res.data.data);
         setSuccess(true);
         setShowConfirm(false);
       }
@@ -100,22 +109,8 @@ export default function Collection() {
     return <div className="p-6 text-center text-red-500">Customer not found.</div>;
   }
 
-  const handlePrintReceipt = async () => {
-    try {
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-      });
-      console.log('Bluetooth device selected:', device.name);
-      Swal.fire('Printing', 'Receipt sent to printer', 'success');
-    } catch (err) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Bluetooth Error',
-        text: 'Bluetooth printing requires a secure HTTPS connection.',
-        confirmButtonColor: '#059669'
-      });
-    }
+  const handlePrintReceipt = () => {
+    window.print();
   };
 
   if (success) {
@@ -138,6 +133,15 @@ export default function Collection() {
         >
           Back to Search
         </button>
+        <Invoice 
+          customer={customer}
+          staffName={user?.name || user?.username}
+          amount={amount}
+          date={new Date().toISOString()}
+          receiptNo={receiptData?.incomeId ? `REC-${receiptData.incomeId}` : `REC-${Date.now()}`}
+          paymentForStartDate={paymentForStartDate}
+          paymentForEndDate={paymentForEndDate}
+        />
       </div>
     );
   }
@@ -198,6 +202,37 @@ export default function Collection() {
               onChange={(e) => setAmount(e.target.value)}
               className="w-full pl-12 pr-4 py-4 text-2xl font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
             />
+          </div>
+        </div>
+
+        {/* Period Covered (Optional) */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4">
+          <label className="block text-sm font-bold text-slate-700 mb-3">Period Covered (Optional)</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">From Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input 
+                  type="date" 
+                  value={paymentForStartDate} 
+                  onChange={(e) => setPaymentForStartDate(e.target.value)} 
+                  className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">To Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input 
+                  type="date" 
+                  value={paymentForEndDate} 
+                  onChange={(e) => setPaymentForEndDate(e.target.value)} 
+                  className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

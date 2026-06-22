@@ -206,6 +206,10 @@ model IncomeLedger {
   idempotencyKey  String?       @unique @db.VarChar(128)
   referenceId     String?       @unique @db.VarChar(128)
 
+  // ── Payment Period (Optional) ──
+  paymentForStartDate DateTime?
+  paymentForEndDate   DateTime?
+
   // ── Relations ──
   customerId      String
   customer        Customer      @relation(fields: [customerId], references: [customerId], onDelete: Restrict)

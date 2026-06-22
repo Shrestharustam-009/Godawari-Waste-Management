@@ -81,6 +81,8 @@ async function processFieldPayment({
   incomeCategoryId,
   referenceId = null,
   note = null,
+  paymentForStartDate = null,
+  paymentForEndDate = null,
 }) {
   // ──────────────────────────────────────────────────────────────────────
   // STEP 1: Parse and validate the gross amount using Decimal.js
@@ -281,6 +283,8 @@ async function processFieldPayment({
         collectedById: staffId,
         incomeCategoryId,
         note: note || null,
+        paymentForStartDate: paymentForStartDate || null,
+        paymentForEndDate: paymentForEndDate || null,
       },
     });
 

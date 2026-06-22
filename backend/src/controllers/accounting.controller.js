@@ -214,7 +214,7 @@ async function getIncomeHistory(req, res) {
       },
       include: {
         customer: {
-          select: { name: true, customerId: true }
+          select: { name: true, customerId: true, assignedArea: true, phone: true }
         }
       },
       orderBy: { date: 'desc' }
