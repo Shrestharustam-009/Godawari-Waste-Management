@@ -7,13 +7,16 @@ import {
   Truck, 
   ArrowRight, 
   Loader2, 
-  AlertCircle 
+  AlertCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export default function MasterLogin() {
   const [role, setRole] = useState('ADMIN');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,7 +50,7 @@ export default function MasterLogin() {
           break;
         case 'CUSTOMER':
           endpoint = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000') + '/api/v1/auth/customer/login';
-          payload = { phone: identifier, pin: password };
+          payload = { phone: identifier, password };
           break;
         default:
           throw new Error('Invalid role selected');
@@ -175,18 +178,25 @@ export default function MasterLogin() {
             
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                {role === 'CUSTOMER' ? '4-Digit PIN' : 'Password'}
+                Password
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-4 py-3 border border-slate-300 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors bg-slate-50"
-                placeholder={role === 'CUSTOMER' ? '••••' : 'Enter your password'}
-                maxLength={role === 'CUSTOMER' ? 4 : undefined}
-                inputMode={role === 'CUSTOMER' ? 'numeric' : 'text'}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 pr-12 border border-slate-300 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors bg-slate-50"
+                  placeholder={role === 'CUSTOMER' ? 'Minimum 5 characters' : 'Enter your password'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
           </div>
 

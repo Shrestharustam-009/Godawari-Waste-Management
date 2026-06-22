@@ -40,10 +40,9 @@ const customerLoginSchema = z.object({
       'Invalid phone number format. Expected: 98XXXXXXXX or +97798XXXXXXXX.'
     ),
 
-  pin: z
-    .string({ required_error: 'PIN is required.' })
-    // Enforce exactly 4 digits — no letters, no spaces, no symbols
-    .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.'),
+  password: z
+    .string({ required_error: 'Password is required.' })
+    .min(5, 'Password must be greater than 4 characters.'),
 }).strict();
 
 // ────────────────────────────────────────────────────────────────────────────

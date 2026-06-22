@@ -129,7 +129,7 @@ async function staffLogin(req, res) {
 // ════════════════════════════════════════════════════════════════════════
 
 async function customerLogin(req, res) {
-  const { phone, pin } = req.body;
+  const { phone, password } = req.body;
 
   try {
     const normalizedPhone = phone.replace(/^\+977/, '');
@@ -144,7 +144,7 @@ async function customerLogin(req, res) {
         details: { phone: normalizedPhone, reason: 'Phone not registered' },
         ipAddress: req.ip, userAgent: req.get('User-Agent'),
       });
-      return res.status(401).json({ success: false, error: 'Invalid phone number or PIN.', code: 'INVALID_CREDENTIALS' });
+      return res.status(401).json({ success: false, error: 'Invalid phone number or password.', code: 'INVALID_CREDENTIALS' });
     }
 
     if (!customer.isActive) {
@@ -156,15 +156,16 @@ async function customerLogin(req, res) {
       return res.status(401).json({ success: false, error: 'Account has been deactivated.', code: 'ACCOUNT_DEACTIVATED' });
     }
 
-    const isPinValid = await bcrypt.compare(pin, customer.pinHash);
-    if (!isPinValid) {
+    const isPasswordValid = await bcrypt.compare(password, customer.pinHash);
+    if (!isPasswordValid) {
       await writeAuditLog({
         action: 'CUSTOMER_LOGIN_FAILED', entityType: 'Customer', entityId: customer.customerId,
-        details: { reason: 'Invalid PIN' },
+        details: { reason: 'Invalid Password' },
         ipAddress: req.ip, userAgent: req.get('User-Agent'),
       });
-      return res.status(401).json({ success: false, error: 'Invalid phone number or PIN.', code: 'INVALID_CREDENTIALS' });
+      return res.status(401).json({ success: false, error: 'Invalid phone number or password.', code: 'INVALID_CREDENTIALS' });
     }
+    // bf7a26c5
 
     const accessToken = signAccessToken({ id: customer.customerId, role: 'CUSTOMER', type: 'customer', name: customer.name });
     setAccessCookie(res, accessToken);

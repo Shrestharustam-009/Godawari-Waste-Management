@@ -13,7 +13,7 @@ const {
   getAllCustomers,
   createCustomer,
   getCustomerProfile,
-  resetCustomerPin,
+  resetCustomerPassword,
 } = require('../controllers/customer.controller');
 
 // ── RBAC is now applied per-route to allow field staff to search ──
@@ -31,9 +31,9 @@ router.get('/', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), getAllCustomers);
 // Creates a new customer record (Zod-validated)
 router.post('/', authorizeRoles('ADMIN'), createCustomer);
 
-// POST /api/v1/customers/:customerId/reset-pin
-// Resets the customer's PIN
-router.post('/:customerId/reset-pin', authorizeRoles('ADMIN'), resetCustomerPin);
+// POST /api/v1/customers/:customerId/reset-password
+// Resets the customer's password
+router.post('/:customerId/reset-password', authorizeRoles('ADMIN'), resetCustomerPassword);
 
 // GET /api/v1/customers/:customerId
 // Returns full customer profile with itemized transaction history

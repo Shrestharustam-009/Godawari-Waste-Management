@@ -51,9 +51,9 @@ const createCustomerSchema = z.object({
       'Phone number may only contain digits, +, -, (, ), and spaces.'
     ),
 
-  pin: z
-    .string({ required_error: 'A 4-digit PIN is required.' })
-    .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.'),
+  password: z
+    .string({ required_error: 'A password is required.' })
+    .min(5, 'Password must be greater than 4 characters.'),
 
   assignedArea: z
     .string({ required_error: 'Assigned area is required.' })
@@ -82,8 +82,8 @@ const createCustomerSchema = z.object({
     .optional()
     .default('0.00'),
 
-  dueStartDate: z.coerce.date().optional(),
-  dueEndDate: z.coerce.date().optional(),
+  dueStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
+  dueEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
 }).strict();
 
 module.exports = {

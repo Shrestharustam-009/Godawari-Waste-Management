@@ -8,6 +8,7 @@
 
 const { Decimal } = require('decimal.js');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { createCustomerSchema } = require('../validators/customer.validator');
 
@@ -106,7 +107,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, pin, assignedArea, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -120,8 +121,8 @@ async function createCustomer(req, res) {
       });
     }
 
-    // 3. Hash the 4-digit PIN
-    const pinHash = await bcrypt.hash(pin, 12);
+    // 3. Hash the password (stored in pinHash column for backwards compatibility)
+    const pinHash = await bcrypt.hash(password, 12);
 
     // 4. Cast starting debt to Decimal for safe storage
     const startingDebt = new Decimal(outstandingPayment);
@@ -263,27 +264,30 @@ async function getCustomerProfile(req, res) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 4. RESET PIN (Sudo-Protected)
+// 4. RESET PASSWORD (Sudo-Protected)
 // ────────────────────────────────────────────────────────────────────────────
-async function resetCustomerPin(req, res) {
+async function resetCustomerPassword(req, res) {
   try {
-    const { sudoPassword } = req.body;
     const { customerId } = req.params;
+    const { sudoPassword } = req.body;
 
-    const admin = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (!admin) return res.status(401).json({ success: false, error: 'Admin not found.' });
-
-    const isPasswordValid = await bcrypt.compare(sudoPassword, admin.passwordHash);
-    if (!isPasswordValid) return res.status(403).json({ success: false, error: 'Sudo authentication failed.' });
-
-    const customer = await prisma.customer.findUnique({ where: { customerId } });
-    if (!customer || !customer.isActive) {
-      return res.status(404).json({ success: false, error: 'Customer not found or inactive.' });
+    if (!sudoPassword) {
+      return res.status(400).json({ success: false, error: 'Admin sudo password is required.' });
     }
 
-    // Generate strict 4-digit PIN
-    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-    const pinHash = await bcrypt.hash(newPin, 12);
+    const adminUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Forbidden. Admin access required.' });
+    }
+
+    const isSudoValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
+    if (!isSudoValid) {
+      return res.status(401).json({ success: false, error: 'Invalid admin password.' });
+    }
+
+    // Generate strict 8-character alphanumeric password
+    const newPassword = crypto.randomBytes(4).toString('hex');
+    const pinHash = await bcrypt.hash(newPassword, 12);
 
     await prisma.customer.update({
       where: { customerId },
@@ -292,12 +296,12 @@ async function resetCustomerPin(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: 'PIN reset successfully.',
-      data: { newPin },
+      message: 'Password reset successfully.',
+      data: { newPassword },
     });
   } catch (error) {
-    console.error('[CUSTOMER CTRL] resetCustomerPin error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to reset PIN.' });
+    console.error('[CUSTOMER CTRL] resetCustomerPassword error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to reset password.' });
   }
 }
 
@@ -305,5 +309,5 @@ module.exports = {
   getAllCustomers,
   createCustomer,
   getCustomerProfile,
-  resetCustomerPin,
+  resetCustomerPassword,
 };

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   X,
   Eye,
+  EyeOff,
   Loader2,
   AlertCircle,
   Wallet,
@@ -63,13 +64,14 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     name: '',
     phone: '',
     assignedArea: '',
-    pin: '',
+    password: '',
     outstandingPayment: '0.00',
     dueStartDate: '',
     dueEndDate: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -84,7 +86,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', form);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', pin: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
         onClose();
       }
     } catch (err) {
@@ -159,10 +161,17 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">4-Digit PIN</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input name="pin" value={form.pin} onChange={handleChange} placeholder="••••" maxLength={4} required className={inputClass} type="password" />
+                <input name="password" value={form.password} onChange={handleChange} placeholder="Minimum 5 characters" required className={inputClass} type={showPassword ? 'text' : 'password'} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             <div>
@@ -539,17 +548,17 @@ export default function Customers() {
     setPagination((prev) => ({ ...prev, totalCount: prev.totalCount + 1 }));
   };
 
-  // ── Reset PIN Handler ──
-  const handleResetPinConfirm = async (sudoPassword) => {
-    setSudoLoading(true); setSudoError(null);
+  // ── Reset Password Handler ──
+  const handleResetPasswordConfirm = async (sudoPassword) => {
     try {
-      const res = await api.post(`/customers/${sudoConfig.customerId}/reset-pin`, { sudoPassword });
-      if (res.data?.success) {
-        setSuccessToast(`Temporary PIN: ${res.data.data.newPin}`);
+      setSudoError('');
+      const res = await api.post(`/customers/${sudoConfig.customerId}/reset-password`, { sudoPassword });
+      if (res.data.success) {
+        setSuccessToast(`Temporary Password: ${res.data.data.newPassword}`);
         setSudoConfig({ isOpen: false, customerId: null });
       }
     } catch (err) {
-      setSudoError(err.response?.data?.error || 'PIN reset failed.');
+      setSudoError(err.response?.data?.error || 'Password reset failed.');
     } finally {
       setSudoLoading(false);
     }
@@ -657,7 +666,7 @@ export default function Customers() {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition-colors"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
-                            Reset PIN
+                            Reset Password
                           </button>
                         </div>
                       </td>
@@ -709,16 +718,17 @@ export default function Customers() {
         onClose={() => setSelectedCustomerId(null)}
       />
 
-      {/* Sudo Modal for PIN Reset */}
-      <SudoModal 
-        isOpen={sudoConfig.isOpen} 
-        onClose={() => setSudoConfig({ isOpen: false, customerId: null })} 
-        onConfirm={handleResetPinConfirm} 
-        loading={sudoLoading} 
-        error={sudoError} 
-        title="Reset Customer PIN" 
-        message="Enter master admin password to generate a temporary PIN for this customer." 
-      />
+      {sudoConfig.isOpen && (
+        <SudoModal 
+          isOpen={sudoConfig.isOpen} 
+          onClose={() => setSudoConfig({ isOpen: false, customerId: null })}
+          onConfirm={handleResetPasswordConfirm} 
+          loading={sudoLoading}
+          error={sudoError}
+          title="Reset Customer Password" 
+          message="Enter master admin password to generate a temporary password for this customer." 
+        />
+      )}
 
       {successToast && (
         <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl font-bold z-50 flex items-center gap-3">

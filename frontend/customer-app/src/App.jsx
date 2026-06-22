@@ -38,8 +38,8 @@ function AuthProvider({ children }) {
     checkSession();
   }, []);
 
-  const login = async (phone, pin) => {
-    const res = await api.post('/auth/customer/login', { phone, pin });
+  const login = async (phone, password) => {
+    const res = await api.post('/auth/customer/login', { phone, password });
     if (res.data?.success) {
       setCustomer(res.data.data.customer);
       setIsAuthenticated(true);

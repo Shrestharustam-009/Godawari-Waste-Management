@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { Phone, KeyRound, Loader2, Recycle, ShieldCheck } from 'lucide-react';
+import { Phone, KeyRound, Loader2, Recycle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 // ============================================================================
-// CUSTOMER LOGIN — Phone + 4-Digit PIN
+// CUSTOMER LOGIN — Phone + Password
 // ============================================================================
 
 export default function Login() {
@@ -12,9 +12,10 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // If already authenticated, redirect immediately
   if (isAuthenticated) {
@@ -26,26 +27,26 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    if (!phone.trim() || !pin.trim()) {
-      setError('Please enter both phone number and PIN.');
+    if (!phone.trim() || !password.trim()) {
+      setError('Please enter both phone number and password.');
       return;
     }
 
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setError('PIN must be exactly 4 digits.');
+    if (password.length < 5) {
+      setError('Password must be at least 5 characters.');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await login(phone.trim(), pin);
+      const result = await login(phone.trim(), password);
       if (result.success) {
         navigate('/dashboard', { replace: true });
       } else {
         setError(result.error || 'Login failed.');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid phone number or PIN.');
+      setError(err.response?.data?.error || 'Invalid phone number or password.');
     } finally {
       setLoading(false);
     }
@@ -108,24 +109,29 @@ export default function Login() {
               </div>
             </div>
 
-            {/* PIN Input */}
+            {/* Password Input */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                4-Digit PIN
+              <label className="block text-sm font-medium text-emerald-950 mb-1">
+                Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <KeyRound className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
-                  type="password"
-                  inputMode="numeric"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="● ● ● ●"
-                  maxLength={4}
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium tracking-[0.5em] text-center placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 5 characters"
+                  className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-emerald-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
