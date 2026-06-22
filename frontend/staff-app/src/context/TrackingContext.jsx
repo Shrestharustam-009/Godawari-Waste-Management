@@ -15,6 +15,8 @@ export function TrackingProvider({ children }) {
   const watchIdRef = useRef(null);
   const noSleepRef = useRef(null);
   const lastEmitRef = useRef(0);
+  const heartbeatIntervalRef = useRef(null);
+  const lastCoordsRef = useRef(null);
   const EMIT_INTERVAL_MS = 4000;
 
   // Initialize NoSleep once at app root
@@ -34,6 +36,11 @@ export function TrackingProvider({ children }) {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
+    }
+
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
     }
 
     if (socketRef.current) {
@@ -82,6 +89,7 @@ export function TrackingProvider({ children }) {
       (position) => {
         const { latitude, longitude } = position.coords;
         setLastCoords({ lat: latitude, lng: longitude });
+        lastCoordsRef.current = { lat: latitude, lng: longitude };
         setIsTracking(true);
 
         const now = Date.now();
@@ -108,6 +116,24 @@ export function TrackingProvider({ children }) {
 
     watchIdRef.current = watchId;
     setIsTracking(true);
+
+    // Ensure we keep sending our last known location even if watchPosition doesn't fire (e.g. standing still)
+    heartbeatIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const coords = lastCoordsRef.current;
+      if (socketRef.current?.connected && coords && now - lastEmitRef.current >= EMIT_INTERVAL_MS) {
+        lastEmitRef.current = now;
+        socketRef.current.emit('staff_location_update', {
+          staffId: user?.id || user?._id, 
+          name: user?.name || user?.username || 'Field Staff',
+          role: user?.role || 'STAFF',
+          lat: coords.lat,
+          lng: coords.lng,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }, EMIT_INTERVAL_MS);
+
   }, [user, isTracking, stopTracking]);
 
   // 🔄 Auto-Resume engine across page reloads

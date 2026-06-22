@@ -33,10 +33,11 @@ router.get('/staff', getAllStaff);
 // ── Live Map Hydration (Survives Refresh) ──
 router.get('/latest-locations', async (req, res) => {
   try {
-    // Fetch snapshots from both tables concurrently
+    // Fetch snapshots from both tables concurrently (Filter out anything older than 3 minutes)
+    const cutoff = new Date(Date.now() - 3 * 60 * 1000);
     const [staffRows, driverRows] = await Promise.all([
-      prisma.latestStaffLocation.findMany(),
-      prisma.latestDriverLocation.findMany()
+      prisma.latestStaffLocation.findMany({ where: { updatedAt: { gte: cutoff } } }),
+      prisma.latestDriverLocation.findMany({ where: { updatedAt: { gte: cutoff } } })
     ]);
     
     // Structure Staff Map Dictionary

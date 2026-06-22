@@ -380,6 +380,31 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
 // MAIN COMPONENT: FleetHR
 // ============================================================================
 
+function MapAutoFit({ markers }) {
+  const map = useMap();
+  const hasFitRef = useRef(false);
+
+  useEffect(() => {
+    if (markers.length > 0 && !hasFitRef.current) {
+      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      hasFitRef.current = true; // only auto-fit once
+    }
+  }, [markers, map]);
+
+  return null;
+}
+
+function MapController({ targetCoords }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetCoords) {
+      map.flyTo([targetCoords.lat, targetCoords.lng], 18, { animate: true, duration: 1 });
+    }
+  }, [targetCoords, map]);
+  return null;
+}
+
 export default function FleetHR() {
   // ── Staff Roster State ──
   const { user } = useAuth(); 
@@ -537,7 +562,7 @@ useEffect(() => {
   // CLEANUP CHANNELS (Removes markers instantly when shift ends)
   
   // 1. Staff goes offline
-  socket.on('staff_offline', (data) => {
+  socket.on('staff_went_offline', (data) => {
     console.log(`🧹 Removing staff pin from admin map: ${data.staffId}`);
     setStaffMarkers(prev => {
       const next = { ...prev };
@@ -547,7 +572,7 @@ useEffect(() => {
   });
 
   // 2. Driver goes offline
-  socket.on('driver_offline', (data) => {
+  socket.on('driver_went_offline', (data) => {
     console.log(`Removing driver vehicle pin from admin map: ${data.vehicleId}`);
     setDriverMarkers(prev => {
       const next = { ...prev };
@@ -639,30 +664,6 @@ useEffect(() => {
     }
   };
 
-  function MapAutoFit({ markers }) {
-  const map = useMap();
-  const hasFitRef = useRef(false);
-
-  useEffect(() => {
-    if (markers.length > 0 && !hasFitRef.current) {
-      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      hasFitRef.current = true; // only auto-fit once
-    }
-  }, [markers, map]);
-
-  return null;
-}
-
- function MapController({ targetCoords }) {
-  const map = useMap();
-  useEffect(() => {
-    if (targetCoords) {
-      map.flyTo([targetCoords.lat, targetCoords.lng], 16, { animate: true, duration: 1 });
-    }
-  }, [targetCoords, map]);
-  return null;
-}
 
   // ── Aggregate all markers for map bounds ──
   const allMapMarkers = [
@@ -880,6 +881,7 @@ useEffect(() => {
                       // to avoid the crash if the marker is missing
                       console.log("Marker data not available for this employee");
                       setSuccessToast(`@${emp.username} is currently offline or has no location.`);
+                      setTimeout(() => setSuccessToast(null), 3000);
                     }
                   }}
                   className="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors"
