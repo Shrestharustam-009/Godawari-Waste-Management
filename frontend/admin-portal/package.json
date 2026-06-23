@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@zener/nepali-datepicker-react": "^1.6.2",
     "axios": "^1.17.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
@@ -17,6 +18,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hot-toast": "^2.6.0",
+    "react-is": "^19.2.7",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",

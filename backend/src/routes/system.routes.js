@@ -20,16 +20,14 @@ const {
 
 const { authorizeRoles } = require('../middleware/checkAuth');
 
-// All system routes require ADMIN privileges
-router.use(authorizeRoles('ADMIN'));
-
 // ── Read current configuration ──
-router.get('/settings', getSettings);
+// Open to all authenticated users so staff app can fetch calendarType, etc.
+router.get('/settings', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), getSettings);
 
 // ── Sudo-protected mutation ──
-router.put('/settings', updateSettings);
-router.put('/deductions', updateDeductions);
-router.post('/vehicles', addVehicle);
-router.get('/vehicles', getAllVehicles);
+router.put('/settings', authorizeRoles('ADMIN'), updateSettings);
+router.put('/deductions', authorizeRoles('ADMIN'), updateDeductions);
+router.post('/vehicles', authorizeRoles('ADMIN'), addVehicle);
+router.get('/vehicles', authorizeRoles('ADMIN'), getAllVehicles);
 
 module.exports = router;

@@ -133,6 +133,7 @@ export default function Settings() {
         setFormState({
           monthlyFeeAmount: data.monthlyFeeAmount || '500.00',
           billingCycleDay: data.billingCycleDay ?? 1,
+          calendarType: data.calendarType || 'AD',
         });
         setDeductions(data.customDeductions || []);
       }
@@ -158,6 +159,7 @@ export default function Settings() {
         await api.put('/system/settings', {
           monthlyFeeAmount: String(formState.monthlyFeeAmount),
           billingCycleDay: Number(formState.billingCycleDay),
+          calendarType: formState.calendarType,
           sudoPassword,
         });
         setSuccessMessage('System settings updated successfully.');
@@ -187,7 +189,7 @@ export default function Settings() {
   };
   const handleRemoveDeduction = (index) => setDeductions(deductions.filter((_, i) => i !== index));
 
-  const hasGeneralChanges = formState.monthlyFeeAmount !== settings.monthlyFeeAmount || Number(formState.billingCycleDay) !== Number(settings.billingCycleDay);
+  const hasGeneralChanges = formState.monthlyFeeAmount !== settings.monthlyFeeAmount || Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType;
   const hasDeductionChanges = JSON.stringify(deductions) !== JSON.stringify(settings.customDeductions);
 
   if (loading) return <SettingsSkeleton />;
@@ -231,6 +233,27 @@ export default function Settings() {
             <select value={formState.billingCycleDay} onChange={e => setFormState({ ...formState, billingCycleDay: Number(e.target.value) })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-base font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
               {Array.from({ length: 28 }, (_, i) => i + 1).map(day => <option key={day} value={day}>Day {day} of every month</option>)}
             </select>
+          </div>
+          <div>
+            <label className="flex items-center text-sm font-bold text-slate-700 mb-2.5">
+              <Calendar className="w-4 h-4 mr-2 text-purple-500" /> Default Calendar Type
+            </label>
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setFormState({ ...formState, calendarType: 'AD' })}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'AD' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                English (AD)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormState({ ...formState, calendarType: 'BS' })}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'BS' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Nepali (BS)
+              </button>
+            </div>
           </div>
           <div className="flex justify-end">
             <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global fee.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>

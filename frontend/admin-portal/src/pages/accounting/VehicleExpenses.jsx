@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
+import { useSettings } from '../../context/SettingsContext';
 import { Truck, Loader2, Plus, Tag, Search, Download } from 'lucide-react';
+import DatePicker from '../../components/DatePicker';
 
 const formatCurrency = (val) => {
   return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -154,7 +156,9 @@ function LogVehicleExpenseModal({ isOpen, onClose, onSuccess, categories }) {
           {/* Sub-category removed as it's not supported in VehicleExpenseLedger */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Transaction Date</label>
-            <input type="date" required value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className={inputClass} />
+            <div className={`h-[42px] border border-slate-200 rounded-lg overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white`}>
+              <DatePicker required name="transactionDate" value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className="h-full" />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes / Invoice Number</label>
@@ -184,6 +188,7 @@ export default function VehicleExpenses() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
+  const { formatDate } = useSettings();
 
   const fetchEntries = useCallback(async () => {
     setLoading(true);
@@ -226,19 +231,19 @@ export default function VehicleExpenses() {
       const q = searchQuery.toLowerCase();
       return (
         tx.categoryName.toLowerCase().includes(q) || 
-        new Date(tx.date).toLocaleDateString('en-IN').includes(q) ||
+        formatDate(tx.date).toLowerCase().includes(q) ||
         String(tx.vehicleId).includes(q) ||
         tx.registrationNumber.toLowerCase().includes(q)
       );
     });
-  }, [entries, searchQuery]);
+  }, [entries, searchQuery, formatDate]);
 
   const exportCSV = () => {
-    const headers = ['Vehicle ID', 'Registration', 'Date', 'Category', 'Amount', 'Notes'];
+    const headers = ['Date', 'Vehicle ID', 'Registration', 'Category', 'Amount', 'Notes'];
     const rows = filteredEntries.map(tx => [
+      formatDate(tx.date),
       tx.vehicleId,
       tx.registrationNumber,
-      new Date(tx.date).toLocaleDateString('en-IN'),
       tx.categoryName,
       tx.amount,
       `"${tx.note || ''}"`
@@ -287,9 +292,13 @@ export default function VehicleExpenses() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <input type="date" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" />
+              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
+                <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full" />
+              </div>
               <span className="text-slate-400 text-sm">to</span>
-              <input type="date" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" />
+              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
+                <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full" />
+              </div>
             </div>
             <button onClick={exportCSV} className="inline-flex items-center px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-sm shadow-sm transition-all">
               <Download className="w-4 h-4 mr-2" /> Export
@@ -304,9 +313,9 @@ export default function VehicleExpenses() {
             <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold tracking-wider border-b border-slate-200">
               <tr>
+                <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Vehicle ID</th>
                 <th className="px-6 py-4">Reg No</th>
-                <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Category</th>
                 <th className="px-6 py-4 text-right font-extrabold text-slate-900">Amount</th>
                 <th className="px-6 py-4">Notes</th>
@@ -316,9 +325,9 @@ export default function VehicleExpenses() {
               {filteredEntries.length > 0 ? (
                 filteredEntries.map(tx => (
                   <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors bg-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">{formatDate(tx.date)}</td>
                     <td className="px-6 py-4 font-bold text-slate-700">#{tx.vehicleId}</td>
                     <td className="px-6 py-4 text-slate-900 font-medium">{tx.registrationNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-600">{new Date(tx.date).toLocaleDateString('en-IN')}</td>
                     <td className="px-6 py-4">
                       <div className="text-slate-900 font-medium">{tx.categoryName}</div>
                     </td>

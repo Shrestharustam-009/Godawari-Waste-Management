@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
+import { useSettings } from '../../context/SettingsContext';
 import { UserCircle, Loader2, Plus, Search, Download } from 'lucide-react';
+import DatePicker from '../../components/DatePicker';
 
 const formatCurrency = (val) => {
   return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -114,8 +116,10 @@ function LogSalaryModal({ isOpen, onClose, onSuccess, customDeductions }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Transaction Date</label>
-              <input type="date" required value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className={inputClass} />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Transaction Date</label>
+              <div className={`h-[42px] border border-slate-200 rounded-lg overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white`}>
+                <DatePicker required name="transactionDate" value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className="h-full" />
+              </div>
             </div>
           </div>
 
@@ -176,6 +180,7 @@ export default function StaffSalary() {
   const [showModal, setShowModal] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
+  const { formatDate } = useSettings();
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -222,11 +227,11 @@ export default function StaffSalary() {
       const q = searchQuery.toLowerCase();
       return (
         tx.staffName.toLowerCase().includes(q) || 
-        new Date(tx.date).toLocaleDateString('en-IN').includes(q) ||
+        formatDate(tx.date).toLowerCase().includes(q) ||
         tx.role.toLowerCase().includes(q)
       );
     });
-  }, [entries, searchQuery]);
+  }, [entries, searchQuery, formatDate]);
 
   // Aggregate all unique deduction names from entries to build dynamic table headers & CSV columns
   const dynamicDeductionNames = useMemo(() => {
@@ -251,7 +256,7 @@ export default function StaffSalary() {
       const dedCols = dynamicDeductionNames.map(name => dedMap[name] || '0.00');
 
       return [
-        new Date(tx.date).toLocaleDateString('en-IN'),
+        formatDate(tx.date),
         tx.staffName,
         tx.role,
         tx.basicPay,
@@ -302,9 +307,13 @@ export default function StaffSalary() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <input type="date" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" />
+              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
+                <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full" />
+              </div>
               <span className="text-slate-400 text-sm">to</span>
-              <input type="date" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" />
+              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
+                <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full" />
+              </div>
             </div>
             <button onClick={exportCSV} className="inline-flex items-center px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-sm shadow-sm transition-all">
               <Download className="w-4 h-4 mr-2" /> Export
@@ -338,7 +347,7 @@ export default function StaffSalary() {
                   
                   return (
                     <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors bg-white">
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">{new Date(tx.date).toLocaleDateString('en-IN')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">{formatDate(tx.date)}</td>
                       <td className="px-6 py-4">
                         <div className="text-slate-900 font-bold">{tx.staffName}</div>
                         <div className="text-slate-500 text-xs uppercase tracking-wider">{tx.role}</div>
@@ -353,7 +362,7 @@ export default function StaffSalary() {
                       ))}
                       <td className="px-6 py-4 text-right font-bold text-slate-900 text-base">₹{formatCurrency(tx.netPay)}</td>
                     </tr>
-                  )
+                  );
                 })
               ) : (
                 <tr><td colSpan={5 + dynamicDeductionNames.length} className="text-center py-16 text-slate-400 font-medium bg-white">No salary entries found.</td></tr>

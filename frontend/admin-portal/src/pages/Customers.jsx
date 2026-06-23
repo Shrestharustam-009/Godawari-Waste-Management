@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useSettings } from '../context/SettingsContext';
 import {
   Users,
   Plus,
@@ -26,6 +27,7 @@ import {
   Download,  // Added for CSV export
   FileText,  // Added for Statement generation
 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 // ============================================================================
 // SUDO MODAL
@@ -187,16 +189,20 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Debt From Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="date" name="dueStartDate" value={form.dueStartDate} onChange={handleChange} className={inputClass} />
+                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white overflow-hidden flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <DatePicker name="dueStartDate" value={form.dueStartDate} onChange={handleChange} className="flex-1" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Debt To Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="date" name="dueEndDate" value={form.dueEndDate} onChange={handleChange} className={inputClass} />
+                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white overflow-hidden flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <DatePicker name="dueEndDate" value={form.dueEndDate} onChange={handleChange} className="flex-1" />
                 </div>
               </div>
             </div>
@@ -222,6 +228,7 @@ function CustomerProfile({ customerId, onClose }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { formatDate } = useSettings();
 
   useEffect(() => {
     if (!customerId) return;
@@ -247,8 +254,8 @@ function CustomerProfile({ customerId, onClose }) {
       tx.id || 'N/A',
       tx.paymentMethod,
       tx.source,
-      tx.collectedBy,
-      new Date(tx.date).toLocaleDateString('en-IN'),
+      tx.staffName || 'Admin',
+      formatDate(tx.date),
       tx.vatAmount,
       tx.amount,
       tx.note || ''
@@ -280,7 +287,9 @@ function CustomerProfile({ customerId, onClose }) {
     const printWindow = window.open('', '_blank');
     const txRows = (profile.transactions || []).map(tx => `
       <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${new Date(tx.date).toLocaleDateString('en-IN')}</td>
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${tx.staffName || 'Admin'}</td>
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)}</td>
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">Rs. ${Number(tx.vatAmount).toFixed(2)}</td>
         <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
         <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.paymentMethod} · ${tx.source}</td>
         <td style="padding: 12px; font-size: 13px; color: #64748b;">${tx.collectedBy}</td>
@@ -310,7 +319,7 @@ function CustomerProfile({ customerId, onClose }) {
           <div class="header">
             <div>
               <h1 style="margin: 0; font-size: 24px; color: #0f172a;">ACCOUNT STATEMENT</h1>
-              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${formatDate(new Date().toISOString())}</p>
             </div>
             <div style="text-align: right;">
               <h3 style="margin: 0; color: #1e293b;">${profile.name}</h3>
@@ -392,11 +401,11 @@ function CustomerProfile({ customerId, onClose }) {
                   <p className="text-sm text-slate-500">{profile.customerId} · {profile.assignedArea}</p>
                 </div>
               </div>
-              <div className="text-sm text-slate-600 mt-2 space-y-1">
-                <p>Registered: {new Date(profile.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                {profile.dueStartDate && profile.dueEndDate && (
-                  <p className="text-amber-700 font-medium bg-amber-50 inline-block px-2 py-0.5 rounded">
-                    Historical Debt Period: {new Date(profile.dueStartDate).toLocaleDateString('en-IN')} — {new Date(profile.dueEndDate).toLocaleDateString('en-IN')}
+              <div className="text-slate-600 text-sm space-y-1">
+                <p>Registered: {formatDate(profile.createdAt)}</p>
+                {Number(profile.outstandingPayment) > 0 && profile.dueStartDate && profile.dueEndDate && (
+                  <p className="text-amber-600 font-medium">
+                    Historical Debt Period: {formatDate(profile.dueStartDate)} — {formatDate(profile.dueEndDate)}
                   </p>
                 )}
               </div>
@@ -468,9 +477,9 @@ function CustomerProfile({ customerId, onClose }) {
                               <span className="text-xs text-slate-500 flex items-center">
                                 <User className="w-3 h-3 mr-1" /> {tx.collectedBy}
                               </span>
-                              <span className="text-xs text-slate-400">
-                                {new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
+                              <p className="text-xs text-slate-500 font-medium">
+                                {formatDate(tx.date)}
+                              </p>
                             </div>
                           </div>
                         </div>

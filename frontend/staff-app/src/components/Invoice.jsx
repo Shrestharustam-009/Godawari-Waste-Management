@@ -1,18 +1,12 @@
 import React from 'react';
-import invoiceHeaderImg from '../assets/invoice-header.png'; 
+import invoiceHeaderImg from '../assets/invoice-header.png';
+import { useSettings } from '../context/SettingsContext';
 
 const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate }) => {
+  const { formatDate } = useSettings();
+
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
   };
 
   return (

@@ -116,7 +116,7 @@ async function validateRefreshToken(rawToken) {
   const record = await prisma.refreshToken.findUnique({
     where: { token: rawToken },
     include: {
-      user: { select: { id: true, username: true, name: true, role: true, isActive: true, isLoginEnabled: true } },
+      user: { select: { id: true, username: true, name: true, role: true, isActive: true, isLoginEnabled: true, vehicleId: true } },
       customer: { select: { customerId: true, name: true, phone: true, isActive: true } },
     },
   });

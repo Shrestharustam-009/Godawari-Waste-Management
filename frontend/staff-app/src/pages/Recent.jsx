@@ -3,6 +3,7 @@ import { Loader2, ArrowLeft, History, IndianRupee, Printer } from 'lucide-react'
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import Invoice from '../components/Invoice';
 
 export default function Recent() {
@@ -12,6 +13,7 @@ export default function Recent() {
   const [selectedTxToPrint, setSelectedTxToPrint] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { formatDate } = useSettings();
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -31,12 +33,6 @@ export default function Recent() {
 
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const formatDate = (dateString) => {
-    const d = new Date(dateString);
-    const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return d.toLocaleDateString('en-US', options);
   };
 
   const handlePrint = (tx) => {

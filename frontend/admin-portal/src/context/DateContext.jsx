@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState } from 'react';
 import NepaliDate from 'nepali-date-converter';
 
+import { useSettings } from './SettingsContext';
+import { toBS } from '@zener/nepali-datepicker-react';
+
 const DateContext = createContext();
 
 export function DateProvider({ children }) {
-  const [isBS, setIsBS] = useState(false);
+  const { settings } = useSettings();
+  const isBS = settings?.calendarType === 'BS';
 
-  const toggleCalendarFormat = () => setIsBS((prev) => !prev);
+  const toggleCalendarFormat = () => {
+    // Left for backwards compatibility, but it should ideally call the settings API
+    console.warn("toggleCalendarFormat is deprecated. Use global settings instead.");
+  };
 
   const formatSystemDate = (dateString) => {
     if (!dateString) return '';
@@ -15,9 +22,10 @@ export function DateProvider({ children }) {
 
     if (isBS) {
       try {
-        const bsDate = new NepaliDate(date);
-        // Returns e.g. "2083-03-04 15:42"
-        return bsDate.format('YYYY-MM-DD') + ' ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const adStr = date.toISOString().split('T')[0];
+        const bsObj = toBS(adStr);
+        const bsDateStr = `${bsObj.year}-${String(bsObj.month + 1).padStart(2, '0')}-${String(bsObj.date).padStart(2, '0')} (BS)`;
+        return bsDateStr + ' ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       } catch (err) {
         console.error('Nepali date conversion failed:', err);
         return date.toLocaleString('en-US');

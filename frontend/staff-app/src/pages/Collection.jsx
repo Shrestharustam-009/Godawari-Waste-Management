@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Invoice from '../components/Invoice';
+import DatePicker from '../components/DatePicker';
 
 export default function Collection() {
   const { customerId } = useParams();
@@ -211,25 +212,29 @@ export default function Collection() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">From Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <input 
-                  type="date" 
+              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white overflow-hidden flex">
+                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                </div>
+                <DatePicker 
+                  name="paymentForStartDate"
                   value={paymentForStartDate} 
                   onChange={(e) => setPaymentForStartDate(e.target.value)} 
-                  className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  className="flex-1 py-3 text-sm"
                 />
               </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">To Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <input 
-                  type="date" 
+              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white overflow-hidden flex">
+                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                </div>
+                <DatePicker 
+                  name="paymentForEndDate"
                   value={paymentForEndDate} 
                   onChange={(e) => setPaymentForEndDate(e.target.value)} 
-                  className="w-full pl-9 pr-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  className="flex-1 py-3 text-sm"
                 />
               </div>
             </div>

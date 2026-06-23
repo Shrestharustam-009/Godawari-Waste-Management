@@ -30,7 +30,11 @@ export function TrackingProvider({ children }) {
   const stopTracking = useCallback(() => {
     if (socketRef.current?.connected) {
       console.log("[Global Tracking] Notifying backend shift ended...");
-      socketRef.current.emit('staff_shift_end', { staffId: user?.id || user?._id });
+      if (user?.role === 'DRIVER') {
+        socketRef.current.emit('driver_shift_end', { vehicleId: user?.vehicleId });
+      } else {
+        socketRef.current.emit('staff_shift_end', { staffId: user?.id || user?._id });
+      }
     }
 
     if (watchIdRef.current !== null) {
@@ -95,14 +99,23 @@ export function TrackingProvider({ children }) {
         const now = Date.now();
         if (socketRef.current?.connected && now - lastEmitRef.current >= EMIT_INTERVAL_MS) {
           lastEmitRef.current = now;
-          socketRef.current.emit('staff_location_update', {
-            staffId: user?.id || user?._id, 
-            name: user?.name || user?.username || 'Field Staff',
-            role: user?.role || 'STAFF',
-            lat: latitude,
-            lng: longitude,
-            timestamp: new Date().toISOString(),
-          });
+          if (user?.role === 'DRIVER') {
+            socketRef.current.emit('driver_location_update', {
+              vehicleId: user?.vehicleId,
+              lat: latitude,
+              lng: longitude,
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            socketRef.current.emit('staff_location_update', {
+              staffId: user?.id || user?._id, 
+              name: user?.name || user?.username || 'Field Staff',
+              role: user?.role || 'STAFF',
+              lat: latitude,
+              lng: longitude,
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
       },
       (error) => {

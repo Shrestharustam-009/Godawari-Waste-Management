@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../api/axios';
+import { useSettings } from '../context/SettingsContext';
 import { io } from 'socket.io-client';
 import {
   MapPin, Users, Truck, UserPlus, Eye, ShieldOff, ShieldCheck,
@@ -277,6 +278,7 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { formatDate } = useSettings();
 
   useEffect(() => {
     if (!isOpen || !staffId) return;
@@ -331,7 +333,7 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
                 {profile.vehicle && (
                   <div className="col-span-2"><span className="text-slate-400 font-medium">Vehicle:</span> <span className="text-slate-700 font-semibold">{profile.vehicle.registrationNumber} ({profile.vehicle.type})</span></div>
                 )}
-                <div className="col-span-2"><span className="text-slate-400 font-medium">Joined:</span> <span className="text-slate-700 font-semibold">{new Date(profile.createdAt).toLocaleDateString('en-IN')}</span></div>
+                <div className="col-span-2"><span className="text-slate-400 font-medium">Joined:</span> <span className="text-slate-700 font-semibold">{formatDate(profile.createdAt)}</span></div>
               </div>
             </div>
 
@@ -355,11 +357,11 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
                   {profile.transactions.map(tx => (
                     <div key={tx.id} className="bg-white p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors flex justify-between items-center">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">₹{formatCurrency(tx.amount)}</p>
-                        <p className="text-xs text-slate-500">{tx.customer?.name} • {tx.customer?.assignedArea}</p>
+                        <p className="text-sm font-bold text-slate-800">Collected: ₹{formatCurrency(tx.amount)}</p>
+                        <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-medium text-slate-600">{new Date(tx.date).toLocaleDateString('en-IN')}</p>
+                        <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tx.status === 'SUCCESSFUL' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{tx.status}</span>
                       </div>
                     </div>
@@ -380,20 +382,7 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
 // MAIN COMPONENT: FleetHR
 // ============================================================================
 
-function MapAutoFit({ markers }) {
-  const map = useMap();
-  const hasFitRef = useRef(false);
 
-  useEffect(() => {
-    if (markers.length > 0 && !hasFitRef.current) {
-      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      hasFitRef.current = true; // only auto-fit once
-    }
-  }, [markers, map]);
-
-  return null;
-}
 
 function MapController({ targetCoords }) {
   const map = useMap();

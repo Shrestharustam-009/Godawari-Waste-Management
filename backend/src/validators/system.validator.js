@@ -34,8 +34,12 @@ const updateSettingsSchema = z.object({
   billingCycleDay: z
     .number({ required_error: 'Billing cycle day is required.' })
     .int('Billing cycle day must be an integer.')
-    .min(1, 'Billing cycle day must be at least 1.')
-    .max(28, 'Billing cycle day must not exceed 28 (to avoid month-length issues).'),
+    .min(1, 'Billing cycle day cannot be less than 1.')
+    .max(28, 'Billing cycle day cannot be greater than 28.'),
+
+  calendarType: z
+    .enum(['AD', 'BS'], { invalid_type_error: 'Calendar type must be AD or BS.' })
+    .optional(),
 }).strict();
 
 module.exports = {

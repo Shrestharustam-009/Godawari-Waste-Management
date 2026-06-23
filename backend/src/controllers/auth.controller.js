@@ -44,7 +44,7 @@ async function staffLogin(req, res) {
       where: { username },
       select: {
         id: true, name: true, username: true, passwordHash: true,
-        role: true, isActive: true, isLoginEnabled: true,
+        role: true, isActive: true, isLoginEnabled: true, vehicleId: true,
       },
     });
 
@@ -87,7 +87,14 @@ async function staffLogin(req, res) {
     }
 
     // Issue access token → HttpOnly cookie
-    const accessToken = signAccessToken({ id: user.id, role: user.role, type: 'user', username: user.username, name: user.name });
+    const accessToken = signAccessToken({ 
+      id: user.id, 
+      role: user.role, 
+      type: 'user', 
+      username: user.username, 
+      name: user.name,
+      vehicleId: user.vehicleId || null
+    });
     setAccessCookie(res, accessToken);
 
     // Issue refresh token → HttpOnly cookie (NOT in response body)
@@ -114,7 +121,7 @@ async function staffLogin(req, res) {
     return res.status(200).json({
       success: true,
       data: {
-        user: { id: user.id, name: user.name, username: user.username, role: user.role },
+        user: { id: user.id, name: user.name, username: user.username, role: user.role, vehicleId: user.vehicleId || null },
       },
     });
 
@@ -214,7 +221,14 @@ async function refreshAccessToken(req, res) {
     let tokenPayload, rotationParams;
 
     if (record.user) {
-      tokenPayload = { id: record.user.id, role: record.user.role, type: 'user', username: record.user.username, name: record.user.name };
+      tokenPayload = { 
+        id: record.user.id, 
+        role: record.user.role, 
+        type: 'user', 
+        username: record.user.username, 
+        name: record.user.name,
+        vehicleId: record.user.vehicleId || null
+      };
       rotationParams = { userId: record.user.id };
     } else if (record.customer) {
       tokenPayload = { id: record.customer.customerId, role: 'CUSTOMER', type: 'customer', name: record.customer.name };
@@ -294,6 +308,7 @@ async function getSession(req, res) {
       type: req.user.type,
       ...(req.user.username && { username: req.user.username }),
       ...(req.user.name && { name: req.user.name }),
+      ...(req.user.vehicleId && { vehicleId: req.user.vehicleId }),
       issuedAt: new Date(req.user.iat * 1000).toISOString(),
       expiresAt: new Date(req.user.exp * 1000).toISOString(),
     },
