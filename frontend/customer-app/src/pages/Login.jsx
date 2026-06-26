@@ -11,7 +11,7 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [phone, setPhone] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,8 +27,8 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    if (!phone.trim() || !password.trim()) {
-      setError('Please enter both phone number and password.');
+    if (!customerId.trim() || !password.trim()) {
+      setError('Please enter both Customer ID and password.');
       return;
     }
 
@@ -39,14 +39,14 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const result = await login(phone.trim(), password);
+      const result = await login(customerId.trim(), password);
       if (result.success) {
         navigate('/dashboard', { replace: true });
       } else {
         setError(result.error || 'Login failed.');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid phone number or password.');
+      setError(err.response?.data?.error || 'Invalid Customer ID or password.');
     } finally {
       setLoading(false);
     }
@@ -91,19 +91,17 @@ export default function Login() {
             {/* Phone Input */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                Registered Phone Number
+                Customer ID
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Phone className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
-                  type="tel"
-                  inputMode="numeric"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="98XXXXXXXX"
-                  maxLength={10}
+                  type="text"
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  placeholder="e.g. GDW-0001"
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>

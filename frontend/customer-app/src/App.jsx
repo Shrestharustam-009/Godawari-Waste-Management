@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import api from './api/axios';
 import MasterLogin from './pages/MasterLogin';
 import Dashboard from './pages/Dashboard';
+import Tracking from './pages/Tracking';
 
 // ============================================================================
 // AUTH CONTEXT — Session state derived from HttpOnly cookie (Security-Hardened)
@@ -38,8 +39,8 @@ function AuthProvider({ children }) {
     checkSession();
   }, []);
 
-  const login = async (phone, password) => {
-    const res = await api.post('/auth/customer/login', { phone, password });
+  const login = async (customerId, password) => {
+    const res = await api.post('/auth/customer/login', { customerId, password });
     if (res.data?.success) {
       setCustomer(res.data.data.customer);
       setIsAuthenticated(true);
@@ -105,6 +106,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tracking"
+            element={
+              <ProtectedRoute>
+                <Tracking />
               </ProtectedRoute>
             }
           />

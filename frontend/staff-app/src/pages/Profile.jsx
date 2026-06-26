@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTracking } from '../context/TrackingContext'; // 👈 Connected to global tracking brain
 import api from '../services/api';
+import NepaliDate from 'nepali-date-converter';
 import {
   User, MapPin, LogOut, Loader2, Radio, RadioOff,
-  IndianRupee, Activity, Shield, Clock
+  IndianRupee, Activity, Shield, Clock, Truck
 } from 'lucide-react';
 
 // ============================================================================
@@ -91,37 +92,77 @@ export default function Profile() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{user?.name || user?.username || 'Staff'}</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                user?.role === 'DRIVER' 
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                  : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+              }`}>
                 <Shield className="w-3 h-3" />
-                {user?.role || 'STAFF'}
+                {user?.role === 'DRIVER' ? 'Truck Driver' : 'Collector'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* ── Today's Stats Grid ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <IndianRupee className="w-3 h-3" /> Collected Today
-            </p>
-            {statsLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-emerald-400 mt-1" />
-            ) : (
-              <p className="text-xl font-black text-emerald-400">₹{formatCurrency(todayTotal)}</p>
-            )}
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <Activity className="w-3 h-3" /> Transactions
-            </p>
-            {statsLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-blue-400 mt-1" />
-            ) : (
-              <p className="text-xl font-black text-blue-400">{todayCount}</p>
-            )}
-          </div>
+        {/* ── Profile Details Card ── */}
+        <div className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/20 grid grid-cols-2 gap-y-4 gap-x-4 text-sm mt-2 mb-2">
+          <div><span className="text-slate-400 text-xs block mb-0.5 uppercase tracking-wider font-bold">Username</span> <span className="font-semibold">{user?.username || '—'}</span></div>
+          <div><span className="text-slate-400 text-xs block mb-0.5 uppercase tracking-wider font-bold">Status</span> <span className={`font-bold ${user?.isActive ? 'text-emerald-400' : 'text-red-400'}`}>{user?.isActive ? 'Active' : 'Inactive'}</span></div>
+          
+          {user?.vehicle && (
+            <div className="col-span-2">
+              <span className="text-slate-400 text-xs block mb-0.5 uppercase tracking-wider font-bold">Vehicle Assigned</span> 
+              <span className="font-semibold">{user.vehicle.registrationNumber} ({user.vehicle.type})</span>
+            </div>
+          )}
+          
+          {user?.createdAt && (
+            <div className="col-span-2">
+              <span className="text-slate-400 text-xs block mb-0.5 uppercase tracking-wider font-bold">Joined Date</span> 
+              <span className="font-semibold">{new NepaliDate(new Date(user.createdAt)).format('YYYY-MM-DD')} (BS)</span>
+            </div>
+          )}
         </div>
+
+        {/* ── Today's Stats Grid / Driver Dashboard ── */}
+        {user?.role === 'DRIVER' ? (
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/10 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Truck className="w-3 h-3" /> Assigned Vehicle
+              </p>
+              <p className="text-xl font-black text-emerald-400 truncate max-w-full">
+                {user?.vehicle ? user.vehicle.registrationNumber : 'No Vehicle Assigned'}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center">
+              <Truck className="w-6 h-6 text-white/50" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <IndianRupee className="w-3 h-3" /> Collected Today
+              </p>
+              {statsLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-400 mt-1" />
+              ) : (
+                <p className="text-xl font-black text-emerald-400">₹{formatCurrency(todayTotal)}</p>
+              )}
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Activity className="w-3 h-3" /> Transactions
+              </p>
+              {statsLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-blue-400 mt-1" />
+              ) : (
+                <p className="text-xl font-black text-blue-400">{todayCount}</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Tracking Engine Card ── */}

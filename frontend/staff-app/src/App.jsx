@@ -31,7 +31,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <SettingsProvider>
-          {/* 🧠 Placed here so tracking stays completely alive across all pages and layouts */}
+          
           <TrackingProvider> 
             <Routes>
               <Route path="/login" element={<Login />} />

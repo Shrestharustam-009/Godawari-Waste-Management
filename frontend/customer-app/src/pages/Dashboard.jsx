@@ -5,7 +5,7 @@ import api from '../api/axios';
 import {
   Loader2, LogOut, Wallet, AlertTriangle,
   IndianRupee, Clock, CheckCircle2, XCircle,
-  Recycle, ChevronRight, CreditCard, Download,FileText
+  CreditCard, Recycle, FileText, Download, MapPin, ArrowRight
 } from 'lucide-react';
 
 // ============================================================================
@@ -245,23 +245,50 @@ export default function Dashboard() {
               {profile?.customerId} • {profile?.assignedArea}
             </p>
           </div>
-
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10"
-          >
-            {loggingOut ? (
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
-            ) : (
-              <LogOut className="w-5 h-5 text-white" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10"
+            >
+              {loggingOut ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5 text-white" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Financial Cards (overlap the header) ── */}
+      {/* ── Dashboard Action & Financial Cards (overlap the header) ── */}
       <div className="px-4 -mt-8 relative z-10 space-y-3">
+
+        {/* ── Live Tracking Action Card ── */}
+        <button
+          onClick={() => navigate('/tracking')}
+          className="w-full text-left rounded-2xl p-5 shadow-lg shadow-emerald-900/10 border border-emerald-500 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 transition-all hover:scale-[1.02] active:scale-[0.98] group relative overflow-hidden flex items-center justify-between"
+        >
+          {/* Decorative background circle */}
+          <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+          
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/30 shadow-inner shrink-0">
+              <MapPin className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white tracking-tight">
+                Live Truck Tracking
+              </h3>
+              <p className="text-emerald-50 text-xs font-medium mt-0.5 leading-snug">
+                Tap to see where your garbage truck is right now
+              </p>
+            </div>
+          </div>
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all relative z-10 shrink-0">
+            <ArrowRight className="w-5 h-5 text-emerald-600 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
 
         {/* Outstanding Dues Card */}
         <div className={`rounded-2xl p-5 shadow-lg border transition-all ${
@@ -347,6 +374,44 @@ export default function Dashboard() {
         {transactions.length > 0 ? (
           <div className="space-y-2.5">
             {transactions.map((tx) => {
+              if (tx.type === 'CHARGE') {
+                return (
+                  <div
+                    key={tx.id}
+                    className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-orange-50 text-orange-600">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          Rs. {formatCurrency(tx.amount)}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(tx.date)}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {formatTime(tx.date)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700">
+                        MONTHLY FEE
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium w-[100px] text-right truncate" title={tx.description}>
+                        {tx.description}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
               const isSuccess = tx.status === 'SUCCESSFUL';
               return (
                 <div

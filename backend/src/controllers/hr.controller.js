@@ -122,6 +122,7 @@ async function createCollector(req, res) {
       data: {
         name,
         username,
+        phone,
         passwordHash,
         role: 'STAFF',
       },
@@ -302,9 +303,10 @@ async function createDriver(req, res) {
       data: {
         name,
         username,
+        phone,
         passwordHash,
         role: 'DRIVER',
-        vehicleId,
+        vehicleId: vehicleId || null,
       },
     });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
@@ -11,6 +11,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const errorParam = params.get('error');
+    if (errorParam === 'ACCOUNT_DEACTIVATED') {
+      setError('Your account has been deactivated. Please contact the system administrator.');
+    } else if (errorParam === 'LOGIN_DISABLED') {
+      setError('Login is currently disabled for your account.');
+    } else if (errorParam === 'TOKEN_INVALID' || errorParam === 'ORPHANED_TOKEN') {
+      setError('Your session has expired or is invalid. Please log in again.');
+    }
+  }, [location]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -37,7 +50,7 @@ export default function Login() {
         
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Field Staff Portal</h1>
-          <p className="text-slate-500 text-sm font-medium">Log in to manage collections</p>
+          <p className="text-slate-500 text-sm font-medium">Log in to manage collections & shifts</p>
         </div>
 
         {error && (

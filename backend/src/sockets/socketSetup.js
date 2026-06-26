@@ -111,6 +111,17 @@ function initSocketServer(httpServer) {
       console.log(`[SOCKET] Client ${socket.id} joined 'admin_room' via join_admin.`);
     });
 
+    socket.on('join_customer_map', () => {
+      // SECURITY: CUSTOMER and ADMIN can join customer_map_updates
+      if (!['ADMIN', 'CUSTOMER'].includes(socket.user.role)) {
+        socket.emit('error_message', { error: 'Access denied: insufficient role for customer map access.' });
+        console.warn(`[SOCKET] Role '${socket.user.role}' denied join_customer_map (socket: ${socket.id})`);
+        return;
+      }
+      socket.join('customer_map_updates');
+      console.log(`[SOCKET] Client ${socket.id} joined 'customer_map_updates' room.`);
+    });
+
     // ── 3. Fleet Vehicle GPS Update ──
     socket.on('driver_location_update', async (data) => {
       // Rate limiting
@@ -123,16 +134,38 @@ function initSocketServer(httpServer) {
         return; // Silently drop invalid payloads
       }
 
-      const verifiedVehicleId = String(data.vehicleId || socket.user?.vehicleId || 'unknown');
+      let verifiedVehicleId = String(data.vehicleId || socket.user?.vehicleId || 'unknown');
+      
+      // Lazy load from DB if missing (e.g. stale token)
+      if (verifiedVehicleId === 'unknown' && socket.user?.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({ 
+            where: { id: parseInt(socket.user.id, 10) }, 
+            select: { vehicleId: true } 
+          });
+          if (dbUser && dbUser.vehicleId) {
+            verifiedVehicleId = String(dbUser.vehicleId);
+            socket.user.vehicleId = dbUser.vehicleId; // Cache it on the socket to prevent future DB hits
+          }
+        } catch (err) {
+          console.error('[SOCKET DB] Failed to resolve vehicleId:', err.message);
+        }
+      }
+
+      // If they still don't have a vehicle assigned, drop the packet to prevent "unknown" ghost markers
+      if (verifiedVehicleId === 'unknown') {
+        return;
+      }
 
       const updatePacket = {
         vehicleId: verifiedVehicleId,
+        driverId: socket.user?.id,
         lat: data.lat,
         lng: data.lng,
         timestamp: new Date().toISOString(),
       };
 
-      io.to('map_updates').to('admin_room').emit('live_driver_location', updatePacket);
+      io.to('map_updates').to('admin_room').to('customer_map_updates').emit('live_driver_location', updatePacket);
 
       try {
         await prisma.latestDriverLocation.upsert({
@@ -197,7 +230,7 @@ function initSocketServer(httpServer) {
 
       try {
         await prisma.latestDriverLocation.deleteMany({ where: { vehicleId: verifiedVehicleId } });
-        io.to('map_updates').to('admin_room').emit('driver_went_offline', { vehicleId: verifiedVehicleId });
+        io.to('map_updates').to('admin_room').to('customer_map_updates').emit('driver_went_offline', { vehicleId: verifiedVehicleId });
         console.log(`[SHIFT END] Cleared live tracking for vehicle: ${verifiedVehicleId}`);
       } catch (err) {
         console.error('[PRISMA ERROR] Failed to clear offline vehicle:', err.message);

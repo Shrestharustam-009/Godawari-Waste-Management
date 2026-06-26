@@ -50,7 +50,7 @@ export default function MasterLogin() {
           break;
         case 'CUSTOMER':
           endpoint = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000') + '/api/v1/auth/customer/login';
-          payload = { phone: identifier, password };
+          payload = { customerId: identifier, password };
           break;
         default:
           throw new Error('Invalid role selected');
@@ -164,15 +164,15 @@ export default function MasterLogin() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                {role === 'CUSTOMER' ? 'Phone Number' : 'Username or Email'}
+                {role === 'CUSTOMER' ? 'Customer ID' : 'Username or Email'}
               </label>
               <input
-                type={role === 'CUSTOMER' ? 'tel' : 'text'}
+                type="text"
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="appearance-none relative block w-full px-4 py-3 border border-slate-300 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors bg-slate-50"
-                placeholder={role === 'CUSTOMER' ? 'Enter registered phone' : 'Enter system username'}
+                placeholder={role === 'CUSTOMER' ? 'Enter Customer ID (e.g. GDW-0001)' : 'Enter system username'}
               />
             </div>
             

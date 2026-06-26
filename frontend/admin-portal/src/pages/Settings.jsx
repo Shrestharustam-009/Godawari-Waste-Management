@@ -103,8 +103,8 @@ function SettingsSkeleton() {
 }
 
 export default function Settings() {
-  const [settings, setSettings] = useState({ monthlyFeeAmount: '500.00', billingCycleDay: 1, updatedAt: null, customDeductions: [] });
-  const [formState, setFormState] = useState({ monthlyFeeAmount: '500.00', billingCycleDay: 1 });
+  const [settings, setSettings] = useState({ billingCycleDay: 1, updatedAt: null, customDeductions: [] });
+  const [formState, setFormState] = useState({ billingCycleDay: 1 });
   const [deductions, setDeductions] = useState([]);
   
   // Fleet State
@@ -125,13 +125,11 @@ export default function Settings() {
       if (res.data?.success && res.data?.data) {
         const data = res.data.data;
         setSettings({
-          monthlyFeeAmount: data.monthlyFeeAmount || '500.00',
           billingCycleDay: data.billingCycleDay ?? 1,
           updatedAt: data.updatedAt,
           customDeductions: data.customDeductions || []
         });
         setFormState({
-          monthlyFeeAmount: data.monthlyFeeAmount || '500.00',
           billingCycleDay: data.billingCycleDay ?? 1,
           calendarType: data.calendarType || 'AD',
         });
@@ -157,7 +155,6 @@ export default function Settings() {
     try {
       if (sudoConfig.action === 'SAVE_GENERAL') {
         await api.put('/system/settings', {
-          monthlyFeeAmount: String(formState.monthlyFeeAmount),
           billingCycleDay: Number(formState.billingCycleDay),
           calendarType: formState.calendarType,
           sudoPassword,
@@ -189,7 +186,7 @@ export default function Settings() {
   };
   const handleRemoveDeduction = (index) => setDeductions(deductions.filter((_, i) => i !== index));
 
-  const hasGeneralChanges = formState.monthlyFeeAmount !== settings.monthlyFeeAmount || Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType;
+  const hasGeneralChanges = Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType;
   const hasDeductionChanges = JSON.stringify(deductions) !== JSON.stringify(settings.customDeductions);
 
   if (loading) return <SettingsSkeleton />;
@@ -217,15 +214,6 @@ export default function Settings() {
           <h2 className="text-lg font-bold text-slate-900">Billing & Revenue Engine</h2>
         </div>
         <div className="p-8 space-y-8">
-          <div>
-            <label className="flex items-center text-sm font-bold text-slate-700 mb-2.5">
-              <DollarSign className="w-4 h-4 mr-2 text-emerald-500" /> Default Monthly Collection Fee
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
-              <input type="number" step="0.01" min="0.01" value={formState.monthlyFeeAmount} onChange={e => setFormState({ ...formState, monthlyFeeAmount: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-base font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none" />
-            </div>
-          </div>
           <div>
             <label className="flex items-center text-sm font-bold text-slate-700 mb-2.5">
               <Calendar className="w-4 h-4 mr-2 text-blue-500" /> Billing Cycle Trigger Day
@@ -256,7 +244,7 @@ export default function Settings() {
             </div>
           </div>
           <div className="flex justify-end">
-            <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global fee.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
+            <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global settings.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
           </div>
         </div>
       </div>

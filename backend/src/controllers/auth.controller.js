@@ -45,6 +45,8 @@ async function staffLogin(req, res) {
       select: {
         id: true, name: true, username: true, passwordHash: true,
         role: true, isActive: true, isLoginEnabled: true, vehicleId: true,
+        createdAt: true,
+        vehicle: { select: { registrationNumber: true, type: true } }
       },
     });
 
@@ -121,7 +123,16 @@ async function staffLogin(req, res) {
     return res.status(200).json({
       success: true,
       data: {
-        user: { id: user.id, name: user.name, username: user.username, role: user.role, vehicleId: user.vehicleId || null },
+        user: { 
+          id: user.id, 
+          name: user.name, 
+          username: user.username, 
+          role: user.role, 
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          vehicleId: user.vehicleId || null,
+          vehicle: user.vehicle || null
+        },
       },
     });
 
@@ -136,22 +147,21 @@ async function staffLogin(req, res) {
 // ════════════════════════════════════════════════════════════════════════
 
 async function customerLogin(req, res) {
-  const { phone, password } = req.body;
+  const { customerId, password } = req.body;
 
   try {
-    const normalizedPhone = phone.replace(/^\+977/, '');
-    const customer = await prisma.customer.findFirst({
-      where: { phone: normalizedPhone },
+    const customer = await prisma.customer.findUnique({
+      where: { customerId: customerId },
       select: { customerId: true, name: true, phone: true, pinHash: true, assignedArea: true, isActive: true },
     });
 
     if (!customer) {
       await writeAuditLog({
-        action: 'CUSTOMER_LOGIN_FAILED', entityType: 'Customer', entityId: 'UNKNOWN',
-        details: { phone: normalizedPhone, reason: 'Phone not registered' },
+        action: 'CUSTOMER_LOGIN_FAILED', entityType: 'Customer', entityId: customerId || 'UNKNOWN',
+        details: { reason: 'Customer ID not registered' },
         ipAddress: req.ip, userAgent: req.get('User-Agent'),
       });
-      return res.status(401).json({ success: false, error: 'Invalid phone number or password.', code: 'INVALID_CREDENTIALS' });
+      return res.status(401).json({ success: false, error: 'Invalid Customer ID or password.', code: 'INVALID_CREDENTIALS' });
     }
 
     if (!customer.isActive) {
@@ -170,7 +180,7 @@ async function customerLogin(req, res) {
         details: { reason: 'Invalid Password' },
         ipAddress: req.ip, userAgent: req.get('User-Agent'),
       });
-      return res.status(401).json({ success: false, error: 'Invalid phone number or password.', code: 'INVALID_CREDENTIALS' });
+      return res.status(401).json({ success: false, error: 'Invalid Customer ID or password.', code: 'INVALID_CREDENTIALS' });
     }
     // bf7a26c5
 
@@ -300,6 +310,20 @@ async function logout(req, res) {
 // ════════════════════════════════════════════════════════════════════════
 
 async function getSession(req, res) {
+  let extraData = {};
+  if (req.user.type === 'user') {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        isActive: true,
+        createdAt: true,
+        vehicleId: true,
+        vehicle: { select: { registrationNumber: true, type: true } }
+      }
+    });
+    if (dbUser) extraData = dbUser;
+  }
+
   return res.status(200).json({
     success: true,
     data: {
@@ -309,6 +333,7 @@ async function getSession(req, res) {
       ...(req.user.username && { username: req.user.username }),
       ...(req.user.name && { name: req.user.name }),
       ...(req.user.vehicleId && { vehicleId: req.user.vehicleId }),
+      ...extraData,
       issuedAt: new Date(req.user.iat * 1000).toISOString(),
       expiresAt: new Date(req.user.exp * 1000).toISOString(),
     },

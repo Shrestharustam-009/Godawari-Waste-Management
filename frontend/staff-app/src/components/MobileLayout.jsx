@@ -1,11 +1,19 @@
 import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Search, List, User, LogOut } from 'lucide-react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Search, List, User, LogOut, Navigation } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 
 export default function MobileLayout() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (user?.role === 'DRIVER' && location.pathname !== '/profile') {
+      navigate('/profile', { replace: true });
+    }
+  }, [user, location, navigate]);
 
   const handleLogout = async () => {
     await logout();
@@ -36,18 +44,24 @@ export default function MobileLayout() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 px-6 pb-safe z-20">
-        <div className="flex justify-between h-full max-w-md mx-auto">
-          <NavLink to="/" className={navItemClass}>
-            <Search className="w-6 h-6" />
-            <span className="text-[10px] font-semibold">Search</span>
-          </NavLink>
-          <NavLink to="/recent" className={navItemClass}>
-            <List className="w-6 h-6" />
-            <span className="text-[10px] font-semibold">Recent</span>
-          </NavLink>
+        <div className={`flex h-full max-w-md mx-auto ${user?.role === 'DRIVER' ? 'justify-center' : 'justify-between'}`}>
+          {user?.role !== 'DRIVER' && (
+            <>
+              <NavLink to="/" className={navItemClass}>
+                <Search className="w-6 h-6" />
+                <span className="text-[10px] font-semibold">Search</span>
+              </NavLink>
+              <NavLink to="/recent" className={navItemClass}>
+                <List className="w-6 h-6" />
+                <span className="text-[10px] font-semibold">Recent</span>
+              </NavLink>
+            </>
+          )}
           <NavLink to="/profile" className={navItemClass}>
-            <User className="w-6 h-6" />
-            <span className="text-[10px] font-semibold">Profile</span>
+            {user?.role === 'DRIVER' ? <Navigation className="w-6 h-6" /> : <User className="w-6 h-6" />}
+            <span className="text-[10px] font-semibold">
+              {user?.role === 'DRIVER' ? 'Shift & Route' : 'Profile'}
+            </span>
           </NavLink>
         </div>
       </nav>

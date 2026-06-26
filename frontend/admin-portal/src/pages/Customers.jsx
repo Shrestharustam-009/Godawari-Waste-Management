@@ -67,6 +67,8 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     phone: '',
     assignedArea: '',
     password: '',
+    monthlyFee: '500.00',
+    billingCycleDay: '',
     outstandingPayment: '0.00',
     dueStartDate: '',
     dueEndDate: '',
@@ -85,10 +87,15 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      const res = await api.post('/customers', form);
+      // Clean phone if empty
+      const payload = { ...form };
+      if (!payload.phone) delete payload.phone;
+      payload.billingCycleDay = form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : undefined;
+
+      const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
         onClose();
       }
     } catch (err) {
@@ -146,10 +153,10 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number (Optional)</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input name="phone" value={form.phone} onChange={handleChange} placeholder="9841234567" required className={inputClass} />
+                <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="9841234567" className={inputClass} />
               </div>
             </div>
             <div>
@@ -162,6 +169,20 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Fee (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} placeholder="500.00" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle Day (Optional)</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="number" min="1" max="28" name="billingCycleDay" value={form.billingCycleDay} onChange={handleChange} placeholder="e.g. 1" className={inputClass} />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
               <div className="relative">
@@ -217,6 +238,172 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// EDIT CUSTOMER MODAL
+// ============================================================================
+function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    assignedArea: '',
+    monthlyFee: '',
+    billingCycleDay: '',
+    isActive: true,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [sudoConfig, setSudoConfig] = useState({ isOpen: false, error: null });
+
+  useEffect(() => {
+    if (customer && isOpen) {
+      setForm({
+        name: customer.name || '',
+        phone: customer.phone || '',
+        assignedArea: customer.assignedArea || '',
+        monthlyFee: customer.monthlyFee || '500.00',
+        billingCycleDay: customer.billingCycleDay || '',
+        isActive: customer.isActive ?? true,
+      });
+      setError(null);
+    }
+  }, [customer, isOpen]);
+
+  const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm((prev) => ({ ...prev, [e.target.name]: value }));
+  };
+
+  const handleInitialSubmit = (e) => {
+    e.preventDefault();
+    setSudoConfig({ isOpen: true, error: null });
+  };
+
+  const handleSudoConfirm = async (sudoPassword) => {
+    setSudoConfig(prev => ({ ...prev, error: null }));
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...form,
+        billingCycleDay: form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : null,
+        sudoPassword
+      };
+      if (!payload.phone) delete payload.phone;
+
+      const res = await api.put(`/customers/${customer.customerId}`, payload);
+      if (res.data.success) {
+        onSuccess(res.data.data);
+        setSudoConfig({ isOpen: false, error: null });
+        onClose();
+      }
+    } catch (err) {
+      const serverErrors = err.response?.data?.errors;
+      if (serverErrors) {
+        setError(serverErrors.map((e) => e.message).join(' | '));
+        setSudoConfig({ isOpen: false, error: null });
+      } else {
+        setSudoConfig(prev => ({ ...prev, error: err.response?.data?.error || 'Failed to update customer.' }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !customer) return null;
+
+  const inputClass = 'w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={sudoConfig.isOpen ? undefined : onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+          <h2 className="text-lg font-semibold text-slate-900">Edit Customer: {customer.customerId}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleInitialSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md flex items-start">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number (Optional)</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="tel" name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Area</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input name="assignedArea" value={form.assignedArea} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Fee (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle Day (Optional)</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="number" min="1" max="28" name="billingCycleDay" value={form.billingCycleDay} onChange={handleChange} placeholder="Global default" className={inputClass} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <input type="checkbox" id="isActive" name="isActive" checked={form.isActive} onChange={handleChange} className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500" />
+            <label htmlFor="isActive" className="text-sm font-medium text-slate-700">Account Active</label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-4 flex items-center justify-center py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? <><Loader2 className="animate-spin w-4 h-4 mr-2" /> Saving...</> : 'Save Changes'}
+          </button>
+        </form>
+      </div>
+
+      <SudoModal
+        isOpen={sudoConfig.isOpen}
+        onClose={() => setSudoConfig({ isOpen: false, error: null })}
+        onConfirm={handleSudoConfirm}
+        loading={loading}
+        error={sudoConfig.error}
+        title="Confirm Edit Action"
+        message={`Enter master admin password to confirm updates to ${customer?.name}'s account.`}
+      />
     </div>
   );
 }
@@ -403,6 +590,7 @@ function CustomerProfile({ customerId, onClose }) {
               </div>
               <div className="text-slate-600 text-sm space-y-1">
                 <p>Registered: {formatDate(profile.createdAt)}</p>
+                <p>Billing Cycle: <span className="font-medium text-slate-800">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</span></p>
                 {Number(profile.outstandingPayment) > 0 && profile.dueStartDate && profile.dueEndDate && (
                   <p className="text-amber-600 font-medium">
                     Historical Debt Period: {formatDate(profile.dueStartDate)} — {formatDate(profile.dueEndDate)}
@@ -462,39 +650,73 @@ function CustomerProfile({ customerId, onClose }) {
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {profile.transactions.map((tx) => (
-                    <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-green-100 text-green-600">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">
-                              {tx.paymentMethod} · {tx.source}
-                            </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-slate-500 flex items-center">
-                                <User className="w-3 h-3 mr-1" /> {tx.collectedBy}
-                              </span>
-                              <p className="text-xs text-slate-500 font-medium">
-                                {formatDate(tx.date)}
+                  {profile.transactions.map((tx) => {
+                    if (tx.type === 'CHARGE') {
+                      return (
+                        <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-full bg-orange-100 text-orange-600">
+                                <AlertTriangle className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900">
+                                  System Billing
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <p className="text-xs text-slate-500 font-medium">
+                                    {formatDate(tx.date)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-orange-600">
+                                -₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[120px]" title={tx.description}>
+                                {tx.description}
                               </p>
                             </div>
                           </div>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-green-100 text-green-600">
+                              <TrendingUp className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-900">
+                                {tx.paymentMethod} · {tx.source}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xs text-slate-500 flex items-center">
+                                  <User className="w-3 h-3 mr-1" /> {tx.collectedBy}
+                                </span>
+                                <p className="text-xs text-slate-500 font-medium">
+                                  {formatDate(tx.date)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-green-600">
+                              +₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              VAT: ₹{Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-green-600">
-                            +₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">
-                            VAT: ₹{Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </div>
-                      {tx.note && <p className="mt-2 text-xs text-slate-500 italic border-t border-slate-200 pt-2">{tx.note}</p>}
-                    </li>
-                  ))}
+                        {tx.note && <p className="mt-2 text-xs text-slate-500 italic border-t border-slate-200 pt-2">{tx.note}</p>}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -517,6 +739,8 @@ export default function Customers() {
 
   // Modal / Slide-over state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
 
   // Sudo Password Reset State
@@ -555,6 +779,11 @@ export default function Customers() {
   const handleAddSuccess = (newCustomer) => {
     setCustomers((prev) => [newCustomer, ...prev]);
     setPagination((prev) => ({ ...prev, totalCount: prev.totalCount + 1 }));
+  };
+
+  const handleEditSuccess = (updatedCustomer) => {
+    setCustomers((prev) => prev.map((c) => (c.customerId === updatedCustomer.customerId ? { ...c, ...updatedCustomer } : c)));
+    setSuccessToast('Customer updated successfully');
   };
 
   // ── Reset Password Handler ──
@@ -654,7 +883,7 @@ export default function Customers() {
                       <td className="px-6 py-4 font-mono text-xs text-slate-600">{c.customerId}</td>
                       <td className="px-6 py-4 font-medium text-slate-900">{c.name}</td>
                       <td className="px-6 py-4 text-slate-600">{c.assignedArea}</td>
-                      <td className="px-6 py-4 text-slate-600">{c.phone}</td>
+                      <td className="px-6 py-4 text-slate-600">{c.phone || <span className="text-slate-300 italic">—</span>}</td>
                       <td className={`px-6 py-4 text-right font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-slate-400'}`}>
                         ₹{outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
@@ -669,6 +898,12 @@ export default function Customers() {
                           >
                             <Eye className="w-3.5 h-3.5" />
                             View
+                          </button>
+                          <button
+                            onClick={() => { setEditingCustomer(c); setShowEditModal(true); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                          >
+                            Edit
                           </button>
                           <button
                             onClick={() => setSudoConfig({ isOpen: true, customerId: c.customerId })}
@@ -719,6 +954,14 @@ export default function Customers() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={handleAddSuccess}
+      />
+
+      {/* Edit Customer Modal */}
+      <EditCustomerModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setEditingCustomer(null); }}
+        customer={editingCustomer}
+        onSuccess={handleEditSuccess}
       />
 
       {/* Customer Profile Slide-Over */}

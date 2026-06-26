@@ -23,6 +23,8 @@
 const cron = require('node-cron');
 const { Decimal } = require('decimal.js');
 const prisma = require('../lib/prisma');
+const NepaliDate = require('nepali-date-converter').default;
+const { dateConfigMap } = require('nepali-date-converter');
 
 // Use banker's rounding for all calculations
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
@@ -42,19 +44,29 @@ async function runBillingCycle() {
     }
 
     const today = new Date();
-    const currentDay = today.getDate();
+    // CRITICAL: Get a local Date object in Kathmandu timezone.
+    // If the server runs in UTC, 1:00 AM Kathmandu is 19:15 UTC (the previous day).
+    const nepalTimeStr = today.toLocaleString("en-US", { timeZone: "Asia/Kathmandu" });
+    const localNepalDate = new Date(nepalTimeStr);
     
-    // 2. Adjust target billing day for shorter months (e.g., Feb, Apr, Jun, Sep, Nov)
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const targetBillingDay = Math.min(settings.billingCycleDay, daysInMonth);
-    
-    // 3. Only run if today matches the target billing day
-    if (currentDay !== targetBillingDay) {
-      console.log(`[WORKER: BILLING] Today (day ${currentDay}) is not the target billing day (day ${targetBillingDay}). Skipping.`);
-      return;
-    }
+    let currentDay;
+    let daysInMonth;
 
-    const feeAmount = new Decimal(settings.monthlyFeeAmount.toString());
+    if (settings.calendarType === 'BS') {
+      const bsDate = new NepaliDate(today);
+      const bs = bsDate.getBS(); // { year, month: 0-11, date, day }
+      const bsMonths = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Aswin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+      const monthName = bsMonths[bs.month];
+      currentDay = bs.date;
+      daysInMonth = dateConfigMap[bs.year.toString()][monthName];
+      console.log(`[WORKER: BILLING] Operating in BS Calendar Mode: ${bs.year}-${bs.month + 1}-${bs.date} (Days in month: ${daysInMonth})`);
+    } else {
+      currentDay = localNepalDate.getDate();
+      daysInMonth = new Date(localNepalDate.getFullYear(), localNepalDate.getMonth() + 1, 0).getDate();
+      console.log(`[WORKER: BILLING] Operating in AD Calendar Mode: ${localNepalDate.toISOString().split('T')[0]} (Days in month: ${daysInMonth})`);
+    }
+    
+    const globalTargetDay = settings.billingCycleDay;
     
     // Calculate the start of today to check lastBilledDate (idempotency check)
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -82,9 +94,22 @@ async function runBillingCycle() {
 
       if (customers.length === 0) break;
 
-      // 5. Process the batch within a transaction
+      // 5. Filter customers whose effective billing day is today (adjusted for short months)
+      const customersToBill = customers.filter(customer => {
+        const effectiveDay = customer.billingCycleDay || globalTargetDay;
+        const adjustedDay = Math.min(effectiveDay, daysInMonth);
+        return adjustedDay === currentDay;
+      });
+
+      if (customersToBill.length === 0) {
+        cursor = customers[customers.length - 1].customerId;
+        continue;
+      }
+
+      // 6. Process the batch within a transaction
       await prisma.$transaction(async (tx) => {
-        for (const customer of customers) {
+        for (const customer of customersToBill) {
+          const feeAmount = new Decimal(customer.monthlyFee.toString());
           const currentAdvance = new Decimal(customer.advanceBalance.toString());
           const currentOutstanding = new Decimal(customer.outstandingPayment.toString());
           
@@ -124,11 +149,21 @@ async function runBillingCycle() {
             }
           });
           
+          // ── Create a Digital Receipt in BillingLedger ──
+          const monthName = new Date().toLocaleString('en-US', { month: 'long', timeZone: 'Asia/Kathmandu' });
+          await tx.billingLedger.create({
+            data: {
+              customerId: customer.customerId,
+              amount: feeAmount.toFixed(2),
+              description: `Automated Monthly Waste Collection Fee - ${monthName}`,
+            }
+          });
+          
           totalBilled++;
         }
       }, { isolationLevel: 'Serializable' });
 
-      console.log(`[WORKER: BILLING] Billed batch of ${customers.length} customers.`);
+      console.log(`[WORKER: BILLING] Billed batch of ${customersToBill.length} eligible customers (out of ${customers.length} checked).`);
       cursor = customers[customers.length - 1].customerId;
     }
 
@@ -139,11 +174,13 @@ async function runBillingCycle() {
 }
 
 function initBillingWorker() {
-  // Run daily at 01:00 AM server time
+  // Run daily at 01:00 AM Nepal Time (Asia/Kathmandu)
   cron.schedule('0 1 * * *', () => {
     runBillingCycle();
+  }, {
+    timezone: "Asia/Kathmandu"
   });
-  console.log('[WORKER] Billing Engine scheduled (01:00 AM daily).');
+  console.log('[WORKER] Billing Engine scheduled (01:00 AM daily, Asia/Kathmandu).');
 }
 
 module.exports = { initBillingWorker, runBillingCycle };

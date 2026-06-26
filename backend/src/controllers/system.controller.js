@@ -23,7 +23,6 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ── Safe defaults if no row exists yet ──
 const DEFAULTS = {
-  monthlyFeeAmount: '500.00',
   billingCycleDay: 1,
 };
 
@@ -44,7 +43,6 @@ async function getSettings(req, res) {
         success: true,
         data: {
           id: null,
-          monthlyFeeAmount: DEFAULTS.monthlyFeeAmount,
           billingCycleDay: DEFAULTS.billingCycleDay,
           calendarType: 'AD',
           createdAt: null,
@@ -57,7 +55,6 @@ async function getSettings(req, res) {
       success: true,
       data: {
         id: settings.id,
-        monthlyFeeAmount: settings.monthlyFeeAmount.toString(),
         billingCycleDay: settings.billingCycleDay,
         calendarType: settings.calendarType,
         customDeductions: settings.customDeductions,
@@ -90,7 +87,7 @@ async function updateSettings(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { sudoPassword, monthlyFeeAmount, billingCycleDay, calendarType } = parseResult.data;
+    const { sudoPassword, billingCycleDay, calendarType } = parseResult.data;
 
     // ── Step 2: SUDO RE-AUTHENTICATION ──
     // Fetch the current admin's password hash from the database.
@@ -138,8 +135,6 @@ async function updateSettings(req, res) {
     }
 
     // ── Step 3: SUDO PASSED — Apply the update ──
-    const feeDecimal = new Decimal(monthlyFeeAmount);
-
     // Upsert: create if no row exists, update if it does
     const existingSettings = await prisma.globalSettings.findFirst({
       orderBy: { id: 'asc' },
@@ -151,7 +146,6 @@ async function updateSettings(req, res) {
       updatedSettings = await prisma.globalSettings.update({
         where: { id: existingSettings.id },
         data: {
-          monthlyFeeAmount: feeDecimal.toFixed(2),
           billingCycleDay,
           ...(calendarType && { calendarType }),
         },
@@ -159,7 +153,6 @@ async function updateSettings(req, res) {
     } else {
       updatedSettings = await prisma.globalSettings.create({
         data: {
-          monthlyFeeAmount: feeDecimal.toFixed(2),
           billingCycleDay,
           calendarType: calendarType || 'AD',
         },
@@ -176,9 +169,7 @@ async function updateSettings(req, res) {
           performedById: req.user.id,
           details: {
             adminName: admin.name,
-            newMonthlyFee: feeDecimal.toFixed(2),
             newBillingCycleDay: billingCycleDay,
-            previousMonthlyFee: existingSettings ? existingSettings.monthlyFeeAmount.toString() : DEFAULTS.monthlyFeeAmount,
             previousBillingCycleDay: existingSettings ? existingSettings.billingCycleDay : DEFAULTS.billingCycleDay,
           },
           ipAddress: req.ip,
@@ -189,14 +180,13 @@ async function updateSettings(req, res) {
       console.error('[SYSTEM] Audit log failed:', auditErr.message);
     }
 
-    console.log(`[SYSTEM] Settings updated by Admin "${admin.name}" (ID: ${admin.id}). Fee: ₹${feeDecimal.toFixed(2)}, Cycle Day: ${billingCycleDay}`);
+    console.log(`[SYSTEM] Settings updated by Admin "${admin.name}" (ID: ${admin.id}). Cycle Day: ${billingCycleDay}`);
 
     return res.status(200).json({
       success: true,
       message: 'System settings updated successfully.',
       data: {
         id: updatedSettings.id,
-        monthlyFeeAmount: updatedSettings.monthlyFeeAmount.toString(),
         billingCycleDay: updatedSettings.billingCycleDay,
         calendarType: updatedSettings.calendarType,
         customDeductions: updatedSettings.customDeductions,

@@ -31,14 +31,11 @@ const staffLoginSchema = z.object({
 // ────────────────────────────────────────────────────────────────────────────
 
 const customerLoginSchema = z.object({
-  phone: z
-    .string({ required_error: 'Phone number is required.' })
+  customerId: z
+    .string({ required_error: 'Customer ID is required.' })
     .trim()
-    // Nepal mobile: 98XXXXXXXX or +97798XXXXXXXX (10 or 14 chars)
-    .regex(
-      /^(\+977)?9[78]\d{8}$/,
-      'Invalid phone number format. Expected: 98XXXXXXXX or +97798XXXXXXXX.'
-    ),
+    .min(3, 'Customer ID is too short.')
+    .transform((val) => val.replace(/<[^>]*>/g, '').toUpperCase()),
 
   password: z
     .string({ required_error: 'Password is required.' })

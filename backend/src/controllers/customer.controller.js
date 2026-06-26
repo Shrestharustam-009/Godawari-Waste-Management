@@ -57,6 +57,8 @@ async function getAllCustomers(req, res) {
           name: true,
           phone: true,
           assignedArea: true,
+          billingCycleDay: true,
+          monthlyFee: true,
           outstandingPayment: true,
           advanceBalance: true,
           isActive: true,
@@ -69,6 +71,7 @@ async function getAllCustomers(req, res) {
     // Cast Decimal fields to strings for safe JSON transport
     const formatted = customers.map((c) => ({
       ...c,
+      monthlyFee: c.monthlyFee.toString(),
       outstandingPayment: c.outstandingPayment.toString(),
       advanceBalance: c.advanceBalance.toString(),
     }));
@@ -107,7 +110,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, password, assignedArea, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, billingCycleDay, monthlyFee, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -135,9 +138,11 @@ async function createCustomer(req, res) {
       data: {
         customerId,
         name,
-        phone,
+        phone: phone || null,
         pinHash,
         assignedArea,
+        billingCycleDay: billingCycleDay || null,
+        monthlyFee: new Decimal(monthlyFee).toFixed(2),
         outstandingPayment: startingDebt.toFixed(2),
         debtStartDate,
         dueStartDate,
@@ -152,6 +157,8 @@ async function createCustomer(req, res) {
         name: customer.name,
         phone: customer.phone,
         assignedArea: customer.assignedArea,
+        billingCycleDay: customer.billingCycleDay,
+        monthlyFee: customer.monthlyFee.toString(),
         outstandingPayment: customer.outstandingPayment.toString(),
         advanceBalance: customer.advanceBalance.toString(),
         createdAt: customer.createdAt,
@@ -212,6 +219,16 @@ async function getCustomerProfile(req, res) {
             },
           },
         },
+        billingEntries: {
+          orderBy: { date: 'desc' },
+          select: {
+            id: true,
+            date: true,
+            amount: true,
+            description: true,
+            createdAt: true,
+          }
+        }
       },
     });
 
@@ -228,6 +245,8 @@ async function getCustomerProfile(req, res) {
       name: customer.name,
       phone: customer.phone,
       assignedArea: customer.assignedArea,
+      billingCycleDay: customer.billingCycleDay,
+      monthlyFee: customer.monthlyFee.toString(),
       outstandingPayment: customer.outstandingPayment.toString(),
       advanceBalance: customer.advanceBalance.toString(),
       debtStartDate: customer.debtStartDate,
@@ -235,19 +254,30 @@ async function getCustomerProfile(req, res) {
       dueEndDate: customer.dueEndDate,
       lastBilledDate: customer.lastBilledDate,
       createdAt: customer.createdAt,
-      transactions: customer.incomeEntries.map((tx) => ({
-        id: tx.id,
-        date: tx.date,
-        amount: tx.amount.toString(),
-        baseAmount: tx.baseAmount.toString(),
-        vatAmount: tx.vatAmount.toString(),
-        paymentMethod: tx.paymentMethod,
-        source: tx.source,
-        status: tx.status,
-        note: tx.note,
-        collectedBy: tx.collectedBy.name,
-        createdAt: tx.createdAt,
-      })),
+      transactions: [
+        ...customer.incomeEntries.map((tx) => ({
+          type: 'PAYMENT',
+          id: tx.id,
+          date: tx.date,
+          amount: tx.amount.toString(),
+          baseAmount: tx.baseAmount.toString(),
+          vatAmount: tx.vatAmount.toString(),
+          paymentMethod: tx.paymentMethod,
+          source: tx.source,
+          status: tx.status,
+          note: tx.note,
+          collectedBy: tx.collectedBy.name,
+          createdAt: tx.createdAt,
+        })),
+        ...customer.billingEntries.map((tx) => ({
+          type: 'CHARGE',
+          id: tx.id,
+          date: tx.date,
+          amount: tx.amount.toString(),
+          description: tx.description,
+          createdAt: tx.createdAt,
+        }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date)),
     };
 
     return res.status(200).json({
@@ -305,9 +335,131 @@ async function resetCustomerPassword(req, res) {
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// 5. UPDATE CUSTOMER
+// ────────────────────────────────────────────────────────────────────────────
+async function updateCustomer(req, res) {
+  try {
+    const { customerId } = req.params;
+    
+    // RBAC: Only ADMIN can update customer details
+    const adminUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Forbidden. Admin access required to update customer details.' });
+    }
+
+    const parseResult = require('../validators/customer.validator').updateCustomerSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const errors = parseResult.error.errors.map((e) => ({
+        field: e.path.join('.'),
+        message: e.message,
+      }));
+      return res.status(400).json({ success: false, errors });
+    }
+
+    const { name, phone, assignedArea, monthlyFee, billingCycleDay, isActive, sudoPassword } = parseResult.data;
+
+    // Verify sudo password
+    const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
+    if (!isPasswordValid) {
+      return res.status(403).json({ success: false, error: 'Invalid admin password.' });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone || null;
+    if (assignedArea) updateData.assignedArea = assignedArea;
+    if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
+    if (billingCycleDay !== undefined) updateData.billingCycleDay = billingCycleDay;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedCustomer = await prisma.customer.update({
+      where: { customerId },
+      data: updateData,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Customer updated successfully.',
+      data: {
+        customerId: updatedCustomer.customerId,
+        name: updatedCustomer.name,
+        phone: updatedCustomer.phone,
+        assignedArea: updatedCustomer.assignedArea,
+        billingCycleDay: updatedCustomer.billingCycleDay,
+        monthlyFee: updatedCustomer.monthlyFee.toString(),
+        isActive: updatedCustomer.isActive,
+      },
+    });
+  } catch (error) {
+    console.error('[CUSTOMER CTRL] updateCustomer error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ success: false, error: 'Customer not found.' });
+    }
+    return res.status(500).json({ success: false, error: 'Failed to update customer.' });
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 6. GET LATEST DRIVER LOCATIONS (For Customer Map)
+// ────────────────────────────────────────────────────────────────────────────
+async function getLatestDriverLocations(req, res) {
+  try {
+    // 1. Fetch latest driver locations
+    const locations = await prisma.latestDriverLocation.findMany();
+
+    // 2. Fetch corresponding vehicle details and assigned users
+    const validVehicleIds = locations
+      .map(loc => parseInt(loc.vehicleId, 10))
+      .filter(id => !isNaN(id));
+
+    const vehicles = await prisma.vehicle.findMany({
+      where: { id: { in: validVehicleIds } },
+      select: {
+        id: true,
+        registrationNumber: true,
+        type: true,
+        assignedUsers: {
+          select: { name: true, phone: true, role: true }
+        }
+      }
+    });
+
+    // 3. Map the data together
+    const driverData = locations.map(loc => {
+      const vehicle = vehicles.find(v => String(v.id) === String(loc.vehicleId));
+      // Find the currently assigned driver from the vehicle's assignedUsers relation
+      const assignedDriver = vehicle?.assignedUsers?.find(u => u.role === 'DRIVER');
+      
+      const driverName = assignedDriver ? assignedDriver.name : 'Unknown Driver';
+      const driverPhone = assignedDriver?.phone || null;
+      const plateNumber = vehicle?.registrationNumber || 'Unknown';
+      const vehicleType = vehicle?.type || 'Vehicle';
+      
+      return {
+        vehicleId: loc.vehicleId,
+        lat: loc.lat,
+        lng: loc.lng,
+        timestamp: loc.updatedAt,
+        plateNumber,
+        driverName,
+        driverPhone,
+        vehicleType
+      };
+    });
+
+    res.json({ success: true, drivers: driverData });
+  } catch (err) {
+    console.error('[API ERROR] Failed to fetch latest driver locations for customer map:', err);
+    res.status(500).json({ success: false, message: 'Server error loading vehicle locations.' });
+  }
+}
+
 module.exports = {
   getAllCustomers,
   createCustomer,
   getCustomerProfile,
   resetCustomerPassword,
+  updateCustomer,
+  getLatestDriverLocations
 };

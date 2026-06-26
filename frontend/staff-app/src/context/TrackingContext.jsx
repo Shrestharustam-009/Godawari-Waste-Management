@@ -136,14 +136,23 @@ export function TrackingProvider({ children }) {
       const coords = lastCoordsRef.current;
       if (socketRef.current?.connected && coords && now - lastEmitRef.current >= EMIT_INTERVAL_MS) {
         lastEmitRef.current = now;
-        socketRef.current.emit('staff_location_update', {
-          staffId: user?.id || user?._id, 
-          name: user?.name || user?.username || 'Field Staff',
-          role: user?.role || 'STAFF',
-          lat: coords.lat,
-          lng: coords.lng,
-          timestamp: new Date().toISOString(),
-        });
+        if (user?.role === 'DRIVER') {
+          socketRef.current.emit('driver_location_update', {
+            vehicleId: user?.vehicleId,
+            lat: coords.lat,
+            lng: coords.lng,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          socketRef.current.emit('staff_location_update', {
+            staffId: user?.id || user?._id, 
+            name: user?.name || user?.username || 'Field Staff',
+            role: user?.role || 'STAFF',
+            lat: coords.lat,
+            lng: coords.lng,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
     }, EMIT_INTERVAL_MS);
 

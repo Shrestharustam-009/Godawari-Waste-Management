@@ -54,6 +54,14 @@ api.interceptors.response.use(
       }
     }
 
+    // If the backend explicitly revoked the session (deactivated, disabled, or invalid token)
+    if (
+      error.response?.status === 401 &&
+      ['ACCOUNT_DEACTIVATED', 'LOGIN_DISABLED', 'TOKEN_INVALID', 'ORPHANED_TOKEN'].includes(error.response?.data?.code)
+    ) {
+      window.location.href = '/login?error=' + error.response.data.code;
+    }
+
     return Promise.reject(error);
   }
 );

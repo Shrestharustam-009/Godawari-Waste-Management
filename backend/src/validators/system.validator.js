@@ -13,24 +13,6 @@ const updateSettingsSchema = z.object({
     .string({ required_error: 'Sudo password is required to modify system settings.' })
     .min(1, 'Sudo password cannot be empty.'),
 
-  monthlyFeeAmount: z
-    .string({ required_error: 'Monthly fee amount is required.' })
-    .regex(
-      /^\d{1,8}(\.\d{1,2})?$/,
-      'Monthly fee must be a decimal string (e.g., "500.00").'
-    )
-    .refine(
-      (val) => {
-        try {
-          const d = new Decimal(val);
-          return d.gt('0') && d.lte('99999999.99');
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Monthly fee must be between ₹0.01 and ₹99,999,999.99.' }
-    ),
-
   billingCycleDay: z
     .number({ required_error: 'Billing cycle day is required.' })
     .int('Billing cycle day must be an integer.')

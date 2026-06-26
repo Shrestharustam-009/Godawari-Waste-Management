@@ -42,14 +42,15 @@ const createCustomerSchema = z.object({
     .transform(sanitizeText),
 
   phone: z
-    .string({ required_error: 'Phone number is required.' })
+    .string()
     .trim()
-    .min(7, 'Phone number must be at least 7 digits.')
-    .max(15, 'Phone number must not exceed 15 characters.')
     .regex(
-      /^[0-9+\-() ]+$/,
+      /^[0-9+\-() ]*$/,
       'Phone number may only contain digits, +, -, (, ), and spaces.'
-    ),
+    )
+    .transform(val => val === '' ? null : val)
+    .optional()
+    .nullable(),
 
   password: z
     .string({ required_error: 'A password is required.' })
@@ -61,6 +62,26 @@ const createCustomerSchema = z.object({
     .min(2, 'Area must be at least 2 characters.')
     .max(100, 'Area must not exceed 100 characters.')
     .transform(sanitizeText),
+
+  monthlyFee: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Monthly fee must be a string in decimal format (e.g., "500.00").'
+    )
+    .refine(
+      (val) => {
+        try {
+          const d = new Decimal(val);
+          return d.gte('0.00') && d.lte('99999999.99');
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Monthly fee must be between ₹0.00 and ₹99,999,999.99.' }
+    )
+    .optional()
+    .default('500.00'),
 
   outstandingPayment: z
     .string()
@@ -82,10 +103,81 @@ const createCustomerSchema = z.object({
     .optional()
     .default('0.00'),
 
+  billingCycleDay: z
+    .number()
+    .int('Billing cycle day must be an integer.')
+    .min(1, 'Billing cycle day cannot be less than 1.')
+    .max(28, 'Billing cycle day cannot be greater than 28.')
+    .nullable()
+    .optional(),
+
   dueStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
   dueEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
 }).strict();
 
+const updateCustomerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters.')
+    .max(150, 'Name must not exceed 150 characters.')
+    .transform(sanitizeText)
+    .optional(),
+
+  phone: z
+    .string()
+    .trim()
+    .regex(
+      /^[0-9+\-() ]*$/,
+      'Phone number may only contain digits, +, -, (, ), and spaces.'
+    )
+    .transform(val => val === '' ? null : val)
+    .optional()
+    .nullable(),
+
+  sudoPassword: z
+    .string({ required_error: 'Admin password is required to save changes.' })
+    .min(1, 'Admin password cannot be empty.'),
+
+  assignedArea: z
+    .string()
+    .trim()
+    .min(2, 'Area must be at least 2 characters.')
+    .max(100, 'Area must not exceed 100 characters.')
+    .transform(sanitizeText)
+    .optional(),
+
+  monthlyFee: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Monthly fee must be a string in decimal format (e.g., "500.00").'
+    )
+    .refine(
+      (val) => {
+        try {
+          const d = new Decimal(val);
+          return d.gte('0.00') && d.lte('99999999.99');
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Monthly fee must be between ₹0.00 and ₹99,999,999.99.' }
+    )
+    .optional(),
+    
+  billingCycleDay: z
+    .number()
+    .int('Billing cycle day must be an integer.')
+    .min(1, 'Billing cycle day cannot be less than 1.')
+    .max(28, 'Billing cycle day cannot be greater than 28.')
+    .nullable()
+    .optional(),
+    
+  isActive: z.boolean().optional(),
+}).strict();
+
 module.exports = {
   createCustomerSchema,
+  updateCustomerSchema,
 };

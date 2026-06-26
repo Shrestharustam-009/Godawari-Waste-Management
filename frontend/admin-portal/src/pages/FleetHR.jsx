@@ -5,13 +5,14 @@ import { io } from 'socket.io-client';
 import {
   MapPin, Users, Truck, UserPlus, Eye, ShieldOff, ShieldCheck,
   Loader2, Plus, ChevronDown, X, Phone, Lock, Hash, Map as MapIcon,
-  Activity, DollarSign, Calendar, KeyRound, CheckCircle2
+  Activity, DollarSign, Calendar, KeyRound, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
+import ReactDOMServer from 'react-dom/server';
 
 // import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 // import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -46,7 +47,19 @@ const createIcon = (color) => L.divIcon({
   popupAnchor: [0, -20],
 });
 
-const driverIcon = createIcon('#059669');    // Emerald green for drivers
+const driverIconHtml = ReactDOMServer.renderToString(
+  <div style={{ backgroundColor: '#10b981', border: '2px solid white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }}>
+    <Truck size={18} color="white" />
+  </div>
+);
+
+const driverIcon = L.divIcon({
+  html: driverIconHtml,
+  className: 'custom-leaflet-icon',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
+});
 const collectorIcon = createIcon('#2563eb'); // Blue for collectors
 
 // ============================================================================
@@ -337,40 +350,45 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
               </div>
             </div>
 
-            {/* Daily Summary */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-200">
-                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center"><DollarSign className="w-3 h-3 mr-1" /> Today's Collection</p>
-                <p className="text-2xl font-extrabold text-emerald-800">₹{formatCurrency(profile.dailySummary?.collectionTotal)}</p>
-              </div>
-              <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1 flex items-center"><Activity className="w-3 h-3 mr-1" /> Transactions</p>
-                <p className="text-2xl font-extrabold text-blue-800">{profile.dailySummary?.transactionCount || 0}</p>
-              </div>
-            </div>
-
-            {/* Transaction Ledger */}
-            <div>
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Recent Transaction History</h4>
-              {Array.isArray(profile.transactions) && profile.transactions.length > 0 ? (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                  {profile.transactions.map(tx => (
-                    <div key={tx.id} className="bg-white p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">Collected: ₹{formatCurrency(tx.amount)}</p>
-                        <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tx.status === 'SUCCESSFUL' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{tx.status}</span>
-                      </div>
-                    </div>
-                  ))}
+            {/* ── COLLECTOR ONLY SECTIONS ── */}
+            {profile.role !== 'DRIVER' && (
+              <>
+                {/* Daily Summary */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-200">
+                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center"><DollarSign className="w-3 h-3 mr-1" /> Today's Collection</p>
+                    <p className="text-2xl font-extrabold text-emerald-800">₹{formatCurrency(profile.dailySummary?.collectionTotal)}</p>
+                  </div>
+                  <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1 flex items-center"><Activity className="w-3 h-3 mr-1" /> Transactions</p>
+                    <p className="text-2xl font-extrabold text-blue-800">{profile.dailySummary?.transactionCount || 0}</p>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-slate-400 text-sm text-center py-8 bg-slate-50 rounded-lg">No transactions recorded yet.</p>
-              )}
-            </div>
+
+                {/* Transaction Ledger */}
+                <div>
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Recent Transaction History</h4>
+                  {Array.isArray(profile.transactions) && profile.transactions.length > 0 ? (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                      {profile.transactions.map(tx => (
+                        <div key={tx.id} className="bg-white p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">Collected: ₹{formatCurrency(tx.amount)}</p>
+                            <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tx.status === 'SUCCESSFUL' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{tx.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 text-sm text-center py-8 bg-slate-50 rounded-lg">No transactions recorded yet.</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -419,6 +437,7 @@ export default function FleetHR() {
   const [focusedCoords, setFocusedCoords] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [mapFeedback, setMapFeedback] = useState(null);
+  const feedbackTimeoutRef = useRef(null);
 
   const STALE_THRESHOLD_MS = 3 * 60 * 1000; // 3 min with no ping = considered offline
   const hasInitialFitRef = useRef(false);
@@ -714,13 +733,36 @@ useEffect(() => {
 
             {allMapMarkers.length > 0 && <MapAutoFit markers={allMapMarkers} />}
 
-            {Object.values(driverMarkers).map(m => (
-              <Marker key={`driver-${m.vehicleId}`} position={[m.lat, m.lng]} icon={driverIcon}>
-                <Popup>
-                  <div className="text-sm"><strong className="text-emerald-700">🚛 Vehicle #{m.vehicleId}</strong><br /><span className="text-slate-500">Last ping: {new Date(m.timestamp).toLocaleTimeString('en-IN')}</span></div>
-                </Popup>
-              </Marker>
-            ))}
+            {Object.values(driverMarkers).map(m => {
+              // Look up the matching employee to get their name/username
+              const employee = staff.find(s => s.role === 'DRIVER' && String(s.vehicleId) === String(m.vehicleId));
+
+              return (
+                <Marker key={`driver-${m.vehicleId}`} position={[m.lat, m.lng]} icon={driverIcon}>
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                          {employee?.name?.charAt(0) || '?'}
+                        </span>
+                        <strong className="text-emerald-700">
+                          {employee ? employee.name : `Driver #${m.vehicleId}`}
+                        </strong>
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono mb-2">
+                        @{employee?.username || 'n/a'}
+                      </div>
+                      <div className="text-[11px] font-bold text-slate-600 mb-1">
+                        🚛 Vehicle #{m.vehicleId}
+                      </div>
+                      <div className="text-[11px] text-slate-400 border-t pt-1">
+                        Last ping: {new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
 
             {Object.values(staffMarkers).map(m => {
             // Look up the matching employee to get their name/username
@@ -786,8 +828,8 @@ useEffect(() => {
           <div className="overflow-x-auto w-full">
             <table className="w-full text-sm text-left">
                {mapFeedback && (
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-full shadow-lg flex items-center animate-bounce">
-                      <AlertCircle className="w-4 h-4 mr-2" />
+                    <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[1000] px-6 py-3 bg-amber-500 text-white text-sm font-bold rounded-full shadow-xl flex items-center animate-bounce">
+                      <AlertCircle className="w-5 h-5 mr-2" />
                       {mapFeedback}
                     </div>
                   )}
@@ -854,23 +896,25 @@ useEffect(() => {
                     const safeDriverMarkers = driverMarkers || {};
                     const safeStaffMarkers = staffMarkers || {};
                     
-                    // 2. Combine them safely
-                    const allMarkers = { ...safeDriverMarkers, ...safeStaffMarkers };
-                    
-                    // 3. Find the specific marker
-                    const marker = emp.role === 'DRIVER' 
-                      ? safeDriverMarkers[emp.vehicleId] 
-                      : safeStaffMarkers[emp.id];
+                    // 2. Find the specific marker safely (matching Strings)
+                    let marker = null;
+                    if (emp.role === 'DRIVER') {
+                      marker = safeDriverMarkers[String(emp.vehicleId)] || 
+                               Object.values(safeDriverMarkers).find(m => String(m.vehicleId) === String(emp.vehicleId));
+                    } else {
+                      marker = safeStaffMarkers[emp.id];
+                    }
 
-                    // 4. Perform the logic
-                    if (marker && marker.lat && marker.lng) {
+                    // 3. Check staleness before focusing
+                    const cutoff = Date.now() - 3 * 60 * 1000; // STALE_THRESHOLD_MS (3 mins)
+                    const isOnline = marker && marker.timestamp && new Date(marker.timestamp).getTime() >= cutoff;
+
+                    if (isOnline && marker.lat && marker.lng) {
                       setFocusedCoords({ lat: marker.lat, lng: marker.lng });
                     } else {
-                      // Use your existing successToast or a simple console log for now
-                      // to avoid the crash if the marker is missing
-                      console.log("Marker data not available for this employee");
-                      setSuccessToast(`@${emp.username} is currently offline or has no location.`);
-                      setTimeout(() => setSuccessToast(null), 3000);
+                      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+                      setMapFeedback(`@${emp.username} is currently offline or their location is stale.`);
+                      feedbackTimeoutRef.current = setTimeout(() => setMapFeedback(null), 3000);
                     }
                   }}
                   className="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors"
