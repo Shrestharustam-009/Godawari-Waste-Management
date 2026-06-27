@@ -142,6 +142,8 @@ export default function Collection() {
           receiptNo={receiptData?.incomeId ? `REC-${receiptData.incomeId}` : `REC-${Date.now()}`}
           paymentForStartDate={paymentForStartDate}
           paymentForEndDate={paymentForEndDate}
+          baseAmount={receiptData?.vatBreakdown?.base}
+          vatAmount={receiptData?.vatBreakdown?.vat}
         />
       </div>
     );

@@ -5,8 +5,9 @@ import api from '../api/axios';
 import {
   Loader2, LogOut, Wallet, AlertTriangle,
   IndianRupee, Clock, CheckCircle2, XCircle,
-  CreditCard, Recycle, FileText, Download, MapPin, ArrowRight
+  CreditCard, Recycle, FileText, Download, KeyRound, MapPin, ArrowRight
 } from 'lucide-react';
+import invoiceHeaderImg from '../assets/invoice-header.png';
 
 // ============================================================================
 // CUSTOMER FINANCIAL DASHBOARD
@@ -137,6 +138,8 @@ export default function Dashboard() {
             <button onclick="window.print()" style="background: #10b981; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Print / Save as PDF</button>
             <button onclick="window.close()" style="background: #64748b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Close Window</button>
           </div>
+
+          <img src="${invoiceHeaderImg}" alt="Header" class="header-image" style="width: 100%; max-height: 160px; object-fit: contain; margin-bottom: 20px;" />
 
           <div class="header">
             <div>

@@ -24,10 +24,12 @@ import {
   KeyRound,
   CheckCircle2,
   Calendar,
-  Download,  // Added for CSV export
-  FileText,  // Added for Statement generation
+  Download,
+  FileText,
+  ArrowRight,
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
+import invoiceHeaderImg from '../assets/company_logo.png';
 
 // ============================================================================
 // SUDO MODAL
@@ -417,6 +419,10 @@ function CustomerProfile({ customerId, onClose }) {
   const [error, setError] = useState(null);
   const { formatDate } = useSettings();
 
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
   useEffect(() => {
     if (!customerId) return;
     setLoading(true);
@@ -432,18 +438,69 @@ function CustomerProfile({ customerId, onClose }) {
       .finally(() => setLoading(false));
   }, [customerId]);
 
+  const filteredTransactions = React.useMemo(() => {
+    if (!profile || !profile.transactions) return [];
+    
+    let filtered = [...profile.transactions];
+    const now = new Date();
+    
+    if (dateFilter === 'all') return filtered;
+    
+    if (dateFilter === 'custom') {
+      if (customStart) {
+        const start = new Date(customStart);
+        start.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(tx => new Date(tx.date) >= start);
+      }
+      if (customEnd) {
+        const end = new Date(customEnd);
+        end.setHours(23, 59, 59, 999);
+        filtered = filtered.filter(tx => new Date(tx.date) <= end);
+      }
+      return filtered;
+    }
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const filterDate = new Date(startOfToday);
+
+    if (dateFilter === 'today') {
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate);
+    } else if (dateFilter === 'last7') {
+      filterDate.setDate(filterDate.getDate() - 7);
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate);
+    } else if (dateFilter === 'last14') {
+      filterDate.setDate(filterDate.getDate() - 14);
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate);
+    } else if (dateFilter === 'thisMonth') {
+      filterDate.setDate(1);
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate);
+    } else if (dateFilter === 'lastMonth') {
+      filterDate.setMonth(filterDate.getMonth() - 1);
+      filterDate.setDate(1);
+      const endOfLastMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 0, 23, 59, 59, 999);
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate && new Date(tx.date) <= endOfLastMonth);
+    } else if (dateFilter === 'last3Months') {
+      filterDate.setMonth(filterDate.getMonth() - 3);
+      filterDate.setDate(1);
+      filtered = filtered.filter(tx => new Date(tx.date) >= filterDate);
+    }
+    
+    return filtered;
+  }, [profile, dateFilter, customStart, customEnd]);
+
   // ── Export CSV Handler ──
   const handleExportCSV = () => {
-    if (!profile || !profile.transactions || profile.transactions.length === 0) return;
+    if (!filteredTransactions || filteredTransactions.length === 0) return;
 
     const headers = ['Transaction ID', 'Method', 'Source', 'Collected By', 'Date', 'VAT Amount (INR)', 'Amount (INR)', 'Note'];
-    const rows = profile.transactions.map(tx => [
+    const rows = filteredTransactions.map(tx => [
       tx.id || 'N/A',
       tx.paymentMethod,
       tx.source,
       tx.staffName || 'Admin',
       formatDate(tx.date),
-      tx.vatAmount,
+      tx.vatAmount || '0.00',
       tx.amount,
       tx.note || ''
     ]);
@@ -471,18 +528,40 @@ function CustomerProfile({ customerId, onClose }) {
   const handleViewStatement = () => {
     if (!profile) return;
 
+    let totalPayments = 0;
+    let totalVat = 0;
+    let totalCharges = 0;
+
     const printWindow = window.open('', '_blank');
-    const txRows = (profile.transactions || []).map(tx => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${tx.staffName || 'Admin'}</td>
-        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)}</td>
-        <td style="padding: 12px; font-size: 13px; color: #1e293b;">Rs. ${Number(tx.vatAmount).toFixed(2)}</td>
-        <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
-        <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.paymentMethod} · ${tx.source}</td>
-        <td style="padding: 12px; font-size: 13px; color: #64748b;">${tx.collectedBy}</td>
-        <td style="padding: 12px; font-size: 13px; font-weight: bold; text-align: right; color: #16a34a;">+₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-      </tr>
-    `).join('');
+    const txRows = (filteredTransactions || []).map(tx => {
+      if (tx.type === 'CHARGE') {
+        totalCharges += Number(tx.amount) || 0;
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)}</td>
+            <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
+            <td style="padding: 12px; font-size: 13px; color: #475569;">System Billing - Monthly Fee</td>
+            <td style="padding: 12px; font-size: 13px; color: #64748b;">System</td>
+            <td style="padding: 12px; font-size: 13px; font-weight: bold; text-align: right; color: #dc2626;">-₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      }
+      totalPayments += Number(tx.amount) || 0;
+      totalVat += Number(tx.vatAmount) || 0;
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)}</td>
+          <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
+          <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.paymentMethod} · ${tx.source}</td>
+          <td style="padding: 12px; font-size: 13px; color: #64748b;">${tx.collectedBy}</td>
+          <td style="padding: 12px; text-align: right;">
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">Subtotal: ₹${(Number(tx.amount) - Number(tx.vatAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">VAT (13%): ₹${Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 13px; font-weight: bold; color: #16a34a; border-top: 1px dashed #cbd5e1; padding-top: 4px;">Total: +₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
 
     printWindow.document.write(`
       <html>
@@ -490,6 +569,7 @@ function CustomerProfile({ customerId, onClose }) {
           <title>Statement_${profile.customerId}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #334155; }
+            .header-image { width: 100%; max-height: 160px; object-fit: contain; margin-bottom: 20px; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
             .meta-box { background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -503,6 +583,7 @@ function CustomerProfile({ customerId, onClose }) {
             <button onclick="window.print()" style="background: #0284c7; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Print / Download PDF</button>
             <button onclick="window.close()" style="background: #64748b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">Close</button>
           </div>
+          <img src="${invoiceHeaderImg}" alt="Header" class="header-image" />
           <div class="header">
             <div>
               <h1 style="margin: 0; font-size: 24px; color: #0f172a;">ACCOUNT STATEMENT</h1>
@@ -537,6 +618,26 @@ function CustomerProfile({ customerId, onClose }) {
             <tbody>
               ${txRows || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #94a3b8;">No transactions found.</td></tr>'}
             </tbody>
+            ${filteredTransactions.length > 0 ? `
+              <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
+                <tr>
+                  <td colspan="4" style="padding: 12px; text-align: right; font-weight: bold; color: #475569;">Total Billed (Charges):</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold; color: #dc2626;">-₹${totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td colspan="4" style="padding: 12px; text-align: right; font-weight: bold; color: #475569;">Subtotal (from Payments):</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold; color: #1e293b;">+₹${(totalPayments - totalVat).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td colspan="4" style="padding: 12px; text-align: right; font-weight: bold; color: #475569;">VAT (13%):</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold; color: #1e293b;">+₹${totalVat.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td colspan="4" style="padding: 12px; text-align: right; font-weight: bold; color: #0f172a; font-size: 14px;">Total Amount Received:</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold; color: #16a34a; font-size: 14px;">+₹${totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              </tfoot>
+            ` : ''}
           </table>
           <div class="footer">
             <p>This is a system-generated financial summary report statement documentation sheet.</p>
@@ -617,40 +718,82 @@ function CustomerProfile({ customerId, onClose }) {
 
             {/* Transaction History (The Ledger Container) */}
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                  Transaction History ({profile.transactions?.length || 0})
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider flex items-center shrink-0">
+                  <Clock className="w-4 h-4 mr-2 text-emerald-500" />
+                  Transaction History ({filteredTransactions.length || 0})
                 </h4>
 
-                {/* Statements Action Buttons Trigger Toolbar */}
-                {profile.transactions && profile.transactions.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleViewStatement}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200"
+                <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                  <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm hover:border-emerald-300 transition-colors">
+                    <div className="pl-3 pr-2 text-slate-400">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <select
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="text-xs bg-transparent py-2 pr-3 font-semibold text-slate-700 outline-none cursor-pointer hover:text-emerald-600 transition-colors"
                     >
-                      <FileText className="w-3.5 h-3.5" />
-                      Statement
-                    </button>
-                    <button
-                      onClick={handleExportCSV}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      CSV
-                    </button>
+                      <option value="all">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="last7">Last 7 Days</option>
+                      <option value="last14">Last 14 Days</option>
+                      <option value="thisMonth">This Month</option>
+                      <option value="lastMonth">Last Month</option>
+                      <option value="last3Months">Last 3 Months</option>
+                      <option value="custom">Custom Range</option>
+                    </select>
                   </div>
-                )}
+
+                  {dateFilter === 'custom' && (
+                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm hover:border-emerald-300 transition-colors">
+                      <input 
+                        type="date" 
+                        value={customStart} 
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        className="text-xs font-medium text-slate-600 bg-transparent outline-none p-1 cursor-pointer"
+                      />
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      <input 
+                        type="date" 
+                        value={customEnd} 
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        className="text-xs font-medium text-slate-600 bg-transparent outline-none p-1 cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {/* Statements Action Buttons Trigger Toolbar */}
+                  {filteredTransactions.length > 0 && (
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-3 ml-1">
+                      <button
+                        onClick={handleViewStatement}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all shadow-sm border border-slate-200 active:scale-95"
+                        title="Print PDF Statement"
+                      >
+                        <FileText className="w-4 h-4 text-sky-500" />
+                        <span className="hidden sm:inline">Statement</span>
+                      </button>
+                      <button
+                        onClick={handleExportCSV}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
+                        title="Export CSV"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">CSV</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {(!profile.transactions || profile.transactions.length === 0) ? (
+              {(!filteredTransactions || filteredTransactions.length === 0) ? (
                 <div className="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                  No transactions recorded yet.
+                  No transactions recorded for this period.
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {profile.transactions.map((tx) => {
+                  {filteredTransactions.map((tx) => {
                     if (tx.type === 'CHARGE') {
                       return (
                         <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">

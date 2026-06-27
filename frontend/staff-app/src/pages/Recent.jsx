@@ -127,6 +127,8 @@ export default function Recent() {
           receiptNo={`REC-${selectedTxToPrint.id}`}
           paymentForStartDate={selectedTxToPrint.paymentForStartDate}
           paymentForEndDate={selectedTxToPrint.paymentForEndDate}
+          baseAmount={selectedTxToPrint.baseAmount}
+          vatAmount={selectedTxToPrint.vatAmount}
         />
       )}
     </div>

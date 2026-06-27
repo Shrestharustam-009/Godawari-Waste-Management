@@ -2,7 +2,7 @@ import React from 'react';
 import invoiceHeaderImg from '../assets/invoice-header.png';
 import { useSettings } from '../context/SettingsContext';
 
-const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate }) => {
+const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount }) => {
   const { formatDate } = useSettings();
 
   const formatCurrency = (val) => {
@@ -74,6 +74,14 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
           <div style={{ width: '250px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+              <span style={{ fontSize: '14px', color: '#666' }}>Subtotal:</span>
+              <span style={{ fontSize: '14px', color: '#666' }}>Rs. {formatCurrency(baseAmount || (amount - (vatAmount || 0)))}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+              <span style={{ fontSize: '14px', color: '#666' }}>VAT:</span>
+              <span style={{ fontSize: '14px', color: '#666' }}>Rs. {formatCurrency(vatAmount || 0)}</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderTop: '2px solid #000' }}>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Total Paid:</span>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Rs. {formatCurrency(amount)}</span>
