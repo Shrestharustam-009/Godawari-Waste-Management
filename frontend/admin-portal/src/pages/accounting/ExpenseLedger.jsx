@@ -203,7 +203,9 @@ export default function ExpenseLedger() {
       if (tx.vehicleId) return false; 
       
       const q = searchQuery.toLowerCase();
-      return tx.categoryName.toLowerCase().includes(q) || formatDate(tx.date).toLowerCase().includes(q);
+      return tx.categoryName.toLowerCase().includes(q) || 
+             formatDate(tx.date).toLowerCase().includes(q) || 
+             (tx.note && tx.note.toLowerCase().includes(q));
     });
   }, [entries, searchQuery]);
 

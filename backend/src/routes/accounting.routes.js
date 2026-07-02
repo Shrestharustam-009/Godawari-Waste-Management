@@ -12,7 +12,8 @@ const {
   getVehicleExpenses,
   getAccountingAnalysis,
   getFinancialStatements,
-  getIncomeHistory
+  getIncomeHistory,
+  getBonusFees
 } = require('../controllers/accounting.controller');
 
 const { checkAuth, authorizeRoles } = require('../middleware/checkAuth');
@@ -38,5 +39,6 @@ router.get('/expenses/vehicle', authorizeRoles('ADMIN'), getVehicleExpenses);
 // Reporting & Dashboards
 router.get('/analysis', authorizeRoles('ADMIN'), getAccountingAnalysis);
 router.get('/statements', authorizeRoles('ADMIN'), getFinancialStatements);
+router.get('/bonus-fees', authorizeRoles('ADMIN', 'STAFF'), getBonusFees);
 
 module.exports = router;

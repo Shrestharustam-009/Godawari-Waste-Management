@@ -45,6 +45,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Expense Ledger', path: '/accounting/expense', icon: TrendingDown },
     { name: 'Vehicle Expenses', path: '/accounting/vehicle-expenses', icon: Truck },
     { name: 'Staff Salary', path: '/accounting/staff-salary', icon: UserCircle },
+    { name: 'Bonus Fees', path: '/accounting/bonus-fees', icon: Banknote },
   ];
 
   const bottomNavItems = [

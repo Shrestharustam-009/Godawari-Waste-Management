@@ -6,6 +6,7 @@
 // ============================================================================
 
 const { z } = require('zod');
+const { sanitizeText } = require('../utils/sanitize');
 
 // ────────────────────────────────────────────────────────────────────────────
 // Staff Login — POST /api/v1/auth/staff/login
@@ -18,7 +19,7 @@ const staffLoginSchema = z.object({
     .min(2, 'Username must be at least 2 characters.')
     .max(60, 'Username must not exceed 60 characters.')
     // Strip any HTML/script tags to prevent stored XSS
-    .transform((val) => val.replace(/<[^>]*>/g, '')),
+    .transform(sanitizeText),
 
   password: z
     .string({ required_error: 'Password is required.' })
@@ -35,7 +36,7 @@ const customerLoginSchema = z.object({
     .string({ required_error: 'Customer ID is required.' })
     .trim()
     .min(3, 'Customer ID is too short.')
-    .transform((val) => val.replace(/<[^>]*>/g, '').toUpperCase()),
+    .transform((val) => { const s = sanitizeText(val); return s.toUpperCase(); }),
 
   password: z
     .string({ required_error: 'Password is required.' })

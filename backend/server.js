@@ -62,6 +62,18 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // Cookie parser (for JWT in HttpOnly cookies)
 app.use(cookieParser());
 
+// CSRF: Validate Origin header on state-changing requests
+const { csrfProtection } = require('./src/middleware/csrf');
+app.use(csrfProtection({
+  allowedOrigins: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    process.env.CORS_ORIGIN,
+  ],
+}));
+
 // HPP: Prevent HTTP Parameter Pollution
 app.use(hpp());
 

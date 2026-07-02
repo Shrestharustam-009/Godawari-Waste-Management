@@ -4,15 +4,7 @@
 
 const { z } = require('zod');
 const { Decimal } = require('decimal.js');
-
-const sanitizeText = (val) => {
-  return val
-    .replace(/<[^>]*>/g, '')
-    .replace(/('|--|;\/\*|\*\/|xp_|exec\s|union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.*set)/gi, '')
-    .replace(/\0/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+const { sanitizeText } = require('../utils/sanitize');
 
 const createCategorySchema = z.object({
   name: z.string().min(2, 'Category name must be at least 2 characters').max(100).transform(sanitizeText),

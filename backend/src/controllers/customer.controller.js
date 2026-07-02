@@ -38,6 +38,12 @@ async function getAllCustomers(req, res) {
           },
         },
         {
+          name: {
+            contains: searchQuery,
+            mode: 'insensitive',
+          },
+        },
+        {
           phone: {
             contains: searchQuery,
             mode: 'insensitive',

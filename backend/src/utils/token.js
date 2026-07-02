@@ -47,6 +47,47 @@ const REFRESH_COOKIE_OPTIONS = {
   path: '/api/v1/auth', // Only sent to auth endpoints
 };
 
+// ── Cookie Encryption Config ──
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(EFFECTIVE_SECRET).digest();
+
+function encryptCookieValue(text) {
+  if (!text) return text;
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+function decryptCookieValue(text) {
+  if (!text) return text;
+  try {
+    const parts = text.split(':');
+    if (parts.length !== 3) return text;
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encryptedText = parts[2];
+    const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    return null;
+  }
+}
+
+function getAccessCookie(req) {
+  const token = req.cookies?.[ACCESS_COOKIE_NAME];
+  return decryptCookieValue(token);
+}
+
+function getRefreshCookie(req) {
+  const token = req.cookies?.[REFRESH_COOKIE_NAME];
+  return decryptCookieValue(token);
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ACCESS TOKEN OPERATIONS
 // ════════════════════════════════════════════════════════════════════════
@@ -70,7 +111,9 @@ function verifyAccessToken(token) {
 }
 
 function setAccessCookie(res, token) {
-  res.cookie(ACCESS_COOKIE_NAME, token, ACCESS_COOKIE_OPTIONS);
+  // CodeQL recommendation: Encrypt sensitive data before storing it in a cookie.
+  const encryptedToken = encryptCookieValue(token);
+  res.cookie(ACCESS_COOKIE_NAME, encryptedToken, ACCESS_COOKIE_OPTIONS);
 }
 
 function clearAccessCookie(res) {
@@ -83,7 +126,8 @@ function clearAccessCookie(res) {
 // ════════════════════════════════════════════════════════════════════════
 
 function setRefreshCookie(res, token) {
-  res.cookie(REFRESH_COOKIE_NAME, token, REFRESH_COOKIE_OPTIONS);
+  const encryptedToken = encryptCookieValue(token);
+  res.cookie(REFRESH_COOKIE_NAME, encryptedToken, REFRESH_COOKIE_OPTIONS);
 }
 
 function clearRefreshCookie(res) {
@@ -160,9 +204,12 @@ module.exports = {
   signAccessToken,
   verifyAccessToken,
   setAccessCookie,
+  getAccessCookie,
   clearAccessCookie,
   setRefreshCookie,
+  getRefreshCookie,
   clearRefreshCookie,
+  decryptCookieValue,
   ACCESS_COOKIE_NAME,
   ACCESS_COOKIE_OPTIONS,
   REFRESH_COOKIE_NAME,

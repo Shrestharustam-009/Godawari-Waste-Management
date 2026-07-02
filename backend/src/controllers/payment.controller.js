@@ -33,6 +33,8 @@ async function collectPayment(req, res) {
       note: req.body.note || null,
       paymentForStartDate: req.body.paymentForStartDate || null,
       paymentForEndDate: req.body.paymentForEndDate || null,
+      bonusFee: req.body.bonusFee || null,
+      bonusRemark: req.body.bonusRemark || null,
     });
 
     // ── Idempotent duplicate — return existing record ──
@@ -72,6 +74,7 @@ async function collectPayment(req, res) {
         : 'Payment collected successfully.',
       data: {
         incomeId: result.income.id,
+        bonusIncomeId: result.bonusIncome?.id || null,
         isIdempotent: false,
         route: result.route,
         vatBreakdown: result.vatBreakdown,

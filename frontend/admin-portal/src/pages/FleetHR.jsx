@@ -406,7 +406,7 @@ function MapController({ targetCoords }) {
   const map = useMap();
   useEffect(() => {
     if (targetCoords) {
-      map.flyTo([targetCoords.lat, targetCoords.lng], 18, { animate: true, duration: 1 });
+      map.flyTo([targetCoords.lat, targetCoords.lng], 19, { animate: true, duration: 1 });
     }
   }, [targetCoords, map]);
   return null;
@@ -478,44 +478,28 @@ export default function FleetHR() {
   }, [fetchStaff]);
 
 
-useEffect(() => {
-  const fetchInitialLocations = async () => {
-    try {
-      const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-      
-      console.log("[FleetHR] Fetching initial map footprints from database...");
-      
-      // We hit the new endpoint we just added to your hr.routes file
-      const response = await fetch(`${backendUrl}/api/v1/hr/latest-locations`, {
-        method: 'GET',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        // CRITICAL: This sends your accessToken cookie along with the request
-        credentials: 'include', 
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log("Database hydration successful! Active pins loaded:", result);
-        
-        // Populate your React states immediately on page load
-        if (result.staff) setStaffMarkers(result.staff);
-        if (result.drivers) setDriverMarkers(result.drivers);
-      } else {
-        console.warn("[FleetHR] Failed to load locations from database:", result.message);
+  useEffect(() => {
+    const fetchInitialLocations = async () => {
+      try {
+        console.log("[FleetHR] Fetching initial map footprints from database...");
+        const res = await api.get('/hr/latest-locations');
+        if (res.data?.success) {
+          console.log("Database hydration successful! Active pins loaded:", res.data);
+          if (res.data.staff) setStaffMarkers(res.data.staff);
+          if (res.data.drivers) setDriverMarkers(res.data.drivers);
+        } else {
+          console.warn("[FleetHR] Failed to load locations from database:", res.data?.message);
+        }
+      } catch (error) {
+        console.error("[FleetHR] Network error downloading initial map pins:", error);
       }
-    } catch (error) {
-      console.error("[FleetHR] Network error downloading initial map pins:", error);
-    }
-  };
+    };
 
-  // Only run this if an authenticated admin user is present
-  if (user) {
-    fetchInitialLocations();
-  }
-}, [user]); // Fires the moment the admin securely logs in
+    // Only run this if an authenticated admin user is present
+    if (user) {
+      fetchInitialLocations();
+    }
+  }, [user]); // Fires the moment the admin securely logs in
 
   // ── Socket.IO: Live GPS Feed ──
  useEffect(() => {
@@ -677,7 +661,7 @@ useEffect(() => {
   const allMapMarkers = [
     ...Object.values(driverMarkers),
     ...Object.values(staffMarkers),
-  ];
+  ].filter(m => !isNaN(Number(m.lat)) && !isNaN(Number(m.lng)));
 
   const filteredStaff = Array.isArray(staff) 
   ? staff.filter(emp => 
@@ -711,7 +695,17 @@ useEffect(() => {
       {/* ── TOP HALF: LIVE MAP ── */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center"><MapIcon className="w-4 h-4 mr-2 text-emerald-600" /> Live Fleet Map</h2>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+            <MapIcon className="w-4 h-4 mr-2 text-emerald-600" /> Live Fleet Map
+            {focusedCoords && (
+              <button 
+                onClick={() => setFocusedCoords(null)}
+                className="ml-3 px-3 py-1 text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors flex items-center"
+              >
+                <X className="w-3 h-3 mr-1" /> Clear Focus
+              </button>
+            )}
+          </h2>
           <div className="flex items-center gap-4 text-xs font-semibold">
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Driver ({Object.keys(driverMarkers).length})</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Collector ({Object.keys(staffMarkers).length})</span>
@@ -728,12 +722,15 @@ useEffect(() => {
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
             />
             <MapController targetCoords={focusedCoords} />
 
-            {allMapMarkers.length > 0 && <MapAutoFit markers={allMapMarkers} />}
+            {allMapMarkers.length > 0 && !focusedCoords && <MapAutoFit markers={allMapMarkers} />}
 
             {Object.values(driverMarkers).map(m => {
+              if (isNaN(Number(m.lat)) || isNaN(Number(m.lng))) return null;
+              
               // Look up the matching employee to get their name/username
               const employee = staff.find(s => s.role === 'DRIVER' && String(s.vehicleId) === String(m.vehicleId));
 
@@ -756,7 +753,7 @@ useEffect(() => {
                         🚛 Vehicle #{m.vehicleId}
                       </div>
                       <div className="text-[11px] text-slate-400 border-t pt-1">
-                        Last ping: {new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        Last ping: {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                       </div>
                     </div>
                   </Popup>
@@ -765,32 +762,34 @@ useEffect(() => {
             })}
 
             {Object.values(staffMarkers).map(m => {
-            // Look up the matching employee to get their name/username
-            const employee = staff.find(s => s.id === m.staffId);
-            
-            return (
-              <Marker key={`staff-${m.staffId}`} position={[m.lat, m.lng]} icon={collectorIcon}>
-                <Popup>
-                  <div className="text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
-                        {employee?.name?.charAt(0) || '?'}
-                      </span>
-                      <strong className="text-blue-700">
-                        {employee ? employee.name : `Collector #${m.staffId}`}
-                      </strong>
+              if (isNaN(Number(m.lat)) || isNaN(Number(m.lng))) return null;
+
+              // Look up the matching employee to get their name/username
+              const employee = staff.find(s => s.id === m.staffId);
+              
+              return (
+                <Marker key={`staff-${m.staffId}`} position={[m.lat, m.lng]} icon={collectorIcon}>
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                          {employee?.name?.charAt(0) || '?'}
+                        </span>
+                        <strong className="text-blue-700">
+                          {employee ? employee.name : `Collector #${m.staffId}`}
+                        </strong>
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono mb-2">
+                        @{employee?.username || 'n/a'}
+                      </div>
+                      <div className="text-[11px] text-slate-400 border-t pt-1">
+                        Last seen: {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 font-mono mb-2">
-                      @{employee?.username || 'n/a'}
-                    </div>
-                    <div className="text-[11px] text-slate-400 border-t pt-1">
-                      Last seen: {new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
         </div>
       </div>

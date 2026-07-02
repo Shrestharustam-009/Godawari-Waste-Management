@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ArrowLeft, History, IndianRupee, Printer } from 'lucide-react';
+import { Loader2, ArrowLeft, History, IndianRupee, Printer, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ export default function Recent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTxToPrint, setSelectedTxToPrint] = useState(null);
+  const [isPOSPrint, setIsPOSPrint] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { formatDate } = useSettings();
@@ -35,12 +36,14 @@ export default function Recent() {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const handlePrint = (tx) => {
+  const handlePrint = (tx, isPOS = false) => {
     setSelectedTxToPrint(tx);
+    setIsPOSPrint(isPOS);
     // Wait briefly for React to render the Invoice component with the selected tx data
     setTimeout(() => {
       window.print();
-    }, 150);
+      setSelectedTxToPrint(null); // Cleanup after print dialog closes
+    }, 100);
   };
 
   return (
@@ -87,13 +90,22 @@ export default function Recent() {
                 
                 <div className="text-right flex flex-col items-end">
                   <div className="flex items-center gap-2 mb-2">
-                    <button 
-                      onClick={() => handlePrint(tx)}
-                      className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
-                      title="Print Invoice"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
+                    <div className="flex bg-emerald-50 rounded overflow-hidden divide-x divide-emerald-100">
+                      <button 
+                        onClick={() => handlePrint(tx, true)}
+                        className="px-2 py-1.5 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase"
+                        title="Print POS Receipt"
+                      >
+                        <Receipt className="w-3.5 h-3.5" /> POS
+                      </button>
+                      <button 
+                        onClick={() => handlePrint(tx, false)}
+                        className="px-2 py-1.5 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase"
+                        title="Print A4 Invoice"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> A4
+                      </button>
+                    </div>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 uppercase">
                       {tx.paymentMethod}
                     </span>
@@ -129,6 +141,7 @@ export default function Recent() {
           paymentForEndDate={selectedTxToPrint.paymentForEndDate}
           baseAmount={selectedTxToPrint.baseAmount}
           vatAmount={selectedTxToPrint.vatAmount}
+          isPOS={isPOSPrint}
         />
       )}
     </div>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Loader2, IndianRupee, Printer, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, IndianRupee, Printer, Calendar, Receipt } from 'lucide-react';
 import Swal from 'sweetalert2';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Invoice from '../components/Invoice';
 import DatePicker from '../components/DatePicker';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Collection() {
   const { customerId } = useParams();
@@ -18,6 +19,10 @@ export default function Collection() {
   const [paymentForStartDate, setPaymentForStartDate] = useState('');
   const [paymentForEndDate, setPaymentForEndDate] = useState('');
   const { user } = useAuth();
+  const { settings } = useSettings();
+  
+  const [bonusFee, setBonusFee] = useState('');
+  const [bonusRemark, setBonusRemark] = useState('');
   
   const [showConfirm, setShowConfirm] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -25,6 +30,7 @@ export default function Collection() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  const [isPOSPrint, setIsPOSPrint] = useState(false);
 
   useEffect(() => {
     const fetchCustomerAndCategory = async () => {
@@ -84,6 +90,8 @@ export default function Collection() {
       note: "Field Collection",
       paymentForStartDate: paymentForStartDate || undefined,
       paymentForEndDate: paymentForEndDate || undefined,
+      bonusFee: bonusFee || undefined,
+      bonusRemark: bonusRemark || undefined,
       idempotencyKey: `${Date.now()}-${Math.floor(Math.random() * 1000)}`
     };
 
@@ -110,8 +118,11 @@ export default function Collection() {
     return <div className="p-6 text-center text-red-500">Customer not found.</div>;
   }
 
-  const handlePrintReceipt = () => {
-    window.print();
+  const handlePrintReceipt = (isPOS = false) => {
+    setIsPOSPrint(isPOS);
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   if (success) {
@@ -122,12 +133,22 @@ export default function Collection() {
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Successful!</h2>
         <p className="text-slate-500 mb-8">Collected ₹{formatCurrency(amount)} from {customer.name}</p>
-        <button 
-          onClick={handlePrintReceipt}
-          className="w-full flex items-center justify-center gap-2 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-md active:bg-slate-900 transition-colors mb-3"
-        >
-          <Printer className="w-5 h-5" /> Print Receipt
-        </button>
+        
+        <div className="w-full flex gap-3 mb-3">
+          <button 
+            onClick={() => handlePrintReceipt(true)}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-md active:bg-slate-900 transition-colors"
+          >
+            <Receipt className="w-5 h-5" /> Print (POS)
+          </button>
+          <button 
+            onClick={() => handlePrintReceipt(false)}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-800 text-white font-bold py-4 rounded-xl shadow-md active:bg-slate-900 transition-colors"
+          >
+            <Printer className="w-5 h-5" /> Print (A4)
+          </button>
+        </div>
+
         <button 
           onClick={() => navigate('/')}
           className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-md active:bg-emerald-700 transition-colors"
@@ -144,6 +165,8 @@ export default function Collection() {
           paymentForEndDate={paymentForEndDate}
           baseAmount={receiptData?.vatBreakdown?.base}
           vatAmount={receiptData?.vatBreakdown?.vat}
+          bonusFee={bonusFee}
+          isPOS={isPOSPrint}
         />
       </div>
     );
@@ -243,6 +266,37 @@ export default function Collection() {
           </div>
         </div>
 
+        {settings?.isBonusFeeEnabled && (
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 border-l-4 border-l-amber-500">
+            <label className="block text-sm font-bold text-slate-700 mb-1">Festival Bonus Fee (Optional)</label>
+            <p className="text-xs text-slate-500 mb-3">Record any extra festival tips or bonuses collected.</p>
+            <div className="space-y-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <IndianRupee className="h-5 w-5 text-slate-400" />
+                </div>
+                <input 
+                  type="number" 
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={bonusFee}
+                  onChange={(e) => setBonusFee(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 text-lg font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <input 
+                  type="text" 
+                  placeholder="Bonus Remark (e.g. Dashain Tip)"
+                  value={bonusRemark}
+                  onChange={(e) => setBonusRemark(e.target.value)}
+                  className="w-full px-4 py-3 text-sm text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <button 
           onClick={handleReviewClick}
           disabled={!amount || Number(amount) <= 0 || processing}
@@ -268,9 +322,15 @@ export default function Collection() {
                 <span className="text-slate-500 font-medium">Method</span>
                 <span className="text-slate-900 font-bold">CASH</span>
               </div>
+              {Number(bonusFee) > 0 && (
+                <div className="flex justify-between mb-2 text-amber-600">
+                  <span className="font-medium">Bonus Fee</span>
+                  <span className="font-bold">₹{formatCurrency(bonusFee)}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 mt-2 border-t border-slate-200">
-                <span className="text-slate-500 font-medium">Total Amount</span>
-                <span className="text-emerald-600 font-black text-lg">₹{formatCurrency(amount)}</span>
+                <span className="text-slate-500 font-medium">Total Collected</span>
+                <span className="text-emerald-600 font-black text-lg">₹{formatCurrency(Number(amount) + Number(bonusFee || 0))}</span>
               </div>
             </div>
 

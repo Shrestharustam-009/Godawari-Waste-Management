@@ -198,7 +198,9 @@ export default function IncomeLedger() {
     return entries.filter(tx => {
       const matchType = filterType === 'ALL' ? true : tx.source === filterType;
       const q = searchQuery.toLowerCase();
-      const matchSearch = tx.categoryName.toLowerCase().includes(q) || formatDate(tx.date).toLowerCase().includes(q);
+      const matchSearch = tx.categoryName.toLowerCase().includes(q) || 
+                          formatDate(tx.date).toLowerCase().includes(q) || 
+                          (tx.note && tx.note.toLowerCase().includes(q));
       return matchType && matchSearch;
     });
   }, [entries, filterType, searchQuery, formatDate]);

@@ -21,6 +21,7 @@ const {
   validateRefreshToken,
   rotateRefreshToken,
   revokeAllRefreshTokens,
+  getRefreshCookie,
 } = require('../utils/token');
 
 // Safe socket getter — never crash if socket not initialized
@@ -215,7 +216,7 @@ async function customerLogin(req, res) {
 
 async function refreshAccessToken(req, res) {
   // SECURITY: Read refresh token from cookie, NOT from body
-  const rawRefreshToken = req.cookies?.refreshToken;
+  const rawRefreshToken = getRefreshCookie(req);
 
   if (!rawRefreshToken) {
     return res.status(401).json({ success: false, error: 'No refresh token provided.', code: 'NO_REFRESH_TOKEN' });
@@ -272,7 +273,7 @@ async function refreshAccessToken(req, res) {
 async function logout(req, res) {
   try {
     // Read refresh token from cookie
-    const rawRefreshToken = req.cookies?.refreshToken;
+    const rawRefreshToken = getRefreshCookie(req);
 
     // Clear both cookies immediately
     clearAccessCookie(res);

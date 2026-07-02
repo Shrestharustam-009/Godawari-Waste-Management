@@ -8,6 +8,7 @@ import IncomeLedger from './pages/accounting/IncomeLedger';
 import ExpenseLedger from './pages/accounting/ExpenseLedger';
 import VehicleExpenses from './pages/accounting/VehicleExpenses';
 import StaffSalary from './pages/accounting/StaffSalary';
+import BonusFees from './pages/accounting/BonusFees';
 import FleetHR from './pages/FleetHR';
 import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,6 +41,7 @@ function App() {
           <Route path="/accounting/expense" element={<ExpenseLedger />} />
           <Route path="/accounting/vehicle-expenses" element={<VehicleExpenses />} />
           <Route path="/accounting/staff-salary" element={<StaffSalary />} />
+          <Route path="/accounting/bonus-fees" element={<BonusFees />} />
           <Route path="/fleet" element={<FleetHR />} />
           <Route path="/settings" element={<Settings />} />
           

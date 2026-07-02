@@ -10,7 +10,7 @@
 //   5. ROLE AUTHORIZATION via authorizeRoles() factory
 // ============================================================================
 
-const { verifyAccessToken, clearAccessCookie } = require('../utils/token');
+const { verifyAccessToken, clearAccessCookie, getAccessCookie } = require('../utils/token');
 const { isBlacklisted } = require('../utils/blacklist');
 const prisma = require('../lib/prisma');
 
@@ -63,7 +63,7 @@ function invalidateStatusCache(type, id) {
 }
 
 async function checkAuth(req, res, next) {
-  const token = req.cookies?.accessToken;
+  const token = getAccessCookie(req);
 
   if (!token) {
     return res.status(401).json({

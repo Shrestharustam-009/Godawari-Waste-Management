@@ -103,8 +103,8 @@ function SettingsSkeleton() {
 }
 
 export default function Settings() {
-  const [settings, setSettings] = useState({ billingCycleDay: 1, updatedAt: null, customDeductions: [] });
-  const [formState, setFormState] = useState({ billingCycleDay: 1 });
+  const [settings, setSettings] = useState({ billingCycleDay: 1, updatedAt: null, customDeductions: [], isBonusFeeEnabled: false });
+  const [formState, setFormState] = useState({ billingCycleDay: 1, calendarType: 'AD', isBonusFeeEnabled: false });
   const [deductions, setDeductions] = useState([]);
   
   // Fleet State
@@ -127,11 +127,13 @@ export default function Settings() {
         setSettings({
           billingCycleDay: data.billingCycleDay ?? 1,
           updatedAt: data.updatedAt,
-          customDeductions: data.customDeductions || []
+          customDeductions: data.customDeductions || [],
+          isBonusFeeEnabled: data.isBonusFeeEnabled || false
         });
         setFormState({
           billingCycleDay: data.billingCycleDay ?? 1,
           calendarType: data.calendarType || 'AD',
+          isBonusFeeEnabled: data.isBonusFeeEnabled || false
         });
         setDeductions(data.customDeductions || []);
       }
@@ -157,6 +159,7 @@ export default function Settings() {
         await api.put('/system/settings', {
           billingCycleDay: Number(formState.billingCycleDay),
           calendarType: formState.calendarType,
+          isBonusFeeEnabled: formState.isBonusFeeEnabled,
           sudoPassword,
         });
         setSuccessMessage('System settings updated successfully.');
@@ -186,7 +189,7 @@ export default function Settings() {
   };
   const handleRemoveDeduction = (index) => setDeductions(deductions.filter((_, i) => i !== index));
 
-  const hasGeneralChanges = Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType;
+  const hasGeneralChanges = Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType || formState.isBonusFeeEnabled !== settings.isBonusFeeEnabled;
   const hasDeductionChanges = JSON.stringify(deductions) !== JSON.stringify(settings.customDeductions);
 
   if (loading) return <SettingsSkeleton />;
@@ -243,7 +246,21 @@ export default function Settings() {
               </button>
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <label className="flex items-center text-sm font-bold text-slate-900">
+                <DollarSign className="w-4 h-4 mr-2 text-amber-500" /> Enable Festival Bonus Fee
+              </label>
+              <p className="text-xs text-slate-500 mt-1 pl-6">Allows field collectors to record festival tips/bonuses alongside normal fee collections.</p>
+            </div>
+            <button
+              onClick={() => setFormState(prev => ({ ...prev, isBonusFeeEnabled: !prev.isBonusFeeEnabled }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formState.isBonusFeeEnabled ? 'bg-amber-500' : 'bg-slate-200'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formState.isBonusFeeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+          <div className="flex justify-end pt-4 border-t border-slate-100">
             <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global settings.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
           </div>
         </div>

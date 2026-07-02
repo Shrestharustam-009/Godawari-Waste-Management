@@ -1,4 +1,5 @@
 const { Decimal } = require('decimal.js');
+const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const {
   createCategorySchema,
@@ -478,10 +479,10 @@ async function getAccountingAnalysis(req, res) {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
     const trendData = months.map(m => ({
       name: m,
-      Revenue: Math.floor(Math.random() * 50000) + 100000,
-      Expense: Math.floor(Math.random() * 30000) + 40000,
-      Vehicle: Math.floor(Math.random() * 10000) + 5000,
-      Salary: Math.floor(Math.random() * 20000) + 30000,
+      Revenue: crypto.randomInt(100000, 150000),
+      Expense: crypto.randomInt(40000, 70000),
+      Vehicle: crypto.randomInt(5000, 15000),
+      Salary: crypto.randomInt(30000, 50000),
     }));
 
     return res.status(200).json({
@@ -570,6 +571,46 @@ async function getFinancialStatements(req, res) {
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// BONUS FEES
+// ────────────────────────────────────────────────────────────────────────────
+
+async function getBonusFees(req, res) {
+  try {
+    const bonusCategory = await prisma.incomeCategory.findUnique({
+      where: { name: 'Festival Bonus Fee' }
+    });
+
+    if (!bonusCategory) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const bonusFees = await prisma.incomeLedger.findMany({
+      where: { incomeCategoryId: bonusCategory.id, isDeleted: false },
+      include: {
+        customer: { select: { customerId: true, name: true } },
+        collectedBy: { select: { id: true, name: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    const formatted = bonusFees.map(fee => ({
+      id: fee.id,
+      date: fee.date,
+      amount: fee.amount.toString(),
+      customer: fee.customer ? fee.customer.name : 'Unknown',
+      customerId: fee.customer ? fee.customer.customerId : null,
+      collectedBy: fee.collectedBy ? fee.collectedBy.name : 'Unknown',
+      remark: fee.note || '-'
+    }));
+
+    return res.status(200).json({ success: true, data: formatted });
+  } catch (error) {
+    console.error('[ACCOUNTING] getBonusFees error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve bonus fees.' });
+  }
+}
+
 module.exports = {
   createCategory,
   getAllCategories,
@@ -581,5 +622,6 @@ module.exports = {
   getVehicleExpenses,
   getAccountingAnalysis,
   getFinancialStatements,
-  getIncomeHistory
+  getIncomeHistory,
+  getBonusFees
 };

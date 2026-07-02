@@ -28,8 +28,8 @@ router.post('/refresh', refreshRateLimiter, authController.refreshAccessToken);
 
 // ── PROTECTED ROUTES ──
 router.post('/logout', (req, res, next) => {
-  const { verifyAccessToken } = require('../utils/token');
-  const token = req.cookies?.accessToken;
+  const { verifyAccessToken, getAccessCookie } = require('../utils/token');
+  const token = getAccessCookie(req);
   if (token) {
     try { req.user = verifyAccessToken(token); } catch { req.user = null; }
   }

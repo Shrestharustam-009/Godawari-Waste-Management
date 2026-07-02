@@ -22,6 +22,10 @@ const updateSettingsSchema = z.object({
   calendarType: z
     .enum(['AD', 'BS'], { invalid_type_error: 'Calendar type must be AD or BS.' })
     .optional(),
+
+  isBonusFeeEnabled: z
+    .boolean()
+    .optional(),
 }).strict();
 
 module.exports = {

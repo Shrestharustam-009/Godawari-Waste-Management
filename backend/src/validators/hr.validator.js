@@ -6,16 +6,7 @@
 // ============================================================================
 
 const { z } = require('zod');
-
-// ── Reusable text sanitizer ──
-const sanitizeText = (val) => {
-  return val
-    .replace(/<[^>]*>/g, '')
-    .replace(/('|--|;|\/\*|\*\/|xp_|exec\s|union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.*set)/gi, '')
-    .replace(/\0/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+const { sanitizeText } = require('../utils/sanitize');
 
 // ────────────────────────────────────────────────────────────────────────────
 // CREATE COLLECTOR — POST /api/v1/hr/collectors

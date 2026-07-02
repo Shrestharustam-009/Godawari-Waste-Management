@@ -176,6 +176,16 @@ export default function AccountingLayout() {
               </>
             )}
           </NavLink>
+          
+          <NavLink to="/accounting/bonus-fees" className={navLinkClass}>
+            {({ isActive }) => (
+              <>
+                <Receipt className={`w-4 h-4 mr-2 ${isActive ? 'text-amber-500' : 'text-slate-400'}`} />
+                Bonus Fees
+                {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('bonus')}`} />}
+              </>
+            )}
+          </NavLink>
         </div>
 
         {/* ACTIVE ROUTE RENDER BLOCK */}

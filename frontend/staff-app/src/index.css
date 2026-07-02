@@ -14,3 +14,32 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
+
+@media print {
+  #root {
+    display: none !important;
+  }
+  
+  .print-only, .print-only * {
+    visibility: visible;
+  }
+  
+  .print-only {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  @page {
+    margin: 0; /* Removes default browser headers/footers */
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}

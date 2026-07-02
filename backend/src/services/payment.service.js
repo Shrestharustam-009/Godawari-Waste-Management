@@ -83,6 +83,8 @@ async function processFieldPayment({
   note = null,
   paymentForStartDate = null,
   paymentForEndDate = null,
+  bonusFee = null,
+  bonusRemark = null,
 }) {
   // ──────────────────────────────────────────────────────────────────────
   // STEP 1: Parse and validate the gross amount using Decimal.js
@@ -288,8 +290,47 @@ async function processFieldPayment({
       },
     });
 
+    // ── 5f. Create Bonus Fee Ledger entry if provided ──
+    let bonusIncome = null;
+    if (bonusFee) {
+      const bonusAmount = new Decimal(bonusFee);
+      if (bonusAmount.greaterThan(0)) {
+        // Find or create "Festival Bonus Fee" category
+        let bonusCategory = await tx.incomeCategory.findUnique({
+          where: { name: 'Festival Bonus Fee' }
+        });
+        if (!bonusCategory) {
+          bonusCategory = await tx.incomeCategory.create({
+            data: {
+              name: 'Festival Bonus Fee',
+              description: 'Bonus fee collected from customer during festival season',
+            }
+          });
+        }
+        
+        // Ensure bonus amount has 0 VAT (100% base revenue)
+        bonusIncome = await tx.incomeLedger.create({
+          data: {
+            date: new Date(),
+            amount: bonusAmount.toFixed(2),
+            baseAmount: bonusAmount.toFixed(2),
+            vatAmount: '0.00',
+            paymentMethod,
+            source: 'FIELD_APP',
+            idempotencyKey: idempotencyKey ? `${idempotencyKey}_bonus` : null,
+            referenceId: referenceId ? `${referenceId}_bonus` : null,
+            customerId,
+            collectedById: staffId,
+            incomeCategoryId: bonusCategory.id,
+            note: bonusRemark || null,
+          }
+        });
+      }
+    }
+
     return {
       income,
+      bonusIncome,
       previousOutstanding,
       newOutstanding,
       previousAdvance,

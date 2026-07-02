@@ -8,16 +8,7 @@
 
 const { z } = require('zod');
 const { Decimal } = require('decimal.js');
-
-// ── Reusable text sanitizer (mirrors payment.validator.js) ──
-const sanitizeText = (val) => {
-  return val
-    .replace(/<[^>]*>/g, '')
-    .replace(/('|--|;|\/\*|\*\/|xp_|exec\s|union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.*set)/gi, '')
-    .replace(/\0/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+const { sanitizeText } = require('../utils/sanitize');
 
 // ────────────────────────────────────────────────────────────────────────────
 // CREATE CUSTOMER — POST /api/v1/customers

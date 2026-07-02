@@ -14,16 +14,7 @@
 
 const { z } = require('zod');
 const { Decimal } = require('decimal.js');
-
-// ── Sanitizer for optional text fields ──
-const sanitizeText = (val) => {
-  return val
-    .replace(/<[^>]*>/g, '')
-    .replace(/('|--|;|\/\*|\*\/|xp_|exec\s|union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.*set)/gi, '')
-    .replace(/\0/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+const { sanitizeText } = require('../utils/sanitize');
 
 // ────────────────────────────────────────────────────────────────────────────
 // Log Payment (Field Collection) — POST /api/v1/income/collect
@@ -104,6 +95,21 @@ const collectPaymentSchema = z.object({
 
   paymentForStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
   paymentForEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
+
+  bonusFee: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Bonus amount must be a string in decimal format.'
+    )
+    .optional(),
+
+  bonusRemark: z
+    .string()
+    .trim()
+    .max(500, 'Bonus remark must not exceed 500 characters.')
+    .transform(sanitizeText)
+    .optional(),
 }).strict();
 
 // ────────────────────────────────────────────────────────────────────────────

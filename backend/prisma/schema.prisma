@@ -58,6 +58,7 @@ model GlobalSettings {
   billingCycleDay  Int      @default(1) // Day of month (1–28) when billing triggers
   customDeductions Json?    @default("[]")
   calendarType     String   @default("AD") @db.VarChar(10)
+  isBonusFeeEnabled Boolean @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -14,7 +14,7 @@ const cookie = require('cookie');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
+// Removed ACCESS_TOKEN_SECRET to prevent early evaluation bugs
 
 let io;
 
@@ -49,6 +49,8 @@ function initSocketServer(httpServer) {
   // ────────────────────────────────────────────────────────────────────────
   // AUTHENTICATION MIDDLEWARE — JWT from HttpOnly cookie
   // ────────────────────────────────────────────────────────────────────────
+  const { verifyAccessToken, decryptCookieValue } = require('../utils/token');
+
   io.use((socket, next) => {
     try {
       const cookieHeader = socket.request.headers.cookie;
@@ -57,17 +59,19 @@ function initSocketServer(httpServer) {
       }
 
       const cookies = cookie.parse(cookieHeader);
-      const token = cookies.accessToken;
+      const encryptedToken = cookies.accessToken;
 
-      if (!token) {
+      if (!encryptedToken) {
         return next(new Error('Authentication Error: No Access Token'));
       }
 
-      if (!ACCESS_TOKEN_SECRET) {
-        return next(new Error('Authentication Error: Server misconfigured'));
+      const token = decryptCookieValue(encryptedToken);
+      if (!token) {
+        return next(new Error('Authentication Error: Token Decryption Failed'));
       }
 
-      const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+      // Use the centralized token verification utility to guarantee consistent secrets
+      const decoded = verifyAccessToken(token);
       socket.user = decoded;
       socket._lastGPSEmit = 0; // Initialize rate limiter
       next();
@@ -226,7 +230,24 @@ function initSocketServer(httpServer) {
 
     // ── 6. Driver Ends Shift ──
     socket.on('driver_shift_end', async (data) => {
-      const verifiedVehicleId = String(data.vehicleId || socket.user?.vehicleId || 'unknown');
+      let verifiedVehicleId = String(data.vehicleId || socket.user?.vehicleId || 'unknown');
+
+      if (verifiedVehicleId === 'unknown' && socket.user?.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({ 
+            where: { id: parseInt(socket.user.id, 10) }, 
+            select: { vehicleId: true } 
+          });
+          if (dbUser && dbUser.vehicleId) {
+            verifiedVehicleId = String(dbUser.vehicleId);
+            socket.user.vehicleId = dbUser.vehicleId;
+          }
+        } catch (err) {
+          console.error('[SOCKET DB] Failed to resolve vehicleId for shift end:', err.message);
+        }
+      }
+
+      if (verifiedVehicleId === 'unknown') return;
 
       try {
         await prisma.latestDriverLocation.deleteMany({ where: { vehicleId: verifiedVehicleId } });

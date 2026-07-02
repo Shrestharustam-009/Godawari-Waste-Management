@@ -21,7 +21,7 @@ const StatCard = ({ title, value, icon: Icon, valueColor, isLive }) => (
     <div className="flex justify-between items-start">
       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
       <div className={`p-2 rounded-lg bg-slate-50 ${isLive ? 'animate-pulse' : ''}`}>
-        <Icon className={`w-5 h-5 ${valueColor.replace('text-', 'text-')}`} />
+        <Icon className={`w-5 h-5 ${valueColor}`} />
       </div>
     </div>
     <div className="mt-4">

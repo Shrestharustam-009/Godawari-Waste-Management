@@ -82,7 +82,7 @@ export default function Search() {
           <input
             type="text"
             className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all"
-            placeholder="Search ID or Phone..."
+            placeholder="Search ID, Name or Phone..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

@@ -57,6 +57,7 @@ async function getSettings(req, res) {
         id: settings.id,
         billingCycleDay: settings.billingCycleDay,
         calendarType: settings.calendarType,
+        isBonusFeeEnabled: settings.isBonusFeeEnabled,
         customDeductions: settings.customDeductions,
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
@@ -87,7 +88,7 @@ async function updateSettings(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { sudoPassword, billingCycleDay, calendarType } = parseResult.data;
+    const { sudoPassword, billingCycleDay, calendarType, isBonusFeeEnabled } = parseResult.data;
 
     // ── Step 2: SUDO RE-AUTHENTICATION ──
     // Fetch the current admin's password hash from the database.
@@ -148,6 +149,7 @@ async function updateSettings(req, res) {
         data: {
           billingCycleDay,
           ...(calendarType && { calendarType }),
+          ...(typeof isBonusFeeEnabled === 'boolean' && { isBonusFeeEnabled }),
         },
       });
     } else {
@@ -155,6 +157,7 @@ async function updateSettings(req, res) {
         data: {
           billingCycleDay,
           calendarType: calendarType || 'AD',
+          ...(typeof isBonusFeeEnabled === 'boolean' && { isBonusFeeEnabled }),
         },
       });
     }

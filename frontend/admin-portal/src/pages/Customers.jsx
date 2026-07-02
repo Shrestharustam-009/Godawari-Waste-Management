@@ -968,7 +968,7 @@ export default function Customers() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Filter by Phone or Customer ID (e.g. 984... or GDW-...)"
+            placeholder="Search by ID, Name or Phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"

@@ -10,21 +10,7 @@
 
 const { z } = require('zod');
 const { Decimal } = require('decimal.js');
-
-// ── Reusable sanitizer: strips HTML tags, SQL injection keywords, and
-//    dangerous characters from freeform text fields ──
-const sanitizeText = (val) => {
-  return val
-    // Strip all HTML/XML tags
-    .replace(/<[^>]*>/g, '')
-    // Neutralize common SQL injection patterns
-    .replace(/('|--|;|\/\*|\*\/|xp_|exec\s|union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.*set)/gi, '')
-    // Remove null bytes
-    .replace(/\0/g, '')
-    // Collapse excessive whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+const { sanitizeText } = require('../utils/sanitize');
 
 // ────────────────────────────────────────────────────────────────────────────
 // Create Expense — POST /api/v1/expenses
