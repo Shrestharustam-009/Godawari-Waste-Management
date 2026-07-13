@@ -6,6 +6,8 @@ import toast, { Toaster } from 'react-hot-toast';
 import { UserCircle, AlertTriangle, Menu } from 'lucide-react';
 import AlertCenter from '../components/AlertCenter';
 import { DateProvider, useDate } from '../context/DateContext';
+import { useTheme } from '../context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 function ADBSButton() {
   const { isBS, toggleCalendarFormat } = useDate();
@@ -15,6 +17,18 @@ function ADBSButton() {
       className="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors text-gray-700"
     >
       {isBS ? 'BS' : 'AD'}
+    </button>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors focus:outline-none"
+    >
+      {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>
   );
 }
@@ -130,7 +144,7 @@ export default function AdminLayout() {
 
   return (
     <DateProvider>
-      <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+      <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-200">
         <Toaster position="top-right" />
       
       {/* Fixed Sidebar */}
@@ -140,7 +154,7 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col overflow-hidden relative">
         
         {/* Global Top Header */}
-        <header className="flex items-center justify-between md:justify-end px-6 py-4 bg-white shadow-sm z-20 border-b border-gray-100 shrink-0">
+        <header className="flex items-center justify-between md:justify-end px-6 py-4 bg-white dark:bg-slate-900 shadow-sm z-20 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-colors duration-200">
           
           {/* Mobile Hamburger Menu (Hidden on Desktop) */}
           <button 
@@ -155,6 +169,9 @@ export default function AdminLayout() {
             
             {/* AD / BS Toggle */}
             <ADBSButton />
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Notification Bell & Dropdown */}
             <AlertCenter 
@@ -176,7 +193,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 w-full">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 dark:bg-slate-900 w-full transition-colors duration-200">
           <Outlet />
         </main>
       </div>

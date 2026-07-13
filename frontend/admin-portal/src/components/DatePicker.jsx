@@ -25,7 +25,7 @@ export default function DatePicker({ value, onChange, name, className, required 
         name={name}
         value={value || ''}
         onChange={onChange}
-        className={className}
+        className={`${className} bg-transparent text-slate-900 dark:text-white`}
         required={required}
       />
     );
@@ -77,7 +77,7 @@ export default function DatePicker({ value, onChange, name, className, required 
           calenderLocale: 'ne',
           valueLocale: 'en'
         }}
-        className="w-full h-full outline-none bg-transparent px-3 py-2 text-sm"
+        className="w-full h-full outline-none bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-white"
       />
     </div>
   );

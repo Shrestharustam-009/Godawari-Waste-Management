@@ -39,25 +39,25 @@ export default function TaxesLiabilities() {
             <ShieldCheck className="w-7 h-7 mr-3 text-emerald-400" /> 
             Tax Compliance Engine
           </h2>
-          <p className="text-slate-400 mt-1">Real-time audit view of calculated liabilities for the selected period.</p>
+          <p className="text-slate-400 dark:text-slate-500 mt-1">Real-time audit view of calculated liabilities for the selected period.</p>
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <p className="text-slate-400 text-xs font-bold mb-2 uppercase tracking-wide flex items-center">
+          <p className="text-slate-400 dark:text-slate-500 text-xs font-bold mb-2 uppercase tracking-wide flex items-center">
             <Calculator className="w-4 h-4 mr-2" /> Output VAT (13%)
           </p>
           <p className="text-4xl font-extrabold text-white tracking-tight">₹{formatCurrency(statements.taxLiability?.totalOutputVat)}</p>
-          <p className="text-slate-500 text-sm mt-3 border-t border-slate-800 pt-3">Collected from gross income</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-3 border-t border-slate-800 pt-3">Collected from gross income</p>
         </div>
         
         <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors">
-          <p className="text-slate-400 text-xs font-bold mb-2 uppercase tracking-wide flex items-center">
+          <p className="text-slate-400 dark:text-slate-500 text-xs font-bold mb-2 uppercase tracking-wide flex items-center">
             <Calculator className="w-4 h-4 mr-2" /> Input VAT
           </p>
           <p className="text-4xl font-extrabold text-white tracking-tight">₹{formatCurrency(statements.taxLiability?.totalInputVat)}</p>
-          <p className="text-slate-500 text-sm mt-3 border-t border-slate-800 pt-3">Paid on deductible expenses</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-3 border-t border-slate-800 pt-3">Paid on deductible expenses</p>
         </div>
         
         <div className="bg-blue-950/30 p-6 rounded-xl border border-blue-900/50 relative overflow-hidden">
@@ -77,7 +77,7 @@ export default function TaxesLiabilities() {
         </div>
         <div className="p-0 overflow-x-auto w-full">
           <table className="w-full text-left">
-            <thead className="bg-slate-950 text-xs uppercase text-slate-500 font-bold">
+            <thead className="bg-slate-950 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold">
               <tr>
                 <th className="px-6 py-4 border-b border-slate-800">Tax Category</th>
                 <th className="px-6 py-4 border-b border-slate-800">Rate applied</th>
@@ -87,17 +87,17 @@ export default function TaxesLiabilities() {
             <tbody className="divide-y divide-slate-800">
               <tr className="hover:bg-slate-800/50 transition-colors">
                 <td className="px-6 py-4 text-slate-300 font-medium">Supply of Goods (SST)</td>
-                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 rounded text-xs font-bold">1.0%</span></td>
+                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 dark:text-slate-500 rounded text-xs font-bold">1.0%</span></td>
                 <td className="px-6 py-4 text-right font-bold text-white">₹{formatCurrency(tdsBreakdown.sst1)}</td>
               </tr>
               <tr className="hover:bg-slate-800/50 transition-colors">
                 <td className="px-6 py-4 text-slate-300 font-medium">Services & Contracts</td>
-                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 rounded text-xs font-bold">1.5%</span></td>
+                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 dark:text-slate-500 rounded text-xs font-bold">1.5%</span></td>
                 <td className="px-6 py-4 text-right font-bold text-white">₹{formatCurrency(tdsBreakdown.contract15)}</td>
               </tr>
               <tr className="hover:bg-slate-800/50 transition-colors">
                 <td className="px-6 py-4 text-slate-300 font-medium">Rent & Lease</td>
-                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 rounded text-xs font-bold">10.0%</span></td>
+                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-400 dark:text-slate-500 rounded text-xs font-bold">10.0%</span></td>
                 <td className="px-6 py-4 text-right font-bold text-white">₹{formatCurrency(tdsBreakdown.rent10)}</td>
               </tr>
             </tbody>

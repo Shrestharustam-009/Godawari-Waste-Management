@@ -4,8 +4,13 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply bg-slate-50 text-slate-800 antialiased dark:bg-slate-900 dark:text-slate-200 transition-colors duration-200;
     font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Force dark mode for Nepali Date Picker popup */
+  html.dark .ndp-datepicker, html.dark .nepali-date-picker {
+    filter: invert(0.9) hue-rotate(180deg);
   }
 }
 

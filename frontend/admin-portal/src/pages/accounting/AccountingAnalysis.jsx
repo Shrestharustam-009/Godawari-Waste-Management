@@ -68,7 +68,7 @@ export default function AccountingAnalysis() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-4" />
-        <p className="text-slate-500">Aggregating financial ledgers...</p>
+        <p className="text-slate-500 dark:text-slate-400">Aggregating financial ledgers...</p>
       </div>
     );
   }
@@ -131,23 +131,23 @@ export default function AccountingAnalysis() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Accounting Analysis</h1>
-          <p className="text-slate-500 mt-1">Executive overview of all financial ledgers.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Accounting Analysis</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Executive overview of all financial ledgers.</p>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
-          <div key={idx} className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-shadow hover:shadow-md`}>
+          <div key={idx} className={`bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 transition-shadow hover:shadow-md`}>
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.borderColor} border`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">{stat.title}</p>
-              <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{stat.title}</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</h3>
             </div>
           </div>
         ))}
@@ -157,8 +157,8 @@ export default function AccountingAnalysis() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Revenue vs Expense Bar Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Revenue vs Expenses (6 Months)</h3>
+        <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Revenue vs Expenses (6 Months)</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -178,8 +178,8 @@ export default function AccountingAnalysis() {
         </div>
 
         {/* Fleet & Salary Trend Line Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">Vehicle vs Salary Costs (6 Months)</h3>
+        <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Vehicle vs Salary Costs (6 Months)</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

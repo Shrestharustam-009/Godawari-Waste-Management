@@ -31,13 +31,13 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
       <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700/50 overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-slate-700/50 text-center relative">
           <button onClick={onClose} className="absolute right-4 top-4 p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
           <div className="w-16 h-16 bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-amber-400" />
           </div>
           <h2 className="text-xl font-bold text-white mb-1">{title || 'Sudo Verification Required'}</h2>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-xs mx-auto">
+          <p className="text-slate-400 dark:text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
             {message || 'You are about to modify system settings. Re-enter your admin password to confirm.'}
           </p>
         </div>
@@ -53,10 +53,10 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
             </div>
           )}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Master Admin Password</label>
+            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Master Admin Password</label>
             <div className="relative">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
-                <KeyRound className="w-4 h-4 text-slate-500" />
+                <KeyRound className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               </div>
               <input
                 type="password"
@@ -73,14 +73,14 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 text-sm font-semibold text-slate-400 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-colors"
+              className="flex-1 px-5 py-3 text-sm font-semibold text-slate-400 dark:text-slate-500 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !sudoPassword.trim()}
-              className="flex-1 px-5 py-3 text-sm font-bold text-slate-900 bg-amber-400 hover:bg-amber-300 rounded-xl disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-5 py-3 text-sm font-bold text-slate-900 dark:text-white bg-amber-400 hover:bg-amber-300 rounded-xl disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Shield className="w-4 h-4" /> Confirm & Save</>}
             </button>
@@ -95,8 +95,8 @@ function SettingsSkeleton() {
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-pulse">
       <div className="h-10 bg-slate-200 rounded-xl w-64" />
-      <div className="bg-white p-8 rounded-2xl border border-slate-200 space-y-8">
-        <div className="space-y-3"><div className="h-4 bg-slate-200 rounded w-40" /><div className="h-12 bg-slate-100 rounded-xl" /></div>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-8">
+        <div className="space-y-3"><div className="h-4 bg-slate-200 rounded w-40" /><div className="h-12 bg-slate-100 dark:bg-slate-800/50 rounded-xl" /></div>
       </div>
     </div>
   );
@@ -197,11 +197,11 @@ export default function Settings() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
-          <div className="p-2.5 bg-slate-100 rounded-xl"><SettingsIcon className="w-7 h-7 text-slate-600" /></div>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+          <div className="p-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-xl"><SettingsIcon className="w-7 h-7 text-slate-600 dark:text-slate-400" /></div>
           System Settings
         </h1>
-        <p className="text-slate-500 mt-2 font-medium ml-14">Global configurations for billing, payroll, and fleet.</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-14">Global configurations for billing, payroll, and fleet.</p>
       </div>
 
       {successMessage && (
@@ -212,97 +212,97 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-lg font-bold text-slate-900">Billing & Revenue Engine</h2>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Billing & Revenue Engine</h2>
         </div>
         <div className="p-8 space-y-8">
           <div>
-            <label className="flex items-center text-sm font-bold text-slate-700 mb-2.5">
+            <label className="flex items-center text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">
               <Calendar className="w-4 h-4 mr-2 text-blue-500" /> Billing Cycle Trigger Day
             </label>
-            <select value={formState.billingCycleDay} onChange={e => setFormState({ ...formState, billingCycleDay: Number(e.target.value) })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-base font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
+            <select value={formState.billingCycleDay} onChange={e => setFormState({ ...formState, billingCycleDay: Number(e.target.value) })} className="w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 text-base font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none">
               {Array.from({ length: 28 }, (_, i) => i + 1).map(day => <option key={day} value={day}>Day {day} of every month</option>)}
             </select>
           </div>
           <div>
-            <label className="flex items-center text-sm font-bold text-slate-700 mb-2.5">
+            <label className="flex items-center text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">
               <Calendar className="w-4 h-4 mr-2 text-purple-500" /> Default Calendar Type
             </label>
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setFormState({ ...formState, calendarType: 'AD' })}
-                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'AD' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'AD' ? 'bg-white dark:bg-slate-800 transition-colors duration-200 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300'}`}
               >
                 English (AD)
               </button>
               <button
                 type="button"
                 onClick={() => setFormState({ ...formState, calendarType: 'BS' })}
-                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'BS' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formState.calendarType === 'BS' ? 'bg-white dark:bg-slate-800 transition-colors duration-200 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300'}`}
               >
                 Nepali (BS)
               </button>
             </div>
           </div>
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
             <div>
-              <label className="flex items-center text-sm font-bold text-slate-900">
+              <label className="flex items-center text-sm font-bold text-slate-900 dark:text-white">
                 <DollarSign className="w-4 h-4 mr-2 text-amber-500" /> Enable Festival Bonus Fee
               </label>
-              <p className="text-xs text-slate-500 mt-1 pl-6">Allows field collectors to record festival tips/bonuses alongside normal fee collections.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-6">Allows field collectors to record festival tips/bonuses alongside normal fee collections.</p>
             </div>
             <button
               onClick={() => setFormState(prev => ({ ...prev, isBonusFeeEnabled: !prev.isBonusFeeEnabled }))}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formState.isBonusFeeEnabled ? 'bg-amber-500' : 'bg-slate-200'}`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formState.isBonusFeeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-800 transition-colors duration-200 transition-transform ${formState.isBonusFeeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global settings.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
+          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-700/50">
+            <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global settings.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Users className="w-5 h-5 text-indigo-500"/> Dynamic Payroll Deductions</h2>
-          <p className="text-sm text-slate-500 mt-1">Configure global percentage deductions (like TDS, SSF) mapped automatically in the Salary Ledger.</p>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Users className="w-5 h-5 text-indigo-500"/> Dynamic Payroll Deductions</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure global percentage deductions (like TDS, SSF) mapped automatically in the Salary Ledger.</p>
         </div>
         <div className="p-8 space-y-4">
           {deductions.map((ded, i) => (
             <div key={i} className="flex items-center gap-4">
-              <input type="text" placeholder="Deduction Name (e.g. TDS)" value={ded.name} onChange={e => handleDeductionChange(i, 'name', e.target.value)} className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
-              <input type="number" step="0.1" placeholder="%" value={ded.percentage} onChange={e => handleDeductionChange(i, 'percentage', e.target.value)} className="w-32 bg-white border border-slate-300 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+              <input type="text" placeholder="Deduction Name (e.g. TDS)" value={ded.name} onChange={e => handleDeductionChange(i, 'name', e.target.value)} className="flex-1 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+              <input type="number" step="0.1" placeholder="%" value={ded.percentage} onChange={e => handleDeductionChange(i, 'percentage', e.target.value)} className="w-32 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
               <button onClick={() => handleRemoveDeduction(i)} className="p-3 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5"/></button>
             </div>
           ))}
           <button onClick={handleAddDeduction} className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2.5 rounded-xl"><Plus className="w-4 h-4"/> Add Deduction Rule</button>
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button onClick={() => openSudo('SAVE_DEDUCTIONS', 'Update Deductions', 'Verify admin password to change payroll deductions.')} disabled={!hasDeductionChanges} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Deductions</button>
+          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-700/50">
+            <button onClick={() => openSudo('SAVE_DEDUCTIONS', 'Update Deductions', 'Verify admin password to change payroll deductions.')} disabled={!hasDeductionChanges} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Deductions</button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Truck className="w-5 h-5 text-emerald-500"/> Fleet Management</h2>
-          <p className="text-sm text-slate-500 mt-1">Register new vehicles into the system database.</p>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Truck className="w-5 h-5 text-emerald-500"/> Fleet Management</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Register new vehicles into the system database.</p>
         </div>
         <div className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <input type="text" placeholder="Internal ID (e.g. V-1)" value={vehicleId} onChange={e => setVehicleId(e.target.value)} className="bg-white border border-slate-300 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
-            <input type="text" placeholder="Reg. Number (Optional)" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} className="bg-white border border-slate-300 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
-            <select value={vehicleType} onChange={e => setVehicleType(e.target.value)} className="bg-white border border-slate-300 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
+            <input type="text" placeholder="Internal ID (e.g. V-1)" value={vehicleId} onChange={e => setVehicleId(e.target.value)} className="bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            <input type="text" placeholder="Reg. Number (Optional)" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} className="bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            <select value={vehicleType} onChange={e => setVehicleType(e.target.value)} className="bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
               <option value="Compactor">Compactor</option>
               <option value="Tipper">Tipper</option>
               <option value="Tractor">Tractor</option>
             </select>
           </div>
           <div className="flex justify-end">
-            <button onClick={() => openSudo('ADD_VEHICLE', 'Add Vehicle', 'Verify admin password to register new vehicle.')} disabled={!vehicleId} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Register Vehicle</button>
+            <button onClick={() => openSudo('ADD_VEHICLE', 'Add Vehicle', 'Verify admin password to register new vehicle.')} disabled={!vehicleId} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Register Vehicle</button>
           </div>
         </div>
       </div>

@@ -102,13 +102,13 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-slate-700" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold text-white mb-2">{title || 'Sudo Required'}</h2>
-        <p className="text-slate-400 text-sm mb-4">{message}</p>
+        <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">{message}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="text-red-400 text-sm bg-red-500/10 p-3 rounded-xl border border-red-500/30">{error}</div>}
           <input type="password" required autoFocus value={sudoPassword} onChange={e => setSudoPassword(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Enter Admin Password" />
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 bg-amber-500 text-slate-900 rounded-xl font-bold disabled:opacity-50 flex justify-center items-center">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-800 text-slate-400 dark:text-slate-500 rounded-xl font-bold">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 bg-amber-500 text-slate-900 dark:text-white rounded-xl font-bold disabled:opacity-50 flex justify-center items-center">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm'}
             </button>
           </div>
@@ -196,11 +196,11 @@ function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
   };
 
   if (!isOpen) return null;
-  const inputClass = "w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500";
+  const inputClass = "w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl shadow-xl w-full max-w-lg flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-indigo-100 bg-indigo-50 flex justify-between items-center">
           <h2 className="text-xl font-bold text-indigo-900 flex items-center"><UserPlus className="w-5 h-5 mr-2" /> Add Employee</h2>
           <button onClick={onClose} className="p-1 hover:bg-indigo-100 rounded-lg"><X className="w-5 h-5 text-indigo-400" /></button>
@@ -208,14 +208,14 @@ function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</div>}
           
-          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
             <input type="checkbox" id="normalEmp" checked={isNormal} onChange={e => setIsNormal(e.target.checked)} className="w-4 h-4 text-indigo-600" />
-            <label htmlFor="normalEmp" className="text-sm font-bold text-slate-700 cursor-pointer">Normal Employee (No System Login)</label>
+            <label htmlFor="normalEmp" className="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Normal Employee (No System Login)</label>
           </div>
 
           {!isNormal && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">System Role</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">System Role</label>
               <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className={inputClass}>
                 <option value="STAFF">Money Collector</option>
                 <option value="DRIVER">Truck Driver</option>
@@ -225,33 +225,33 @@ function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
               <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mobile Number</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Mobile Number</label>
               <input type="text" required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className={inputClass} placeholder="98XXXXXXXX" />
             </div>
           </div>
 
           {isNormal ? (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Job Title</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Job Title</label>
               <input type="text" required value={form.jobTitle} onChange={e => setForm({...form, jobTitle: e.target.value})} className={inputClass} placeholder="e.g. Sweeper" />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Username</label>
                 <input type="text" required value={form.username} onChange={e => setForm({...form, username: e.target.value})} className={inputClass} />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
                 <input type="password" required minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className={inputClass} />
               </div>
               {form.role === 'DRIVER' && (
                 <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assigned Vehicle</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Assigned Vehicle</label>
                   <select required value={form.vehicleId} onChange={e => setForm({...form, vehicleId: e.target.value})} className={inputClass}>
                     <option value="">Select a Vehicle...</option>
                     {vehicles.map(v => (
@@ -262,7 +262,7 @@ function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
               )}
               {form.role === 'STAFF' && (
                 <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assigned Area</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Assigned Area</label>
                   <input type="text" required value={form.assignedArea} onChange={e => setForm({...form, assignedArea: e.target.value})} className={inputClass} placeholder="e.g. Godawari Ward 7" />
                 </div>
               )}
@@ -270,7 +270,7 @@ function AddEmployeeModal({ isOpen, onClose, onSuccess }) {
           )}
 
           <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold bg-white border border-slate-300 hover:bg-slate-100 rounded-xl">Cancel</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 rounded-xl">Cancel</button>
             <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-50">
               {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Create Employee'}
             </button>
@@ -316,8 +316,8 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-slate-200 bg-slate-900 text-white flex justify-between items-center sticky top-0 z-10">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 w-full max-w-xl h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-900 text-white flex justify-between items-center sticky top-0 z-10">
           <h2 className="text-xl font-bold flex items-center"><Eye className="w-5 h-5 mr-2" /> Staff Profile</h2>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
         </div>
@@ -328,25 +328,25 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
         {!loading && !error && profile && (
           <div className="p-6 space-y-6">
             {/* Identity Card */}
-            <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-4 mb-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg ${profile.role === 'DRIVER' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
                   {profile.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">{profile.name}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{profile.name}</h3>
                   <span className={`inline-block px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider mt-1 ${profile.role === 'DRIVER' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
                     {profile.role === 'DRIVER' ? 'Truck Driver' : 'Money Collector'}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-slate-400 font-medium">Username:</span> <span className="text-slate-700 font-semibold">{profile.username}</span></div>
-                <div><span className="text-slate-400 font-medium">Status:</span> <span className={`font-bold ${profile.isActive ? 'text-emerald-600' : 'text-red-600'}`}>{profile.isActive ? 'Active' : 'Inactive'}</span></div>
+                <div><span className="text-slate-400 dark:text-slate-500 font-medium">Username:</span> <span className="text-slate-700 dark:text-slate-300 font-semibold">{profile.username}</span></div>
+                <div><span className="text-slate-400 dark:text-slate-500 font-medium">Status:</span> <span className={`font-bold ${profile.isActive ? 'text-emerald-600' : 'text-red-600'}`}>{profile.isActive ? 'Active' : 'Inactive'}</span></div>
                 {profile.vehicle && (
-                  <div className="col-span-2"><span className="text-slate-400 font-medium">Vehicle:</span> <span className="text-slate-700 font-semibold">{profile.vehicle.registrationNumber} ({profile.vehicle.type})</span></div>
+                  <div className="col-span-2"><span className="text-slate-400 dark:text-slate-500 font-medium">Vehicle:</span> <span className="text-slate-700 dark:text-slate-300 font-semibold">{profile.vehicle.registrationNumber} ({profile.vehicle.type})</span></div>
                 )}
-                <div className="col-span-2"><span className="text-slate-400 font-medium">Joined:</span> <span className="text-slate-700 font-semibold">{formatDate(profile.createdAt)}</span></div>
+                <div className="col-span-2"><span className="text-slate-400 dark:text-slate-500 font-medium">Joined:</span> <span className="text-slate-700 dark:text-slate-300 font-semibold">{formatDate(profile.createdAt)}</span></div>
               </div>
             </div>
 
@@ -367,24 +367,24 @@ function StaffProfilePanel({ isOpen, onClose, staffId }) {
 
                 {/* Transaction Ledger */}
                 <div>
-                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Recent Transaction History</h4>
+                  <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Recent Transaction History</h4>
                   {Array.isArray(profile.transactions) && profile.transactions.length > 0 ? (
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                       {profile.transactions.map(tx => (
-                        <div key={tx.id} className="bg-white p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors flex justify-between items-center">
+                        <div key={tx.id} className="bg-white dark:bg-slate-800 transition-colors duration-200 p-4 rounded-lg border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:border-slate-700 transition-colors flex justify-between items-center">
                           <div>
-                            <p className="text-sm font-bold text-slate-800">Collected: ₹{formatCurrency(tx.amount)}</p>
-                            <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Collected: ₹{formatCurrency(tx.amount)}</p>
+                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">{formatDate(tx.date)}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-medium text-slate-600">{formatDate(tx.date)}</p>
+                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">{formatDate(tx.date)}</p>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tx.status === 'SUCCESSFUL' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{tx.status}</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-400 text-sm text-center py-8 bg-slate-50 rounded-lg">No transactions recorded yet.</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-lg">No transactions recorded yet.</p>
                   )}
                 </div>
               </>
@@ -679,13 +679,13 @@ useEffect(() => {
       {/* ── PAGE HEADER ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Fleet Map & HR</h1>
-          <p className="text-slate-500 mt-1 font-medium">Live GPS tracking • Staff management • Session control</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Fleet Map & HR</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Live GPS tracking • Staff management • Session control</p>
         </div>
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowEmployeeModal(true)}
-            className="inline-flex items-center px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-all shadow-sm"
+            className="inline-flex items-center px-5 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-sm transition-all shadow-sm"
           >
             <UserPlus className="w-4 h-4 mr-2" /> Add Employee
           </button>
@@ -693,9 +693,9 @@ useEffect(() => {
       </div>
 
       {/* ── TOP HALF: LIVE MAP ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex flex-wrap items-center">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700  ">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex flex-wrap items-center">
             <MapIcon className="w-4 h-4 mr-2 text-emerald-600" /> Live Fleet Map
             {focusedCoords && (
               <button 
@@ -746,13 +746,13 @@ useEffect(() => {
                           {employee ? employee.name : `Driver #${m.vehicleId}`}
                         </strong>
                       </div>
-                      <div className="text-xs text-slate-500 font-mono mb-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">
                         @{employee?.username || 'n/a'}
                       </div>
-                      <div className="text-[11px] font-bold text-slate-600 mb-1">
+                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                         🚛 Vehicle #{m.vehicleId}
                       </div>
-                      <div className="text-[11px] text-slate-400 border-t pt-1">
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 border-t pt-1">
                         Last ping: {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                       </div>
                     </div>
@@ -779,10 +779,10 @@ useEffect(() => {
                           {employee ? employee.name : `Collector #${m.staffId}`}
                         </strong>
                       </div>
-                      <div className="text-xs text-slate-500 font-mono mb-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">
                         @{employee?.username || 'n/a'}
                       </div>
-                      <div className="text-[11px] text-slate-400 border-t pt-1">
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 border-t pt-1">
                         Last seen: {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}
                       </div>
                     </div>
@@ -797,13 +797,13 @@ useEffect(() => {
      
 
       {/* ── BOTTOM HALF: HR ROSTER TABLE ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
-        <div className="p-4 border-b border-slate-200 flex flex-col gap-4 bg-slate-50/50">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700  ">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-4 bg-slate-50 dark:bg-slate-900/50">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
-              <Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster
+            <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center">
+              <Users className="w-4 h-4 mr-2 text-slate-500 dark:text-slate-400" /> Employee Roster
             </h2>
-            <span className="text-xs font-bold text-slate-400">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
               {pagination.totalCount} employees • Page {pagination.page} of {pagination.totalPages}
             </span>
           </div>
@@ -814,9 +814,9 @@ useEffect(() => {
               placeholder="Search by name or username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-full sm:max-w-md"
+              className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-full sm:max-w-md"
             />
-            <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">
               {filteredStaff.length} employees found
             </span>
           </div>
@@ -833,7 +833,7 @@ useEffect(() => {
                       {mapFeedback}
                     </div>
                   )}
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Name</th>
@@ -846,10 +846,10 @@ useEffect(() => {
               <tbody className="divide-y divide-slate-100">
           {filteredStaff.length > 0 ? (
             filteredStaff.map(emp => (
-              <tr key={emp.id} className={`transition-colors ${emp.isActive ? 'bg-white hover:bg-slate-50/80' : 'bg-red-50/30'}`}>
+              <tr key={emp.id} className={`transition-colors ${emp.isActive ? 'bg-white dark:bg-slate-800 transition-colors duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900/50/80' : 'bg-red-50/30'}`}>
                 {/* Username Column */}
                 <td className="px-6 py-4">
-                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded">
                     @{emp.username}
                   </span>
                 </td>
@@ -861,7 +861,7 @@ useEffect(() => {
               {emp.name?.charAt(0)?.toUpperCase()}
             </div>
             <div>
-              <p className="font-bold text-slate-900">{emp.name}</p>
+              <p className="font-bold text-slate-900 dark:text-white">{emp.name}</p>
             </div>
           </div>
         </td>
@@ -874,7 +874,7 @@ useEffect(() => {
         </td>
 
         {/* Assignment Column */}
-        <td className="px-6 py-4 text-slate-600 font-medium text-sm">
+        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium text-sm">
           {emp.vehicle ? `🚛 ${emp.vehicle.registrationNumber}` : '—'}
         </td>
 
@@ -924,7 +924,7 @@ useEffect(() => {
                           
             <button
               onClick={() => setProfilePanelId(emp.id)}
-              className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
+              className="inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
             >
               <Eye className="w-3.5 h-3.5 mr-1" /> View
             </button>
@@ -961,7 +961,7 @@ useEffect(() => {
     ))
           ) : (
             <tr>
-              <td colSpan={6} className="text-center py-16 text-slate-400 font-medium">No results found.</td>
+              <td colSpan={6} className="text-center py-16 text-slate-400 dark:text-slate-500 font-medium">No results found.</td>
             </tr>
           )}
         </tbody>
@@ -971,19 +971,19 @@ useEffect(() => {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
             <button
               disabled={pagination.page <= 1}
               onClick={() => fetchStaff(pagination.page - 1)}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition-colors"
+              className="px-4 py-2 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 disabled:opacity-40 transition-colors"
             >
               Previous
             </button>
-            <span className="text-sm font-semibold text-slate-500">Page {pagination.page} of {pagination.totalPages}</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Page {pagination.page} of {pagination.totalPages}</span>
             <button
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => fetchStaff(pagination.page + 1)}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 transition-colors"
+              className="px-4 py-2 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 disabled:opacity-40 transition-colors"
             >
               Next
             </button>

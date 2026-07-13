@@ -43,13 +43,13 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-slate-900 rounded-2xl p-6 w-full max-w-md border border-slate-700" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold text-white mb-2">{title || 'Sudo Required'}</h2>
-        <p className="text-slate-400 text-sm mb-4">{message}</p>
+        <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">{message}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="text-red-400 text-sm bg-red-500/10 p-3 rounded-xl border border-red-500/30">{error}</div>}
           <input type="password" required autoFocus value={sudoPassword} onChange={e => setSudoPassword(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Enter Admin Password" />
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 bg-amber-500 text-slate-900 rounded-xl font-bold disabled:opacity-50 flex justify-center items-center">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-800 text-slate-400 dark:text-slate-500 rounded-xl font-bold">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 bg-amber-500 text-slate-900 dark:text-white rounded-xl font-bold disabled:opacity-50 flex justify-center items-center">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm'}
             </button>
           </div>
@@ -114,16 +114,16 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null;
 
-  const inputClass = 'w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors';
+  const inputClass = 'w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Add New Customer</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
         </div>
 
@@ -138,16 +138,16 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Customer ID</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer ID</label>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="customerId" value={form.customerId} onChange={handleChange} placeholder="GDW-0001" required className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="name" value={form.name} onChange={handleChange} placeholder="Ram Bahadur" required className={inputClass} />
               </div>
             </div>
@@ -155,16 +155,16 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number (Optional)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number (Optional)</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="9841234567" className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Area</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Assigned Area</label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} placeholder="Godawari Ward-7" required className={inputClass} />
               </div>
             </div>
@@ -172,37 +172,37 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Fee (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹)</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} placeholder="500.00" className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle Day (Optional)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Billing Cycle Day (Optional)</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="number" min="1" max="28" name="billingCycleDay" value={form.billingCycleDay} onChange={handleChange} placeholder="e.g. 1" className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="password" value={form.password} onChange={handleChange} placeholder="Minimum 5 characters" required className={inputClass} type={showPassword ? 'text' : 'password'} />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Starting Debt (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Debt (₹)</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} placeholder="0.00" className={inputClass} />
               </div>
             </div>
@@ -211,19 +211,19 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
           {Number(form.outstandingPayment) > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Debt From Date</label>
-                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white  flex">
-                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
-                    <Calendar className="w-4 h-4 text-slate-400" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt From Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
                   <DatePicker name="dueStartDate" value={form.dueStartDate} onChange={handleChange} className="flex-1" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Debt To Date</label>
-                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white  flex">
-                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
-                    <Calendar className="w-4 h-4 text-slate-400" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt To Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
                   <DatePicker name="dueEndDate" value={form.dueEndDate} onChange={handleChange} className="flex-1" />
                 </div>
@@ -322,15 +322,15 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
   if (!isOpen || !customer) return null;
 
-  const inputClass = 'w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors';
+  const inputClass = 'w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors';
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={sudoConfig.isOpen ? undefined : onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-900">Edit Customer: {customer.customerId}</h2>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit Customer: {customer.customerId}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
         </div>
 
@@ -344,16 +344,16 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Customer ID</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer ID</label>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="newCustomerId" value={form.newCustomerId} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
@@ -361,16 +361,16 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number (Optional)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number (Optional)</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="tel" name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Area</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Assigned Area</label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
@@ -378,9 +378,9 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Fee (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹)</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
@@ -388,16 +388,16 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Starting Debt (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Debt (₹)</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="number" step="0.01" name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle Day (Optional)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Billing Cycle Day (Optional)</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="number" min="1" max="28" name="billingCycleDay" value={form.billingCycleDay} onChange={handleChange} placeholder="Global default" className={inputClass} />
               </div>
             </div>
@@ -405,7 +405,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="flex items-center gap-2 mt-4">
             <input type="checkbox" id="isActive" name="isActive" checked={form.isActive} onChange={handleChange} className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500" />
-            <label htmlFor="isActive" className="text-sm font-medium text-slate-700">Account Active</label>
+            <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Active</label>
           </div>
 
           <button
@@ -674,14 +674,14 @@ function CustomerProfile({ customerId, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto animate-slide-in-right"
+        className="bg-white dark:bg-slate-800 transition-colors duration-200 w-full max-w-xl h-full shadow-2xl overflow-y-auto animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-900">Customer Profile</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+        <div className="sticky top-0 bg-white dark:bg-slate-800 transition-colors duration-200 z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Customer Profile</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 transition-colors">
+            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
         </div>
 
@@ -700,37 +700,37 @@ function CustomerProfile({ customerId, onClose }) {
         {profile && (
           <div className="p-6 space-y-6">
             {/* Identity Card */}
-            <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-lg">
                   {profile.name?.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 text-lg">{profile.name}</h3>
-                  <p className="text-sm text-slate-500">{profile.customerId} · {profile.assignedArea}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-lg">{profile.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{profile.customerId} · {profile.assignedArea}</p>
                 </div>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+              <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 dark:border-slate-700 pt-5">
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Phone</p>
-                  <p className="text-sm font-semibold text-slate-900">{profile.phone || 'N/A'}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Phone</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{profile.phone || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Monthly Fee</p>
-                  <p className="text-sm font-semibold text-slate-900">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Billing Cycle</p>
-                  <p className="text-sm font-semibold text-slate-900">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Billing Cycle</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Registered</p>
-                  <p className="text-sm font-semibold text-slate-900">{formatDate(profile.createdAt)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Registered</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatDate(profile.createdAt)}</p>
                 </div>
                 {profile.lastBilledDate && (
                   <div className="col-span-2">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Last Billed On</p>
-                    <p className="text-sm font-semibold text-slate-900">{formatDate(profile.lastBilledDate)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Last Billed On</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatDate(profile.lastBilledDate)}</p>
                   </div>
                 )}
               </div>
@@ -753,15 +753,15 @@ function CustomerProfile({ customerId, onClose }) {
 
             {/* Balance Cards */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl p-4 border border-slate-200">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Outstanding Due</p>
-                <p className={`text-2xl font-bold ${Number(profile.outstandingPayment) > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+              <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Outstanding Due</p>
+                <p className={`text-2xl font-bold ${Number(profile.outstandingPayment) > 0 ? 'text-red-600' : 'text-slate-400 dark:text-slate-500'}`}>
                   ₹{Number(profile.outstandingPayment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Smart Wallet</p>
-                <p className={`text-2xl font-bold ${Number(profile.advanceBalance) > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+              <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Smart Wallet</p>
+                <p className={`text-2xl font-bold ${Number(profile.advanceBalance) > 0 ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'}`}>
                   ₹{Number(profile.advanceBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -769,21 +769,21 @@ function CustomerProfile({ customerId, onClose }) {
 
             {/* Transaction History (The Ledger Container) */}
             <div className="space-y-4">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider flex items-center shrink-0">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700/50">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center shrink-0">
                   <Clock className="w-4 h-4 mr-2 text-emerald-500" />
                   Transaction History ({filteredTransactions.length || 0})
                 </h4>
 
-                <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                  <div className="flex items-center bg-white border border-slate-200 rounded-lg   shadow-sm hover:border-emerald-300 transition-colors">
-                    <div className="pl-3 pr-2 text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-200 dark:border-slate-700 rounded-lg   shadow-sm hover:border-emerald-300 transition-colors">
+                    <div className="pl-3 pr-2 text-slate-400 dark:text-slate-500">
                       <Calendar className="w-4 h-4" />
                     </div>
                     <select
                       value={dateFilter}
                       onChange={(e) => setDateFilter(e.target.value)}
-                      className="text-xs bg-transparent py-2 pr-3 font-semibold text-slate-700 outline-none cursor-pointer hover:text-emerald-600 transition-colors"
+                      className="text-xs bg-transparent py-2 pr-3 font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:text-emerald-600 transition-colors"
                     >
                       <option value="all">All Time</option>
                       <option value="today">Today</option>
@@ -797,29 +797,29 @@ function CustomerProfile({ customerId, onClose }) {
                   </div>
 
                   {dateFilter === 'custom' && (
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm hover:border-emerald-300 transition-colors">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 shadow-sm hover:border-emerald-300 transition-colors">
                       <input 
                         type="date" 
                         value={customStart} 
                         onChange={(e) => setCustomStart(e.target.value)}
-                        className="text-xs font-medium text-slate-600 bg-transparent outline-none p-1 cursor-pointer"
+                        className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-transparent outline-none p-1 cursor-pointer"
                       />
-                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      <ArrowRight className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                       <input 
                         type="date" 
                         value={customEnd} 
                         onChange={(e) => setCustomEnd(e.target.value)}
-                        className="text-xs font-medium text-slate-600 bg-transparent outline-none p-1 cursor-pointer"
+                        className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-transparent outline-none p-1 cursor-pointer"
                       />
                     </div>
                   )}
 
                   {/* Statements Action Buttons Trigger Toolbar */}
                   {filteredTransactions.length > 0 && (
-                    <div className="flex items-center gap-2 border-l border-slate-200 pl-3 ml-1">
+                    <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1">
                       <button
                         onClick={handleViewStatement}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all shadow-sm border border-slate-200 active:scale-95"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all shadow-sm border border-slate-200 dark:border-slate-700 active:scale-95"
                         title="Print PDF Statement"
                       >
                         <FileText className="w-4 h-4 text-sky-500" />
@@ -839,7 +839,7 @@ function CustomerProfile({ customerId, onClose }) {
               </div>
 
               {(!filteredTransactions || filteredTransactions.length === 0) ? (
-                <div className="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
                   No transactions recorded for this period.
                 </div>
               ) : (
@@ -847,18 +847,18 @@ function CustomerProfile({ customerId, onClose }) {
                   {filteredTransactions.map((tx) => {
                     if (tx.type === 'CHARGE') {
                       return (
-                        <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">
+                        <li key={tx.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="p-2 rounded-full bg-orange-100 text-orange-600">
                                 <AlertTriangle className="w-4 h-4" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-slate-900">
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">
                                   System Billing
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <p className="text-xs text-slate-500 font-medium">
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                     {formatDate(tx.date)}
                                   </p>
                                 </div>
@@ -868,7 +868,7 @@ function CustomerProfile({ customerId, onClose }) {
                               <p className="text-sm font-bold text-orange-600">
                                 -₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </p>
-                              <p className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[120px]" title={tx.description}>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[120px]" title={tx.description}>
                                 {tx.description}
                               </p>
                             </div>
@@ -878,21 +878,21 @@ function CustomerProfile({ customerId, onClose }) {
                     }
 
                     return (
-                      <li key={tx.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-slate-300 transition-colors">
+                      <li key={tx.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="p-2 rounded-full bg-green-100 text-green-600">
                               <TrendingUp className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-slate-900">
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">
                                 {tx.paymentMethod} · {tx.source}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-slate-500 flex items-center">
+                                <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
                                   <User className="w-3 h-3 mr-1" /> {tx.collectedBy}
                                 </span>
-                                <p className="text-xs text-slate-500 font-medium">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                   {formatDate(tx.date)}
                                 </p>
                               </div>
@@ -902,12 +902,12 @@ function CustomerProfile({ customerId, onClose }) {
                             <p className="text-sm font-bold text-green-600">
                               +₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                               VAT: ₹{Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
                           </div>
                         </div>
-                        {tx.note && <p className="mt-2 text-xs text-slate-500 italic border-t border-slate-200 pt-2">{tx.note}</p>}
+                        {tx.note && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 italic border-t border-slate-200 dark:border-slate-700 pt-2">{tx.note}</p>}
                       </li>
                     );
                   })}
@@ -1001,8 +1001,8 @@ export default function Customers() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Customer Management</h1>
-          <p className="text-slate-500 mt-1">{pagination.totalCount.toLocaleString()} registered customers</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Customer Management</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{pagination.totalCount.toLocaleString()} registered customers</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -1014,18 +1014,18 @@ export default function Customers() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-4">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Search by ID, Name or Phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+            className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
           />
         </div>
-        <div className="text-xs text-slate-400 font-medium whitespace-nowrap">
+        <div className="text-xs text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
           Page {pagination.page} of {pagination.totalPages || 1}
         </div>
       </div>
@@ -1039,18 +1039,18 @@ export default function Customers() {
       )}
 
       {/* Data Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm  ">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm  ">
         <div className="overflow-x-auto w-full">
           <table className="w-full text-sm text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer ID</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Area</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Outstanding Due</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Smart Wallet</th>
-                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Action</th>
+              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer ID</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Area</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Outstanding Due</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Smart Wallet</th>
+                <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1058,14 +1058,14 @@ export default function Customers() {
                 <tr>
                   <td colSpan={7} className="text-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin text-brand-500 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">Loading customers...</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-sm">Loading customers...</p>
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-16">
                     <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">No customers found.</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-sm">No customers found.</p>
                   </td>
                 </tr>
               ) : (
@@ -1073,22 +1073,22 @@ export default function Customers() {
                   const outstanding = Number(c.outstandingPayment);
                   const advance = Number(c.advanceBalance);
                   return (
-                    <tr key={c.customerId} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs text-slate-600">{c.customerId}</td>
-                      <td className="px-6 py-4 font-medium text-slate-900">{c.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{c.assignedArea}</td>
-                      <td className="px-6 py-4 text-slate-600">{c.phone || <span className="text-slate-300 italic">—</span>}</td>
-                      <td className={`px-6 py-4 text-right font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                    <tr key={c.customerId} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900/50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">{c.customerId}</td>
+                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{c.name}</td>
+                      <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{c.assignedArea}</td>
+                      <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{c.phone || <span className="text-slate-300 italic">—</span>}</td>
+                      <td className={`px-6 py-4 text-right font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-slate-400 dark:text-slate-500'}`}>
                         ₹{outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className={`px-6 py-4 text-right font-semibold ${advance > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                      <td className={`px-6 py-4 text-right font-semibold ${advance > 0 ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'}`}>
                         ₹{advance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => setSelectedCustomerId(c.customerId)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg border border-brand-200 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 rounded-lg border border-brand-200 transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             View
@@ -1118,25 +1118,25 @@ export default function Customers() {
 
         {/* Pagination Controls */}
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-            <p className="text-sm text-slate-500">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page <= 1}
-                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 text-slate-600" />
+                <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </button>
-              <span className="text-sm font-medium text-slate-700 px-2">{pagination.page}</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 px-2">{pagination.page}</span>
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
-                className="p-2 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="w-4 h-4 text-slate-600" />
+                <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </button>
             </div>
           </div>

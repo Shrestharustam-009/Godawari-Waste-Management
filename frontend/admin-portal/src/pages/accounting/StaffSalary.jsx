@@ -94,20 +94,20 @@ function LogSalaryModal({ isOpen, onClose, onSuccess, customDeductions }) {
   };
 
   if (!isOpen) return null;
-  const inputClass = "w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500";
+  const inputClass = "w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col my-8" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl shadow-xl w-full max-w-2xl flex flex-col my-8" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-blue-100 bg-blue-50 shrink-0">
           <h2 className="text-xl font-bold text-blue-900 flex items-center"><UserCircle className="w-5 h-5 mr-2 text-blue-600" /> Log Staff Salary</h2>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-slate-50 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-slate-50 dark:bg-slate-900/50 overflow-y-auto">
           {error && <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</div>}
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Staff Member</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Staff Member</label>
               <select required value={form.staffId} onChange={e => setForm({...form, staffId: e.target.value})} className={inputClass}>
                 <option value="">Select a Staff Member...</option>
                 {staffList.map(s => (
@@ -116,21 +116,21 @@ function LogSalaryModal({ isOpen, onClose, onSuccess, customDeductions }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Transaction Date</label>
-              <div className={`h-[42px] border border-slate-200 rounded-lg  bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white`}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Transaction Date</label>
+              <div className={`h-[42px] border border-slate-200 dark:border-slate-700 rounded-lg  bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200`}>
                 <DatePicker required name="transactionDate" value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className="h-full" />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Basic Pay (₹)</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Basic Pay (₹)</label>
             <input type="number" step="0.01" required value={form.basicPay} onChange={e => setForm({...form, basicPay: e.target.value})} className={inputClass} />
           </div>
 
           {customDeductions?.length > 0 && (
-            <div className="bg-white p-4 rounded-xl border border-slate-200">
-              <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Dynamic Deductions</h3>
+            <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 border-b border-slate-100 dark:border-slate-700/50 pb-2">Dynamic Deductions</h3>
               <div className="grid grid-cols-2 gap-4">
                 {customDeductions.map(d => (
                   <div key={d.name}>
@@ -148,17 +148,17 @@ function LogSalaryModal({ isOpen, onClose, onSuccess, customDeductions }) {
           )}
 
           <div>
-            <label className="block text-sm font-bold text-slate-900 mb-1.5">Calculated Net Pay (₹)</label>
-            <input type="text" value={formatCurrency(calculateNet())} readOnly className={`${inputClass} bg-slate-200 font-bold text-slate-900`} />
+            <label className="block text-sm font-bold text-slate-900 dark:text-white mb-1.5">Calculated Net Pay (₹)</label>
+            <input type="text" value={formatCurrency(calculateNet())} readOnly className={`${inputClass} bg-slate-200 font-bold text-slate-900 dark:text-white`} />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes (Optional)</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Notes (Optional)</label>
             <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className={inputClass} rows={2}></textarea>
           </div>
 
           <div className="pt-4 flex justify-end gap-3 shrink-0">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border hover:bg-slate-100 rounded-xl">Cancel</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 transition-colors duration-200 border hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50 rounded-xl">Cancel</button>
             <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50">
               {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Salary'}
             </button>
@@ -282,8 +282,8 @@ export default function StaffSalary() {
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Salary Ledger</h1>
-          <p className="text-slate-500 mt-1">Dedicated ledger for payroll and dynamic deductions.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Staff Salary Ledger</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Dedicated ledger for payroll and dynamic deductions.</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowModal(true)} className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-all">
@@ -292,36 +292,36 @@ export default function StaffSalary() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex flex-col gap-4 bg-slate-50/50">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col gap-4 bg-slate-50 dark:bg-slate-900/50">
           
           {/* Top Row: Search and Export */}
           <div className="flex flex-col sm:flex-row gap-3 w-full justify-end">
             <div className="relative w-full sm:w-auto">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input 
                 type="text" 
                 placeholder="Search staff name..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
               />
             </div>
             
-            <button onClick={exportCSV} className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-sm shadow-sm transition-all w-full sm:w-auto">
+            <button onClick={exportCSV} className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-lg font-semibold text-sm shadow-sm transition-all w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" /> Export
             </button>
           </div>
 
           {/* Bottom Row: Date Range Filter */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-3 pt-3 border-t border-slate-200/60 w-full">
-            <span className="text-sm font-semibold text-slate-500 mb-1 sm:mb-0">Filter Date:</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-3 pt-3 border-t border-slate-200 dark:border-slate-700/60 w-full">
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 sm:mb-0">Filter Date:</span>
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-              <div className="border border-slate-300 rounded-lg h-[40px] w-full sm:w-[150px]">
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[40px] w-full sm:w-[150px]">
                 <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full w-full" />
               </div>
-              <span className="text-slate-400 text-sm hidden sm:inline-block">to</span>
-              <div className="border border-slate-300 rounded-lg h-[40px] w-full sm:w-[150px]">
+              <span className="text-slate-400 dark:text-slate-500 text-sm hidden sm:inline-block">to</span>
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[40px] w-full sm:w-[150px]">
                 <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full w-full" />
               </div>
             </div>
@@ -334,7 +334,7 @@ export default function StaffSalary() {
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Staff Name</th>
@@ -342,7 +342,7 @@ export default function StaffSalary() {
                 {dynamicDeductionNames.map(name => (
                   <th key={name} className="px-6 py-4 text-right text-red-600">{name}</th>
                 ))}
-                <th className="px-6 py-4 text-right font-extrabold text-slate-900">Net Pay</th>
+                <th className="px-6 py-4 text-right font-extrabold text-slate-900 dark:text-white">Net Pay</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -354,13 +354,13 @@ export default function StaffSalary() {
                   }
                   
                   return (
-                    <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors bg-white">
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">{formatDate(tx.date)}</td>
+                    <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900/50/80 transition-colors bg-white dark:bg-slate-800 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-medium">{formatDate(tx.date)}</td>
                       <td className="px-6 py-4">
-                        <div className="text-slate-900 font-bold">{tx.staffName}</div>
-                        <div className="text-slate-500 text-xs uppercase tracking-wider">{tx.role}</div>
+                        <div className="text-slate-900 dark:text-white font-bold">{tx.staffName}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">{tx.role}</div>
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-slate-600">
+                      <td className="px-6 py-4 text-right font-medium text-slate-600 dark:text-slate-400">
                         ₹{formatCurrency(tx.basicPay)}
                       </td>
                       {dynamicDeductionNames.map(name => (
@@ -368,12 +368,12 @@ export default function StaffSalary() {
                           -₹{formatCurrency(dedMap[name] || '0')}
                         </td>
                       ))}
-                      <td className="px-6 py-4 text-right font-bold text-slate-900 text-base">₹{formatCurrency(tx.netPay)}</td>
+                      <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white text-base">₹{formatCurrency(tx.netPay)}</td>
                     </tr>
                   );
                 })
               ) : (
-                <tr><td colSpan={5 + dynamicDeductionNames.length} className="text-center py-16 text-slate-400 font-medium bg-white">No salary entries found.</td></tr>
+                <tr><td colSpan={5 + dynamicDeductionNames.length} className="text-center py-16 text-slate-400 dark:text-slate-500 font-medium bg-white dark:bg-slate-800 transition-colors duration-200">No salary entries found.</td></tr>
               )}
             </tbody>
           </table>

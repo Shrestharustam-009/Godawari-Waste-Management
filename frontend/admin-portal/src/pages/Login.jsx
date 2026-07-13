@@ -49,17 +49,17 @@ export default function Login() {
       <div className="absolute inset-0 bg-slate-950/60 z-0 backdrop-blur-[2px]"></div>
 
       {/* ── CENTERED GLASSMORPHIC CARD ── */}
-      <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/40 animate-in zoom-in-95 duration-500">
+      <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 transition-colors duration-200/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/40 animate-in zoom-in-95 duration-500">
         
         {/* Logo & Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center bg-brand-500 text-white p-3.5 rounded-2xl mb-5 shadow-lg shadow-brand-500/30">
             <Leaf className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Godawari Admin
           </h2>
-          <p className="mt-1.5 text-sm text-slate-500 font-medium">
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
             Secure Environmental Portal
           </p>
         </div>
@@ -75,12 +75,12 @@ export default function Login() {
         {/* Form */}
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="username" className="block text-sm font-bold text-slate-700 mb-1.5">
+            <label htmlFor="username" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
               Username
             </label>
             <div className="relative rounded-xl shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-slate-400" />
+                <User className="h-5 w-5 text-slate-400 dark:text-slate-500" />
               </div>
               <input
                 id="username"
@@ -90,19 +90,19 @@ export default function Login() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all text-sm font-medium shadow-sm"
+                className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all text-sm font-medium shadow-sm"
                 placeholder="admin.user"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-bold text-slate-700 mb-1.5">
+            <label htmlFor="password" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
               Password
             </label>
             <div className="relative rounded-xl shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-slate-400" />
+                <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500" />
               </div>
               <input
                 id="password"
@@ -112,13 +112,13 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all text-sm font-medium shadow-sm"
+                className="block w-full pl-11 pr-12 py-3 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all text-sm font-medium shadow-sm"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-brand-600 focus:outline-none"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-brand-600 focus:outline-none"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -131,9 +131,9 @@ export default function Login() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-slate-300 rounded cursor-pointer transition-colors"
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-slate-300 dark:border-slate-600 rounded cursor-pointer transition-colors"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-slate-600 cursor-pointer">
+              <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                 Remember me
               </label>
             </div>
@@ -161,7 +161,7 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center text-xs font-semibold text-slate-400">
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700/50 text-center text-xs font-semibold text-slate-400 dark:text-slate-500">
           Godawari Municipality &copy; {new Date().getFullYear()}
         </div>
       </div>

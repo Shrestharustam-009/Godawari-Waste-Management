@@ -80,7 +80,7 @@ export default function AccountingLayout() {
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center px-6 py-4 text-sm font-bold transition-all relative whitespace-nowrap ${
-      isActive ? 'text-brand-700 bg-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+      isActive ? 'text-brand-700 bg-white dark:bg-slate-800 transition-colors duration-200' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800/50'
     }`;
 
   const getIndicatorColor = (path) => {
@@ -99,33 +99,33 @@ export default function AccountingLayout() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Accounting & Ledgers</h1>
-          <p className="text-slate-500 mt-1 font-medium">Enterprise financial reporting & tax engine</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Accounting & Ledgers</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Enterprise financial reporting & tax engine</p>
         </div>
       </div>
 
       {/* EXECUTIVE SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+        <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center">
             <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg mr-2"><TrendingUp className="w-4 h-4" /></div> Total Revenue (Gross)
           </h3>
-          <p className="text-4xl font-extrabold text-slate-900 tracking-tight">
+          <p className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             ₹{formatCurrency(statements.summary?.totalIncome)}
           </p>
         </div>
         
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+        <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center">
             <div className="p-1.5 bg-rose-100 text-rose-600 rounded-lg mr-2"><TrendingDown className="w-4 h-4" /></div> Total Expenses
           </h3>
-          <p className="text-4xl font-extrabold text-slate-900 tracking-tight">
+          <p className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             ₹{formatCurrency(statements.summary?.totalExpense)}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200   relative">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center relative z-10">
+        <div className="bg-white dark:bg-slate-800 transition-colors duration-200 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700   relative">
+          <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center relative z-10">
             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg mr-2"><Wallet className="w-4 h-4" /></div> Net Profit
           </h3>
           <p className={`text-4xl font-extrabold tracking-tight relative z-10 ${Number(statements.summary?.netProfit || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -135,12 +135,12 @@ export default function AccountingLayout() {
       </div>
 
       {/* PREMIUM HORIZONTAL TABS VIA REACT ROUTER */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
-        <div className="flex overflow-x-auto border-b border-slate-200 hide-scrollbar bg-slate-50/50">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700  ">
+        <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700 hide-scrollbar bg-slate-50 dark:bg-slate-900/50">
           <NavLink to="/accounting/income" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <Receipt className={`w-4 h-4 mr-2 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
+                <Receipt className={`w-4 h-4 mr-2 ${isActive ? 'text-brand-600' : 'text-slate-400 dark:text-slate-500'}`} />
                 Income Ledger
                 {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('income')}`} />}
               </>
@@ -150,7 +150,7 @@ export default function AccountingLayout() {
           <NavLink to="/accounting/expense" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <List className={`w-4 h-4 mr-2 ${isActive ? 'text-red-600' : 'text-slate-400'}`} />
+                <List className={`w-4 h-4 mr-2 ${isActive ? 'text-red-600' : 'text-slate-400 dark:text-slate-500'}`} />
                 Advanced Expense Ledger
                 {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('expense')}`} />}
               </>
@@ -160,7 +160,7 @@ export default function AccountingLayout() {
           <NavLink to="/accounting/taxes" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <ShieldCheck className={`w-4 h-4 mr-2 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <ShieldCheck className={`w-4 h-4 mr-2 ${isActive ? 'text-blue-600' : 'text-slate-400 dark:text-slate-500'}`} />
                 Taxes & Liabilities
                 {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('taxes')}`} />}
               </>
@@ -170,7 +170,7 @@ export default function AccountingLayout() {
           <NavLink to="/accounting/statements" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <FileText className={`w-4 h-4 mr-2 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                <FileText className={`w-4 h-4 mr-2 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                 Statements & Exports
                 {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('statements')}`} />}
               </>
@@ -180,7 +180,7 @@ export default function AccountingLayout() {
           <NavLink to="/accounting/bonus-fees" className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <Receipt className={`w-4 h-4 mr-2 ${isActive ? 'text-amber-500' : 'text-slate-400'}`} />
+                <Receipt className={`w-4 h-4 mr-2 ${isActive ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} />
                 Bonus Fees
                 {isActive && <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${getIndicatorColor('bonus')}`} />}
               </>

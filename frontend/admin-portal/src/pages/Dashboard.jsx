@@ -17,10 +17,10 @@ import {
 // STAT CARD COMPONENT
 // ============================================================================
 const StatCard = ({ title, value, icon: Icon, valueColor, isLive }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between h-36 relative overflow-hidden">
+  <div className="bg-white dark:bg-slate-800 transition-colors duration-200 dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 dark:border-slate-700 flex flex-col justify-between h-36 relative overflow-hidden transition-colors duration-200">
     <div className="flex justify-between items-start">
-      <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
-      <div className={`p-2 rounded-lg bg-slate-50 ${isLive ? 'animate-pulse' : ''}`}>
+      <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-400 uppercase tracking-wider">{title}</h3>
+      <div className={`p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 dark:bg-slate-900/50 ${isLive ? 'animate-pulse' : ''}`}>
         <Icon className={`w-5 h-5 ${valueColor}`} />
       </div>
     </div>
@@ -129,7 +129,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col items-center text-slate-400">
+        <div className="flex flex-col items-center text-slate-400 dark:text-slate-500">
           <Loader2 className="w-8 h-8 animate-spin mb-4 text-brand-500" />
           <p>Loading real-time analytics...</p>
         </div>
@@ -139,7 +139,7 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="bg-red-50 p-6 rounded-2xl flex items-start text-red-700">
+      <div className="bg-red-50 dark:bg-red-500/10 p-6 rounded-2xl flex items-start text-red-700 dark:text-red-400">
         <AlertCircle className="w-6 h-6 mr-3 flex-shrink-0 mt-0.5" />
         <p>{error}</p>
       </div>
@@ -151,8 +151,8 @@ export default function Dashboard() {
       
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
-        <p className="text-slate-500 mt-1">Real-time financial and operational metrics</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white dark:text-white tracking-tight">Dashboard Overview</h1>
+        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-400 mt-1">Real-time financial and operational metrics</p>
       </div>
 
       {/* KPI Cards Grid */}
@@ -185,9 +185,9 @@ export default function Dashboard() {
       </div>
 
       {/* Operations Feed */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center">
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 dark:border-slate-700 overflow-hidden flex flex-col h-[600px] transition-colors duration-200">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700/50 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white dark:text-white flex items-center">
             <Activity className="w-5 h-5 mr-2 text-brand-500 animate-pulse" />
             Live Operations Feed
           </h2>
@@ -198,34 +198,34 @@ export default function Dashboard() {
         
         <div className="flex-1 overflow-y-auto p-2">
           {feed.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-slate-400">
+            <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500 dark:text-slate-500">
               No recent transactions found.
             </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {feed.map((tx, index) => {
                 const isIncome = !tx.type || tx.type === 'INCOME'; // Default to income if missing type
                 return (
-                  <li key={tx.id || index} className="px-4 py-4 hover:bg-slate-50 transition-colors rounded-xl">
+                  <li key={tx.id || index} className="px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900/50 dark:hover:bg-slate-700/50 transition-colors rounded-xl">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${isIncome ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                        <div className={`p-2 rounded-full ${isIncome ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
                           {isIncome ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white dark:text-white">
                             {tx.customerName || 'General Entry'}
                           </p>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="flex items-center text-xs text-slate-500">
+                            <span className="flex items-center text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">
                               <User className="w-3 h-3 mr-1" />
                               {tx.collectedBy}
                             </span>
-                            <span className="flex items-center text-xs text-slate-400">
+                            <span className="flex items-center text-xs text-slate-400 dark:text-slate-500 dark:text-slate-500">
                               <Clock className="w-3 h-3 mr-1" />
                               {formatSystemDate(tx.date)}
                             </span>
-                            <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            <span className="text-xs font-medium text-slate-400 dark:text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 dark:border-slate-600">
                               {tx.paymentMethod}
                             </span>
                           </div>
