@@ -60,9 +60,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           </div>
           
           {/* POS Info */}
-          <div style={{ marginBottom: '8px' }}>
-            <p style={{ margin: '2px 0' }}>Date: {getMonthName(date) || formatDate(date)}</p>
-            <p style={{ margin: '2px 0' }}>Receipt: {receiptNo || 'N/A'}</p>
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <p style={{ margin: '2px 0' }}>Date: {formatPeriodDate(date)}</p>
+            <p style={{ margin: '2px 0' }}>Receipt No: {receiptNo || 'N/A'}</p>
             <p style={{ margin: '2px 0' }}>Staff: {staffName || 'Staff'}</p>
             <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
           </div>
@@ -154,7 +154,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <td style={{ width: '50%', valign: 'top', textAlign: 'right', padding: 0 }}>
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#000', textTransform: 'uppercase' }}>Receipt Details</h3>
                 <p style={{ margin: '0 0 3px 0' }}><strong>Receipt No:</strong> {receiptNo || 'N/A'}</p>
-                <p style={{ margin: '0 0 3px 0' }}><strong>Date:</strong> {getMonthName(date)}</p>
+                <p style={{ margin: '0 0 3px 0' }}><strong>Date:</strong> {formatPeriodDate(date)}</p>
                 <p style={{ margin: '0' }}><strong>Collected By:</strong> {staffName || 'Staff'}</p>
               </td>
             </tr>

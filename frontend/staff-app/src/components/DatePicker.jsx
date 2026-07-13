@@ -42,14 +42,32 @@ export default function DatePicker({ value, onChange, name, className, required 
     }
   }
 
+  const nepaliToEnglish = (str) => {
+    const ne = ['०','१','२','३','४','५','६','७','८','९'];
+    let res = '';
+    for (let char of str) {
+      const i = ne.indexOf(char);
+      res += (i !== -1) ? i : char;
+    }
+    return res;
+  };
+
   const handleBSChange = (newBsValue) => {
-    // newBsValue is e.g. "2078-10-15"
-    if (!newBsValue) {
+    let valStr = newBsValue;
+    if (newBsValue && typeof newBsValue === 'object' && newBsValue.target) {
+      valStr = newBsValue.target.value;
+    } else if (newBsValue && typeof newBsValue === 'object') {
+      // In case it passes a date object or custom object
+      try { valStr = newBsValue.toString(); } catch(e) {}
+    }
+    
+    if (!valStr || typeof valStr !== 'string') {
       onChange({ target: { name, value: '' } });
       return;
     }
     try {
-      const adObj = toAD(newBsValue);
+      const englishBsValue = nepaliToEnglish(valStr);
+      const adObj = toAD(englishBsValue);
       const adStr = `${adObj.year}-${String(adObj.month + 1).padStart(2, '0')}-${String(adObj.date).padStart(2, '0')}`;
       onChange({ target: { name, value: adStr } });
     } catch (e) {
@@ -58,7 +76,7 @@ export default function DatePicker({ value, onChange, name, className, required 
   };
 
   return (
-    <div className={`relative ${className} p-0 flex items-center z-[9999]`}>
+    <div className={`relative ${className} p-0 flex items-center z-40`}>
       <NepaliDatePicker
         value={bsValue}
         onChange={handleBSChange}

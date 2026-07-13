@@ -308,13 +308,16 @@ async function processFieldPayment({
           });
         }
         
-        // Ensure bonus amount has 0 VAT (100% base revenue)
+        // Calculate 13% VAT split for the bonus
+        const bonusBase = bonusAmount.dividedBy(VAT_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+        const bonusVat = bonusAmount.minus(bonusBase);
+
         bonusIncome = await tx.incomeLedger.create({
           data: {
             date: new Date(),
             amount: bonusAmount.toFixed(2),
-            baseAmount: bonusAmount.toFixed(2),
-            vatAmount: '0.00',
+            baseAmount: bonusBase.toFixed(2),
+            vatAmount: bonusVat.toFixed(2),
             paymentMethod,
             source: 'FIELD_APP',
             idempotencyKey: idempotencyKey ? `${idempotencyKey}_bonus` : null,

@@ -43,13 +43,13 @@ const collectPaymentSchema = z.object({
       (val) => {
         try {
           const d = new Decimal(val);
-          // Minimum 1 paisa (0.01), maximum ~1 crore
-          return d.gte('0.01') && d.lte('99999999.99');
+          // Minimum 0.00 (allowed if bonus is present), maximum ~1 crore
+          return d.gte('0.00') && d.lte('99999999.99');
         } catch {
           return false;
         }
       },
-      { message: 'Amount must be between ₹0.01 and ₹99,999,999.99.' }
+      { message: 'Amount must be between ₹0.00 and ₹99,999,999.99.' }
     ),
 
   paymentMethod: z
@@ -110,7 +110,14 @@ const collectPaymentSchema = z.object({
     .max(500, 'Bonus remark must not exceed 500 characters.')
     .transform(sanitizeText)
     .optional(),
-}).strict();
+}).strict().refine((data) => {
+  const amountD = new Decimal(data.amount || '0');
+  const bonusD = new Decimal(data.bonusFee || '0');
+  return amountD.greaterThan(0) || bonusD.greaterThan(0);
+}, {
+  message: 'Either payment amount or bonus fee must be greater than zero.',
+  path: ['amount']
+});
 
 // ────────────────────────────────────────────────────────────────────────────
 // Manual Income Entry — POST /api/v1/income/manual
@@ -138,12 +145,12 @@ const manualIncomeSchema = z.object({
       (val) => {
         try {
           const d = new Decimal(val);
-          return d.gte('0.01') && d.lte('99999999.99');
+          return d.gte('0.00') && d.lte('99999999.99');
         } catch {
           return false;
         }
       },
-      { message: 'Amount must be between ₹0.01 and ₹99,999,999.99.' }
+      { message: 'Amount must be between ₹0.00 and ₹99,999,999.99.' }
     ),
 
   paymentMethod: z
@@ -169,7 +176,14 @@ const manualIncomeSchema = z.object({
     .max(1000, 'Note must not exceed 1,000 characters.')
     .transform(sanitizeText)
     .optional(),
-}).strict();
+}).strict().refine((data) => {
+  const amountD = new Decimal(data.amount || '0');
+  const bonusD = new Decimal(data.bonusFee || '0');
+  return amountD.greaterThan(0) || bonusD.greaterThan(0);
+}, {
+  message: 'Either payment amount or bonus fee must be greater than zero.',
+  path: ['amount']
+});
 
 module.exports = {
   collectPaymentSchema,

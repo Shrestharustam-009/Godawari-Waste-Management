@@ -60,9 +60,12 @@ export default function Collection() {
   };
 
   const handleReviewClick = () => {
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+    const amt = Number(amount || 0);
+    const bns = Number(bonusFee || 0);
+    if (amt < 0 || bns < 0) return;
+    if (amt === 0 && bns === 0) return;
     
-    if (!isAdvance && Number(amount) > Number(customer.outstandingPayment)) {
+    if (!isAdvance && amt > Number(customer.outstandingPayment)) {
       setError("Amount exceeds total debt. Enable 'Advance Payment' to allow overpayments.");
       return;
     }
@@ -236,7 +239,7 @@ export default function Collection() {
           <label className="block text-sm font-bold text-slate-700 mb-3">Period Covered (Optional)</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">From Date</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">From Date <span className="text-[10px] text-emerald-600 font-normal">(Click a day)</span></label>
               <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white flex z-20">
                 <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none rounded-l-xl">
                   <Calendar className="w-4 h-4 text-slate-400" />
@@ -250,7 +253,7 @@ export default function Collection() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">To Date</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">To Date <span className="text-[10px] text-emerald-600 font-normal">(Click a day)</span></label>
               <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white flex z-10">
                 <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none rounded-l-xl">
                   <Calendar className="w-4 h-4 text-slate-400" />
@@ -299,7 +302,7 @@ export default function Collection() {
 
         <button 
           onClick={handleReviewClick}
-          disabled={!amount || Number(amount) <= 0 || processing}
+          disabled={((Number(amount || 0) <= 0) && (Number(bonusFee || 0) <= 0)) || processing}
           className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
         >
           {processing ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Review Payment'}
@@ -311,7 +314,7 @@ export default function Collection() {
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm transition-all">
           <div className="bg-white rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300">
             <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Collection</h3>
-            <p className="text-slate-500 mb-6">Confirm Payment: Are you sure Rs. {amount} is the correct amount?</p>
+            <p className="text-slate-500 mb-6">Confirm Payment: Are you sure Rs. {amount || '0.00'} {Number(bonusFee || 0) > 0 ? `(+ Rs. ${bonusFee} Bonus)` : ''} is the correct amount?</p>
             
             <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
               <div className="flex justify-between mb-2">
