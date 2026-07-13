@@ -50,7 +50,7 @@ export default function StatementsExports() {
         <p className="text-slate-500 mb-10 max-w-md text-lg">Generate comma-separated CSV files for Excel, QuickBooks, or your external accountant based on the selected date range.</p>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 mb-10 w-full max-w-md shadow-sm">
-          <div className="flex flex-1 items-center px-4 py-3 bg-white rounded-xl text-sm text-slate-700 shadow-sm border border-slate-200 w-full overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+          <div className="flex flex-1 items-center px-4 py-3 bg-white rounded-xl text-sm text-slate-700 shadow-sm border border-slate-200 w-full focus-within:ring-2 focus-within:ring-brand-500">
             <Calendar className="w-5 h-5 mr-3 text-brand-500" />
             <DatePicker 
               name="startDate"
@@ -60,7 +60,7 @@ export default function StatementsExports() {
             />
           </div>
           <span className="text-slate-400 font-bold px-2 hidden sm:block">TO</span>
-          <div className="flex flex-1 items-center px-4 py-3 bg-white rounded-xl text-sm text-slate-700 shadow-sm border border-slate-200 w-full overflow-hidden focus-within:ring-2 focus-within:ring-brand-500">
+          <div className="flex flex-1 items-center px-4 py-3 bg-white rounded-xl text-sm text-slate-700 shadow-sm border border-slate-200 w-full focus-within:ring-2 focus-within:ring-brand-500">
             <DatePicker 
               name="endDate"
               value={dateRange.endDate} 

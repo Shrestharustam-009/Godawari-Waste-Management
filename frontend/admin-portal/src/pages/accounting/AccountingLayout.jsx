@@ -124,7 +124,7 @@ export default function AccountingLayout() {
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200   relative">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center relative z-10">
             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg mr-2"><Wallet className="w-4 h-4" /></div> Net Profit
           </h3>
@@ -135,7 +135,7 @@ export default function AccountingLayout() {
       </div>
 
       {/* PREMIUM HORIZONTAL TABS VIA REACT ROUTER */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
         <div className="flex overflow-x-auto border-b border-slate-200 hide-scrollbar bg-slate-50/50">
           <NavLink to="/accounting/income" className={navLinkClass}>
             {({ isActive }) => (

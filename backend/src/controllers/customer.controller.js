@@ -363,7 +363,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, monthlyFee, billingCycleDay, isActive, sudoPassword, newCustomerId } = parseResult.data;
+    const { name, phone, assignedArea, monthlyFee, billingCycleDay, outstandingPayment, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -376,6 +376,7 @@ async function updateCustomer(req, res) {
     if (phone !== undefined) updateData.phone = phone || null;
     if (assignedArea) updateData.assignedArea = assignedArea;
     if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
+    if (outstandingPayment !== undefined) updateData.outstandingPayment = new Decimal(outstandingPayment).toFixed(2);
     if (billingCycleDay !== undefined) updateData.billingCycleDay = billingCycleDay;
     if (isActive !== undefined) updateData.isActive = isActive;
     
@@ -402,6 +403,7 @@ async function updateCustomer(req, res) {
         assignedArea: updatedCustomer.assignedArea,
         billingCycleDay: updatedCustomer.billingCycleDay,
         monthlyFee: updatedCustomer.monthlyFee.toString(),
+        outstandingPayment: updatedCustomer.outstandingPayment.toString(),
         isActive: updatedCustomer.isActive,
       },
     });

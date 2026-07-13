@@ -21,21 +21,40 @@ import {
   Line
 } from 'recharts';
 import api from '../../api/axios';
+import { useSettings } from '../../context/SettingsContext';
+import { toBS } from '@zener/nepali-datepicker-react';
 
 export default function AccountingAnalysis() {
+  const { settings } = useSettings();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchAnalysis();
-  }, []);
+  }, [settings?.calendarType]);
 
   const fetchAnalysis = async () => {
     try {
       setLoading(true);
       const res = await api.get('/accounting/analysis');
-      setData(res.data.data);
+      const fetchedData = res.data.data;
+      if (fetchedData?.trendData) {
+        fetchedData.trendData = fetchedData.trendData.map(item => {
+          let monthLabel = item.rawMonth;
+          try {
+            if (settings?.calendarType === 'BS') {
+              const bsObj = toBS(`${item.rawMonth}-01`);
+              const nepaliMonths = ["Baisakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"];
+              monthLabel = nepaliMonths[bsObj.month];
+            } else {
+              monthLabel = new Date(`${item.rawMonth}-01T00:00:00Z`).toLocaleString('en-IN', { month: 'short' });
+            }
+          } catch(e) { console.warn(e); }
+          return { ...item, name: monthLabel };
+        });
+      }
+      setData(fetchedData);
       setError('');
     } catch (err) {
       console.error(err);

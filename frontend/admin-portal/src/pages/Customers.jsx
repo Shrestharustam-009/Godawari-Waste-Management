@@ -118,7 +118,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
           <h2 className="text-lg font-semibold text-slate-900">Add New Customer</h2>
@@ -209,10 +209,10 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {Number(form.outstandingPayment) > 0 && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Debt From Date</label>
-                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white overflow-hidden flex">
+                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white  flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
                     <Calendar className="w-4 h-4 text-slate-400" />
                   </div>
@@ -221,7 +221,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Debt To Date</label>
-                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white overflow-hidden flex">
+                <div className="relative border border-slate-200 rounded-lg bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white  flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white">
                     <Calendar className="w-4 h-4 text-slate-400" />
                   </div>
@@ -254,6 +254,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     phone: '',
     assignedArea: '',
     monthlyFee: '',
+    outstandingPayment: '',
     billingCycleDay: '',
     isActive: true,
   });
@@ -270,6 +271,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         phone: customer.phone || '',
         assignedArea: customer.assignedArea || '',
         monthlyFee: customer.monthlyFee || '500.00',
+        outstandingPayment: customer.outstandingPayment || '0.00',
         billingCycleDay: customer.billingCycleDay || '',
         isActive: customer.isActive ?? true,
       });
@@ -324,7 +326,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={sudoConfig.isOpen ? undefined : onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
           <h2 className="text-lg font-semibold text-slate-900">Edit Customer: {customer.customerId}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 transition-colors">
@@ -385,6 +387,13 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Starting Debt (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="number" step="0.01" name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle Day (Optional)</label>
               <div className="relative">
@@ -701,15 +710,45 @@ function CustomerProfile({ customerId, onClose }) {
                   <p className="text-sm text-slate-500">{profile.customerId} · {profile.assignedArea}</p>
                 </div>
               </div>
-              <div className="text-slate-600 text-sm space-y-1">
-                <p>Registered: {formatDate(profile.createdAt)}</p>
-                <p>Billing Cycle: <span className="font-medium text-slate-800">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</span></p>
-                {Number(profile.outstandingPayment) > 0 && profile.dueStartDate && profile.dueEndDate && (
-                  <p className="text-amber-600 font-medium">
-                    Historical Debt Period: {formatDate(profile.dueStartDate)} — {formatDate(profile.dueEndDate)}
-                  </p>
+              <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Phone</p>
+                  <p className="text-sm font-semibold text-slate-900">{profile.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Monthly Fee</p>
+                  <p className="text-sm font-semibold text-slate-900">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Billing Cycle</p>
+                  <p className="text-sm font-semibold text-slate-900">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Registered</p>
+                  <p className="text-sm font-semibold text-slate-900">{formatDate(profile.createdAt)}</p>
+                </div>
+                {profile.lastBilledDate && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Last Billed On</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatDate(profile.lastBilledDate)}</p>
+                  </div>
                 )}
               </div>
+
+              {Number(profile.outstandingPayment) > 0 && (profile.debtStartDate || profile.dueStartDate) && (
+                <div className="mt-4 bg-amber-50 rounded-lg p-4 border border-amber-200 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <p className="text-sm font-bold text-amber-800">Debt Information</p>
+                  </div>
+                  {profile.debtStartDate && (
+                     <p className="text-xs text-amber-700 font-medium"><span className="text-amber-900/60 mr-1">Started On:</span> {formatDate(profile.debtStartDate)}</p>
+                  )}
+                  {profile.dueStartDate && profile.dueEndDate && (
+                     <p className="text-xs text-amber-700 font-medium"><span className="text-amber-900/60 mr-1">Historical Period:</span> {formatDate(profile.dueStartDate)} — {formatDate(profile.dueEndDate)}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Balance Cards */}
@@ -737,7 +776,7 @@ function CustomerProfile({ customerId, onClose }) {
                 </h4>
 
                 <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                  <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm hover:border-emerald-300 transition-colors">
+                  <div className="flex items-center bg-white border border-slate-200 rounded-lg   shadow-sm hover:border-emerald-300 transition-colors">
                     <div className="pl-3 pr-2 text-slate-400">
                       <Calendar className="w-4 h-4" />
                     </div>
@@ -758,7 +797,7 @@ function CustomerProfile({ customerId, onClose }) {
                   </div>
 
                   {dateFilter === 'custom' && (
-                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm hover:border-emerald-300 transition-colors">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm hover:border-emerald-300 transition-colors">
                       <input 
                         type="date" 
                         value={customStart} 
@@ -1000,7 +1039,7 @@ export default function Customers() {
       )}
 
       {/* Data Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm  ">
         <div className="overflow-x-auto w-full">
           <table className="w-full text-sm text-left">
             <thead>

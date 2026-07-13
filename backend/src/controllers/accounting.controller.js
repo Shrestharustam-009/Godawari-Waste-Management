@@ -474,16 +474,57 @@ async function getAccountingAnalysis(req, res) {
 
     const totalExpense = standardExpense.plus(vehicleExpense).plus(salaryGross);
 
-    // Trend Data (Mocked recent 6 months for chart simplicity)
-    // In production, we'd GROUP BY date_trunc('month', date).
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    const trendData = months.map(m => ({
-      name: m,
-      Revenue: crypto.randomInt(100000, 150000),
-      Expense: crypto.randomInt(40000, 70000),
-      Vehicle: crypto.randomInt(5000, 15000),
-      Salary: crypto.randomInt(30000, 50000),
-    }));
+    // Dynamic Trend Data for the past 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const incomes = await prisma.incomeLedger.findMany({
+      where: { date: { gte: sixMonthsAgo }, isDeleted: false, status: 'SUCCESSFUL' },
+      select: { date: true, amount: true }
+    });
+    const expenses = await prisma.expenseLedger.findMany({
+      where: { date: { gte: sixMonthsAgo }, isDeleted: false, vehicleId: null },
+      select: { date: true, amount: true }
+    });
+    const vehicleExp = await prisma.vehicleExpenseLedger.findMany({
+      where: { date: { gte: sixMonthsAgo }, isDeleted: false },
+      select: { date: true, amount: true }
+    });
+    const salaries = await prisma.salaryLedger.findMany({
+      where: { date: { gte: sixMonthsAgo }, isDeleted: false },
+      select: { date: true, basicPay: true }
+    });
+
+    const monthKeys = [];
+    const trendMap = {};
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthKeys.push(mStr);
+      trendMap[mStr] = { rawMonth: mStr, Revenue: 0, Expense: 0, Vehicle: 0, Salary: 0 };
+    }
+
+    const addAgg = (list, key, amountField = 'amount') => {
+      for (const item of list) {
+        if (!item.date) continue;
+        const d = new Date(item.date);
+        const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (trendMap[mStr]) {
+          trendMap[mStr][key] += Number(item[amountField]) || 0;
+        }
+      }
+    };
+
+    addAgg(incomes, 'Revenue');
+    addAgg(expenses, 'Expense');
+    addAgg(vehicleExp, 'Vehicle');
+    addAgg(salaries, 'Salary', 'basicPay');
+
+    const trendData = monthKeys.map(m => trendMap[m]);
 
     return res.status(200).json({
       success: true,

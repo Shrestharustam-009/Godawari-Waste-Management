@@ -127,7 +127,7 @@ function LogIncomeModal({ isOpen, onClose, onSuccess, categories }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Transaction Date</label>
-            <div className={`h-[42px] border border-slate-200 rounded-lg overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white`}>
+            <div className={`h-[42px] border border-slate-200 rounded-lg  bg-slate-50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white`}>
               <DatePicker required name="transactionDate" value={form.transactionDate} onChange={e => setForm({...form, transactionDate: e.target.value})} className="h-full" />
             </div>
           </div>
@@ -247,44 +247,54 @@ export default function IncomeLedger() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/50">
+        <div className="p-4 border-b border-slate-100 flex flex-col gap-4 bg-slate-50/50">
           
-          <div className="flex items-center bg-slate-200/50 p-1 rounded-lg">
-            {['ALL', 'MANUAL_ENTRY', 'FIELD_APP'].map(type => (
-              <button 
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${filterType === type ? 'bg-white shadow text-brand-700' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                {type === 'ALL' ? 'All' : type === 'MANUAL_ENTRY' ? 'Manual Income' : 'Field Income'}
+          {/* Top Row: Categories and Search/Export */}
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center w-full">
+            <div className="flex flex-wrap items-center bg-slate-200/50 p-1 rounded-lg w-full md:w-auto">
+              {['ALL', 'MANUAL_ENTRY', 'FIELD_APP'].map(type => (
+                <button 
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all flex-1 md:flex-none ${filterType === type ? 'bg-white shadow text-brand-700' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {type === 'ALL' ? 'All' : type === 'MANUAL_ENTRY' ? 'Manual Income' : 'Field Income'}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search category or date..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                />
+              </div>
+              
+              <button onClick={exportCSV} className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-sm shadow-sm transition-all w-full sm:w-auto">
+                <Download className="w-4 h-4 mr-2" /> Export
               </button>
-            ))}
+            </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search category or date..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full md:w-64 pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
-                <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full" />
+          {/* Bottom Row: Date Range Filter */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-3 pt-3 border-t border-slate-200/60 w-full">
+            <span className="text-sm font-semibold text-slate-500 mb-1 sm:mb-0">Filter Date:</span>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              <div className="border border-slate-300 rounded-lg h-[40px] w-full sm:w-[150px]">
+                <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full w-full" />
               </div>
-              <span className="text-slate-400 text-sm">to</span>
-              <div className="border border-slate-300 rounded-lg overflow-hidden h-[38px] w-[130px]">
-                <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full" />
+              <span className="text-slate-400 text-sm hidden sm:inline-block">to</span>
+              <div className="border border-slate-300 rounded-lg h-[40px] w-full sm:w-[150px]">
+                <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full w-full" />
               </div>
             </div>
-            <button onClick={exportCSV} className="inline-flex items-center px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-sm shadow-sm transition-all">
-              <Download className="w-4 h-4 mr-2" /> Export
-            </button>
           </div>
+
         </div>
 
         {loading ? (

@@ -693,9 +693,9 @@ useEffect(() => {
       </div>
 
       {/* ── TOP HALF: LIVE MAP ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
+        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex flex-wrap items-center">
             <MapIcon className="w-4 h-4 mr-2 text-emerald-600" /> Live Fleet Map
             {focusedCoords && (
               <button 
@@ -797,28 +797,29 @@ useEffect(() => {
      
 
       {/* ── BOTTOM HALF: HR ROSTER TABLE ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-700 uppercase flex items-center">
-            <Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster
-          </h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200  ">
+        <div className="p-4 border-b border-slate-200 flex flex-col gap-4 bg-slate-50/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center">
+              <Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster
+            </h2>
+            <span className="text-xs font-bold text-slate-400">
+              {pagination.totalCount} employees • Page {pagination.page} of {pagination.totalPages}
+            </span>
+          </div>
           
-          {/* Search Input */}
-          <input
-            type="text"
-            placeholder="Search by name or username..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          
-          <span className="text-xs font-bold text-slate-400">
-            {filteredStaff.length} employees found
-          </span>
-        </div>
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center"><Users className="w-4 h-4 mr-2 text-slate-500" /> Employee Roster</h2>
-          <span className="text-xs font-bold text-slate-400">{pagination.totalCount} employees • Page {pagination.page} of {pagination.totalPages}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search by name or username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 w-full sm:max-w-md"
+            />
+            <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
+              {filteredStaff.length} employees found
+            </span>
+          </div>
         </div>
 
         {loading && <div className="p-12 text-center"><Loader2 className="w-7 h-7 animate-spin text-brand-500 mx-auto" /></div>}

@@ -234,32 +234,32 @@ export default function Collection() {
         {/* Period Covered (Optional) */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4">
           <label className="block text-sm font-bold text-slate-700 mb-3">Period Covered (Optional)</label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">From Date</label>
-              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white overflow-hidden flex">
-                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none">
+              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white flex z-20">
+                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none rounded-l-xl">
                   <Calendar className="w-4 h-4 text-slate-400" />
                 </div>
                 <DatePicker 
                   name="paymentForStartDate"
                   value={paymentForStartDate} 
                   onChange={(e) => setPaymentForStartDate(e.target.value)} 
-                  className="flex-1 py-3 text-sm"
+                  className="flex-1 py-3 text-sm bg-transparent rounded-r-xl"
                 />
               </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">To Date</label>
-              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white overflow-hidden flex">
-                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none">
+              <div className="relative border border-slate-300 rounded-xl bg-slate-50 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white flex z-10">
+                <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 bg-white pointer-events-none rounded-l-xl">
                   <Calendar className="w-4 h-4 text-slate-400" />
                 </div>
                 <DatePicker 
                   name="paymentForEndDate"
                   value={paymentForEndDate} 
                   onChange={(e) => setPaymentForEndDate(e.target.value)} 
-                  className="flex-1 py-3 text-sm"
+                  className="flex-1 py-3 text-sm bg-transparent rounded-r-xl"
                 />
               </div>
             </div>

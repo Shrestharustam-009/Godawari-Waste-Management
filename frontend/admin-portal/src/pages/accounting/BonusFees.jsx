@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { Search, Loader2, Calendar, Receipt, Download, FileText } from 'lucide-react';
+import { useSettings } from '../../context/SettingsContext';
 
 const formatCurrency = (val) => {
   return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-  return new Date(dateString).toLocaleDateString('en-US', options);
-};
-
 export default function BonusFees() {
+  const { formatDate } = useSettings();
   const [bonusFees, setBonusFees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,6 +39,40 @@ export default function BonusFees() {
   );
 
   const totalBonusAmount = filteredData.reduce((sum, item) => sum + Number(item.amount), 0);
+  const totalBaseAmount = totalBonusAmount / 1.13;
+  const totalVatAmount = totalBonusAmount - totalBaseAmount;
+
+  const handleExportCSV = () => {
+    if (!filteredData || filteredData.length === 0) return;
+    const headers = ['Date', 'Customer', 'Customer ID', 'Base Amount', 'VAT (13%)', 'Total Amount', 'Collected By', 'Remark'];
+    const rows = filteredData.map(fee => {
+      const amt = Number(fee.amount);
+      const base = amt / 1.13;
+      const vat = amt - base;
+      return [
+        formatDate(fee.date),
+        fee.customer || '',
+        fee.customerId || '',
+        base.toFixed(2),
+        vat.toFixed(2),
+        amt.toFixed(2),
+        fee.collectedBy || '',
+        fee.remark || ''
+      ];
+    });
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Bonus_Fees_Report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -55,13 +85,17 @@ export default function BonusFees() {
           <p className="text-slate-500 text-sm mt-1">Review all extra tips and bonuses collected from customers.</p>
         </div>
         
-        <div className="bg-amber-50 border border-amber-100 rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+        <div className="bg-amber-50 border border-amber-100 rounded-xl px-5 py-3 shadow-sm flex items-center gap-4">
           <div className="p-2 bg-amber-100 rounded-lg">
             <FileText className="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Total Bonus Collected</p>
-            <p className="text-xl font-black text-slate-900">₹ {formatCurrency(totalBonusAmount)}</p>
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Total Bonus Collected</p>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold text-slate-600">Base: ₹ {formatCurrency(totalBaseAmount)}</span>
+              <span className="text-sm font-semibold text-slate-600">VAT (13%): ₹ {formatCurrency(totalVatAmount)}</span>
+              <span className="text-lg font-black text-slate-900 border-t border-amber-200 pt-0.5 mt-0.5">Total: ₹ {formatCurrency(totalBonusAmount)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -79,7 +113,7 @@ export default function BonusFees() {
             />
           </div>
           
-          <button className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 flex items-center gap-2 transition-colors">
+          <button onClick={handleExportCSV} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 flex items-center gap-2 transition-colors">
             <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
@@ -124,8 +158,10 @@ export default function BonusFees() {
                       <div className="font-semibold text-slate-900">{fee.customer}</div>
                       <div className="text-xs text-slate-500">{fee.customerId}</div>
                     </td>
-                    <td className="px-6 py-4 font-bold text-amber-600 whitespace-nowrap">
-                      ₹ {formatCurrency(fee.amount)}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-xs text-slate-500 mb-0.5">Base: ₹ {formatCurrency(Number(fee.amount) / 1.13)}</div>
+                      <div className="text-xs text-slate-500 mb-1">VAT (13%): ₹ {formatCurrency(Number(fee.amount) - (Number(fee.amount) / 1.13))}</div>
+                      <div className="font-bold text-amber-600 border-t border-slate-200 pt-1">Total: ₹ {formatCurrency(fee.amount)}</div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={fee.remark}>
                       {fee.remark}

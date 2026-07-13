@@ -175,6 +175,25 @@ const updateCustomerSchema = z.object({
     .max(28, 'Billing cycle day cannot be greater than 28.')
     .nullable()
     .optional(),
+
+  outstandingPayment: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Starting debt must be a string in decimal format (e.g., "500.00").'
+    )
+    .refine(
+      (val) => {
+        try {
+          const d = new Decimal(val);
+          return d.gte('0.00') && d.lte('99999999.99');
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Starting debt must be between ₹0.00 and ₹99,999,999.99.' }
+    )
+    .optional(),
     
   isActive: z.boolean().optional(),
 }).strict();
