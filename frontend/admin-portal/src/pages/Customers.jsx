@@ -249,6 +249,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 // ============================================================================
 function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
   const [form, setForm] = useState({
+    newCustomerId: '',
     name: '',
     phone: '',
     assignedArea: '',
@@ -264,6 +265,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
   useEffect(() => {
     if (customer && isOpen) {
       setForm({
+        newCustomerId: customer.customerId || '',
         name: customer.name || '',
         phone: customer.phone || '',
         assignedArea: customer.assignedArea || '',
@@ -340,12 +342,22 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Customer ID</label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input name="newCustomerId" value={form.newCustomerId} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number (Optional)</label>
               <div className="relative">
@@ -353,9 +365,6 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 <input type="tel" name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Area</label>
               <div className="relative">
@@ -363,6 +372,9 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Fee (₹)</label>
               <div className="relative">
@@ -925,7 +937,7 @@ export default function Customers() {
   };
 
   const handleEditSuccess = (updatedCustomer) => {
-    setCustomers((prev) => prev.map((c) => (c.customerId === updatedCustomer.customerId ? { ...c, ...updatedCustomer } : c)));
+    setCustomers((prev) => prev.map((c) => (c.customerId === editingCustomer.customerId ? { ...c, ...updatedCustomer } : c)));
     setSuccessToast('Customer updated successfully');
   };
 

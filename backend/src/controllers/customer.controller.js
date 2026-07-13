@@ -363,7 +363,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, monthlyFee, billingCycleDay, isActive, sudoPassword } = parseResult.data;
+    const { name, phone, assignedArea, monthlyFee, billingCycleDay, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -378,6 +378,14 @@ async function updateCustomer(req, res) {
     if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
     if (billingCycleDay !== undefined) updateData.billingCycleDay = billingCycleDay;
     if (isActive !== undefined) updateData.isActive = isActive;
+    
+    if (newCustomerId && newCustomerId !== customerId) {
+      const existing = await prisma.customer.findUnique({ where: { customerId: newCustomerId } });
+      if (existing) {
+        return res.status(400).json({ success: false, error: 'Customer ID already exists.' });
+      }
+      updateData.customerId = newCustomerId;
+    }
 
     const updatedCustomer = await prisma.customer.update({
       where: { customerId },

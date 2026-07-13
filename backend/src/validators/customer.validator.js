@@ -107,6 +107,17 @@ const createCustomerSchema = z.object({
 }).strict();
 
 const updateCustomerSchema = z.object({
+  newCustomerId: z
+    .string()
+    .trim()
+    .min(1, 'Customer ID cannot be empty.')
+    .max(30, 'Customer ID must not exceed 30 characters.')
+    .regex(
+      /^[A-Za-z0-9-]+$/,
+      'Customer ID may only contain letters, numbers, and hyphens (e.g., "GDW-0001").'
+    )
+    .optional(),
+
   name: z
     .string()
     .trim()
