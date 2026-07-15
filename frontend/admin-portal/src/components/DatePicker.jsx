@@ -69,7 +69,7 @@ export default function DatePicker({ value, onChange, name, className, required 
   };
 
   return (
-    <div className={`relative ${className} p-0 flex items-center z-40`}>
+    <div className={`relative ${className} p-0 flex items-center z-10`}>
       <NepaliDatePicker
         value={bsValue}
         onChange={handleBSChange}
