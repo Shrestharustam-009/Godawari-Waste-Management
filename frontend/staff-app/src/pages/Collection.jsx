@@ -309,7 +309,7 @@ export default function Collection() {
               <div>
                 <input 
                   type="text" 
-                  placeholder="Bonus Remark (e.g. Dashain Tip)"
+                  placeholder="Bonus Remark (optional)"
                   value={bonusRemark}
                   onChange={(e) => setBonusRemark(e.target.value)}
                   className="w-full px-4 py-3 text-sm text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"

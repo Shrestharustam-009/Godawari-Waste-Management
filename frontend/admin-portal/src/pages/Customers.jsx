@@ -27,6 +27,7 @@ import {
   Download,
   FileText,
   ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import invoiceHeaderImg from '../assets/company_logo.png';
@@ -942,8 +943,8 @@ function CustomerProfile({ customerId, onClose }) {
                         <li key={tx.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-full bg-orange-100 text-orange-600">
-                                <AlertTriangle className="w-4 h-4" />
+                              <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                                <FileText className="w-4 h-4" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-slate-900 dark:text-white">

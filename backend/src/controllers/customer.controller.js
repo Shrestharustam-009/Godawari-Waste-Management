@@ -286,7 +286,7 @@ async function getCustomerProfile(req, res) {
           source: tx.source,
           status: tx.status,
           note: tx.note,
-          collectedBy: tx.collectedBy.name,
+          collectedBy: tx.collectedBy?.name || 'System / Admin',
           createdAt: tx.createdAt,
         })),
         ...customer.billingEntries.map((tx) => ({

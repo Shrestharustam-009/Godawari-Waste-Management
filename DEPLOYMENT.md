@@ -1,35 +1,79 @@
-# Deployment Guide: Godawari Waste Management (Update: Add Customer & Edit Customer Debt Date Sync)
+# Godawari Waste Management - Deployment Guide
 
-Follow these exact steps to pull the latest changes onto your VPS and deploy them safely.
+This document outlines the standard deployment process for updating the Godawari Waste Management system on a production server. 
 
-## Step 1: Pull Latest Changes from Git
-SSH into your VPS and navigate to the root directory of your project, then pull the latest code.
+Always follow this order to ensure database changes are applied before the new code attempts to access them.
+
+---
+
+## 1. Pull Latest Code
+SSH into your production server and navigate to your project root directory.
 ```bash
-cd /path/to/your/Godawari-Waste-Management
+cd /path/to/Godawari-Waste-Management
 git pull origin main
 ```
-*(Replace `main` with your production branch name if it is different).*
+*(If you upload files manually via FTP/cPanel, replace the updated `backend` and `frontend` folders now).*
 
-## Step 2: Restart the Node.js Backend Server
-Since we made changes to `customer.controller.js` and `customer.validator.js`, the backend server needs to be restarted to pick up the new logic. 
+---
+
+## 2. Database & Backend Deployment
+You **must** update the database schema before restarting the backend server. If you skip this, the backend will crash when trying to read or write newly added fields (like `vatNumber` or `increasedFee`).
+
 ```bash
+# Navigate to the backend directory
+cd backend
+
+# Install any new dependencies (optional but recommended)
+npm install
+
+# Update the database schema
+npx prisma db push
+
+# Restart the backend service (assuming you are using PM2)
 pm2 restart all
 ```
-*(If your PM2 process has a specific name like "gdw-backend", run `pm2 restart gdw-backend` instead).*
+> **Note:** If you are using Prisma Migrations in production rather than prototyping, use `npx prisma migrate deploy` instead of `db push`.
 
-## Step 3: Rebuild the Admin Portal Frontend
-Since we modified `Customers.jsx` and `DatePicker.jsx` inside the React application, you need to compile a fresh production build.
+---
+
+## 3. Frontend Deployment
+You need to build the production files for all three frontends so that the UI reflects the latest changes.
+
+### Admin Portal
 ```bash
-cd frontend/admin-portal
+cd ../frontend/admin-portal
+npm install
 npm run build
 ```
 
-## Step 4: Verify Deployment
-1. Go to your live admin portal.
-2. Hard refresh your browser (`Ctrl + F5` or `Cmd + Shift + R`) to clear cache.
-3. Open a customer profile and click **Edit Customer**.
-4. Change the "Starting Debt" to an amount greater than 0, and verify the Date fields appear!
-5. Change it back to 0, and verify the fields disappear.
+### Staff App (Collector Portal)
+```bash
+cd ../staff-app
+npm install
+npm run build
+```
+
+### Customer App
+```bash
+cd ../customer-app
+npm install
+npm run build
+```
 
 ---
-**Note:** No database migrations (`npx prisma migrate` or `db push`) are needed because the database structure (`schema.prisma`) remained unchanged.
+
+## 4. Serving the Frontend Files
+After running `npm run build` on the frontends, a `dist` folder will be created inside each respective directory (e.g., `frontend/admin-portal/dist`).
+
+If you are using a web server like **Nginx** or **Apache**, you must copy or sync the contents of these `dist` folders to your public web directories. 
+
+**Example (Nginx):**
+```bash
+sudo cp -r frontend/admin-portal/dist/* /var/www/admin.yourdomain.com/
+sudo cp -r frontend/staff-app/dist/* /var/www/staff.yourdomain.com/
+sudo cp -r frontend/customer-app/dist/* /var/www/customer.yourdomain.com/
+```
+
+## Troubleshooting
+- **White screen on frontend after deployment:** Hard refresh your browser (Ctrl + F5 or Cmd + Shift + R) to clear the old cached Javascript.
+- **Backend throwing Prisma errors:** Ensure you ran `npx prisma db push`. If it still fails, try running `npx prisma generate` in the backend folder and restart PM2.
