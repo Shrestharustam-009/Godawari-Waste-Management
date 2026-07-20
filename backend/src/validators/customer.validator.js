@@ -195,6 +195,9 @@ const updateCustomerSchema = z.object({
     )
     .optional(),
     
+  dueStartDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
+  dueEndDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
+
   isActive: z.boolean().optional(),
 }).strict();
 

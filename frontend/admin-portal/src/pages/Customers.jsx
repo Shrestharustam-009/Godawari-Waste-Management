@@ -93,6 +93,11 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const payload = { ...form };
       if (!payload.phone) delete payload.phone;
       payload.billingCycleDay = form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : undefined;
+      
+      if (Number(payload.outstandingPayment) <= 0) {
+        payload.dueStartDate = '';
+        payload.dueEndDate = '';
+      }
 
       const res = await api.post('/customers', payload);
       if (res.data.success) {
@@ -255,6 +260,8 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     assignedArea: '',
     monthlyFee: '',
     outstandingPayment: '',
+    dueStartDate: '',
+    dueEndDate: '',
     billingCycleDay: '',
     isActive: true,
   });
@@ -272,6 +279,8 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         assignedArea: customer.assignedArea || '',
         monthlyFee: customer.monthlyFee || '500.00',
         outstandingPayment: customer.outstandingPayment || '0.00',
+        dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
+        dueEndDate: customer.dueEndDate ? customer.dueEndDate.split('T')[0] : '',
         billingCycleDay: customer.billingCycleDay || '',
         isActive: customer.isActive ?? true,
       });
@@ -300,6 +309,10 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         sudoPassword
       };
       if (!payload.phone) delete payload.phone;
+      if (Number(payload.outstandingPayment) <= 0) {
+        payload.dueStartDate = '';
+        payload.dueEndDate = '';
+      }
 
       const res = await api.put(`/customers/${customer.customerId}`, payload);
       if (res.data.success) {
@@ -402,6 +415,29 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
               </div>
             </div>
           </div>
+
+          {Number(form.outstandingPayment) > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt From Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="dueStartDate" value={form.dueStartDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt To Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="dueEndDate" value={form.dueEndDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mt-4">
             <input type="checkbox" id="isActive" name="isActive" checked={form.isActive} onChange={handleChange} className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500" />
