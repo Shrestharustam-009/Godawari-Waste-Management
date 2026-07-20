@@ -19,7 +19,7 @@ export default function Collection() {
   const [paymentForStartDate, setPaymentForStartDate] = useState('');
   const [paymentForEndDate, setPaymentForEndDate] = useState('');
   const { user } = useAuth();
-  const { settings } = useSettings();
+  const { settings, formatDate } = useSettings();
   
   const [bonusFee, setBonusFee] = useState('');
   const [bonusRemark, setBonusRemark] = useState('');
@@ -94,7 +94,7 @@ export default function Collection() {
       paymentForStartDate: paymentForStartDate || undefined,
       paymentForEndDate: paymentForEndDate || undefined,
       bonusFee: bonusFee || undefined,
-      bonusRemark: bonusRemark || undefined,
+      bonusRemark: bonusFee ? (bonusRemark || "Festival Bonus") : undefined,
       idempotencyKey: `${Date.now()}-${Math.floor(Math.random() * 1000)}`
     };
 
@@ -192,13 +192,32 @@ export default function Collection() {
           <p className="text-slate-500 text-sm mb-4">{customer.customerId} • {customer.assignedArea}</p>
           
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-            <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+            <div className="bg-red-50 p-3 rounded-xl border border-red-100 col-span-2 sm:col-span-1">
               <p className="text-xs font-semibold text-red-600 mb-1">Total Debt</p>
               <p className="text-lg font-black text-red-700">₹{formatCurrency(customer.outstandingPayment)}</p>
+              {Number(customer.outstandingPayment) > 0 && (customer.dueStartDate || customer.dueEndDate) && (
+                <div className="text-[10px] text-red-500 font-medium mt-0.5 leading-tight whitespace-nowrap">
+                  {customer.dueStartDate ? formatDate(customer.dueStartDate) : 'N/A'} - {customer.dueEndDate ? formatDate(customer.dueEndDate) : 'N/A'}
+                </div>
+              )}
             </div>
-            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 col-span-2 sm:col-span-1">
               <p className="text-xs font-semibold text-emerald-600 mb-1">Smart Wallet</p>
-              <p className="text-lg font-black text-emerald-700">₹{formatCurrency(customer.advanceBalance)}</p>
+              <p className="text-lg font-black text-emerald-700">₹{formatCurrency(customer.advanceBalance || 0)}</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 col-span-2">
+              <p className="text-xs font-semibold text-blue-600 mb-1">
+                {Number(customer.increasedFee) > 0 ? 'Active Monthly Fee (Increased)' : 'Monthly Fee'}
+              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xl font-black text-blue-700">₹{formatCurrency(Number(customer.increasedFee) > 0 ? customer.increasedFee : customer.monthlyFee)}</p>
+                {Number(customer.increasedFee) > 0 && (
+                  <div className="px-2.5 py-1.5 bg-blue-100/50 border border-blue-200 rounded-lg text-right">
+                    <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide mb-0.5">Starting Monthly Fee (Original)</p>
+                    <p className="text-sm font-black text-slate-500 line-through decoration-slate-400">₹{formatCurrency(customer.monthlyFee)}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

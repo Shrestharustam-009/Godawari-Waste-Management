@@ -21,11 +21,11 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         const adDateOnly = dateObj.toISOString().split('T')[0];
         const bsObj = toBS(adDateOnly);
         const nepaliMonths = ["Baisakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"];
-        return nepaliMonths[bsObj.month];
+        return `${nepaliMonths[bsObj.month]} ${bsObj.year}`;
       }
-      return dateObj.toLocaleString('en-IN', { month: 'long' });
+      return dateObj.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
     } catch (e) {
-      try { return new Date(dStr).toLocaleString('en-IN', { month: 'long' }); } catch(err) { return ''; }
+      try { return new Date(dStr).toLocaleString('en-IN', { month: 'long', year: 'numeric' }); } catch(err) { return ''; }
     }
   };
 
@@ -39,9 +39,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         const adDateOnly = dateObj.toISOString().split('T')[0];
         const bsObj = toBS(adDateOnly);
         const nepaliMonths = ["Baisakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"];
-        return `${bsObj.date} ${nepaliMonths[bsObj.month]}`;
+        return `${bsObj.date} ${nepaliMonths[bsObj.month]} ${bsObj.year}`;
       }
-      return dateObj.toLocaleString('en-IN', { day: 'numeric', month: 'short' });
+      return dateObj.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (e) {
       return getMonthName(dStr);
     }
@@ -71,6 +71,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           <div style={{ marginBottom: '8px' }}>
             <p style={{ margin: '2px 0' }}>Name: {customer?.name}</p>
             <p style={{ margin: '2px 0' }}>ID: {customer?.customerId}</p>
+            {customer?.vatNumber && <p style={{ margin: '2px 0' }}>VAT No: {customer.vatNumber}</p>}
             <p style={{ margin: '2px 0' }}>Phone: {customer?.phone}</p>
             <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
           </div>
@@ -111,7 +112,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginTop: '4px' }}>
               <span>TOTAL:</span>
-              <span>Rs.{formatCurrency(amount)}</span>
+              <span>Rs.{formatCurrency(Number(amount) + Number(bonusFee || 0))}</span>
             </div>
           </div>
           
@@ -148,6 +149,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#000', textTransform: 'uppercase' }}>Billed To</h3>
                 <p style={{ margin: '0 0 3px 0', fontWeight: 'bold', fontSize: '16px' }}>{customer?.name}</p>
                 <p style={{ margin: '0 0 3px 0' }}>ID: {customer?.customerId}</p>
+                {customer?.vatNumber && <p style={{ margin: '0 0 3px 0', fontWeight: 'bold' }}>VAT No: {customer.vatNumber}</p>}
                 <p style={{ margin: '0 0 3px 0' }}>Area: {customer?.assignedArea}</p>
                 <p style={{ margin: '0' }}>Phone: {customer?.phone}</p>
               </td>
@@ -217,7 +219,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                 TOTAL AMOUNT:
               </td>
               <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', fontSize: '16px', color: '#16a34a' }}>
-                Rs. {formatCurrency(amount)}
+                Rs. {formatCurrency(Number(amount) + Number(bonusFee || 0))}
               </td>
             </tr>
           </tfoot>

@@ -74,6 +74,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     outstandingPayment: '0.00',
     dueStartDate: '',
     dueEndDate: '',
+    vatNumber: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -92,6 +93,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       // Clean phone if empty
       const payload = { ...form };
       if (!payload.phone) delete payload.phone;
+      if (!payload.vatNumber) delete payload.vatNumber;
       payload.billingCycleDay = form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : undefined;
       
       if (Number(payload.outstandingPayment) <= 0) {
@@ -102,7 +104,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -123,7 +125,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-y-auto max-h-[95vh]" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Add New Customer</h2>
@@ -133,7 +135,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-64">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md flex items-start">
               <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
@@ -173,6 +175,13 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} placeholder="Godawari Ward-7" required className={inputClass} />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">VAT Number (Optional)</label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="vatNumber" value={form.vatNumber} onChange={handleChange} placeholder="VAT Number for Company" className={inputClass} />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -183,6 +192,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} placeholder="500.00" className={inputClass} />
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Billing Cycle Day (Optional)</label>
               <div className="relative">
@@ -259,10 +269,12 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     phone: '',
     assignedArea: '',
     monthlyFee: '',
+    increasedFee: '',
     outstandingPayment: '',
     dueStartDate: '',
     dueEndDate: '',
     billingCycleDay: '',
+    vatNumber: '',
     isActive: true,
   });
   const [loading, setLoading] = useState(false);
@@ -278,10 +290,12 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         phone: customer.phone || '',
         assignedArea: customer.assignedArea || '',
         monthlyFee: customer.monthlyFee || '500.00',
+        increasedFee: customer.increasedFee || '',
         outstandingPayment: customer.outstandingPayment || '0.00',
         dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
         dueEndDate: customer.dueEndDate ? customer.dueEndDate.split('T')[0] : '',
         billingCycleDay: customer.billingCycleDay || '',
+        vatNumber: customer.vatNumber || '',
         isActive: customer.isActive ?? true,
       });
       setError(null);
@@ -305,10 +319,19 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     try {
       const payload = {
         ...form,
+        monthlyFee: String(form.monthlyFee),
+        ...(form.increasedFee ? { increasedFee: String(form.increasedFee) } : { increasedFee: null }),
+        outstandingPayment: String(form.outstandingPayment),
         billingCycleDay: form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : null,
         sudoPassword
       };
+      if (form.customerId && form.customerId !== customer.customerId) {
+        payload.newCustomerId = form.customerId;
+      }
+      delete payload.customerId;
+      
       if (!payload.phone) delete payload.phone;
+      if (!payload.vatNumber) delete payload.vatNumber;
       if (Number(payload.outstandingPayment) <= 0) {
         payload.dueStartDate = '';
         payload.dueEndDate = '';
@@ -339,7 +362,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={sudoConfig.isOpen ? undefined : onClose}>
-      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4  " onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-y-auto max-h-[95vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit Customer: {customer.customerId}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-200 transition-colors">
@@ -347,7 +370,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleInitialSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleInitialSubmit} className="p-6 space-y-4 pb-64">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md flex items-start">
               <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
@@ -391,10 +414,24 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹) [Original]</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Increased Fee (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="increasedFee" value={form.increasedFee} onChange={handleChange} placeholder="Optional" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">VAT Number (Optional)</label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="vatNumber" value={form.vatNumber} onChange={handleChange} placeholder="VAT Number for Company" className={inputClass} />
               </div>
             </div>
           </div>
@@ -649,12 +686,14 @@ function CustomerProfile({ customerId, onClose }) {
             <div style="text-align: right;">
               <h3 style="margin: 0; color: #1e293b;">${profile.name}</h3>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">ID: ${profile.customerId} · ${profile.assignedArea}</p>
+              ${profile.vatNumber ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-weight: bold;">VAT No: ${profile.vatNumber}</p>` : ''}
             </div>
           </div>
           <div class="meta-box">
             <div>
               <span style="font-size: 12px; color: #64748b; font-weight: bold;">Outstanding Balance</span>
               <h2 style="margin: 4px 0 0 0; color: #dc2626;">₹${Number(profile.outstandingPayment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+              ${Number(profile.outstandingPayment) > 0 && profile.dueStartDate && profile.dueEndDate ? `<p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b;">${formatDate(profile.dueStartDate)} — ${formatDate(profile.dueEndDate)}</p>` : ''}
             </div>
             <div style="text-align: right;">
               <span style="font-size: 12px; color: #64748b; font-weight: bold;">Smart Wallet Balance</span>
@@ -751,10 +790,22 @@ function CustomerProfile({ customerId, onClose }) {
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Phone</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{profile.phone || 'N/A'}</p>
                 </div>
+                {profile.vatNumber && (
                 <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">VAT Number</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{profile.vatNumber}</p>
+                </div>
+                )}
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee (Original)</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
+                {profile.increasedFee && Number(profile.increasedFee) > 0 && (
+                <div>
+                  <p className="text-xs text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-1">Active Fee (Increased)</p>
+                  <p className="text-sm font-bold text-brand-700 dark:text-brand-300">₹ {Number(profile.increasedFee).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                </div>
+                )}
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Billing Cycle</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{profile.billingCycleDay ? `Day ${profile.billingCycleDay}` : 'Global Default'}</p>
@@ -771,7 +822,7 @@ function CustomerProfile({ customerId, onClose }) {
                 )}
               </div>
 
-              {Number(profile.outstandingPayment) > 0 && (profile.debtStartDate || profile.dueStartDate) && (
+              {Number(profile.outstandingPayment) > 0 && (profile.debtStartDate || profile.dueStartDate || profile.dueEndDate) && (
                 <div className="mt-4 bg-amber-50 rounded-lg p-4 border border-amber-200 flex flex-col gap-2">
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle className="w-4 h-4 text-amber-600" />
@@ -780,8 +831,8 @@ function CustomerProfile({ customerId, onClose }) {
                   {profile.debtStartDate && (
                      <p className="text-xs text-amber-700 font-medium"><span className="text-amber-900/60 mr-1">Started On:</span> {formatDate(profile.debtStartDate)}</p>
                   )}
-                  {profile.dueStartDate && profile.dueEndDate && (
-                     <p className="text-xs text-amber-700 font-medium"><span className="text-amber-900/60 mr-1">Historical Period:</span> {formatDate(profile.dueStartDate)} — {formatDate(profile.dueEndDate)}</p>
+                  {(profile.dueStartDate || profile.dueEndDate) && (
+                     <p className="text-xs text-amber-700 font-medium"><span className="text-amber-900/60 mr-1">Historical Period:</span> {profile.dueStartDate ? formatDate(profile.dueStartDate) : 'N/A'} — {profile.dueEndDate ? formatDate(profile.dueEndDate) : 'N/A'}</p>
                   )}
                 </div>
               )}
@@ -794,6 +845,11 @@ function CustomerProfile({ customerId, onClose }) {
                 <p className={`text-2xl font-bold ${Number(profile.outstandingPayment) > 0 ? 'text-red-600' : 'text-slate-400 dark:text-slate-500'}`}>
                   ₹{Number(profile.outstandingPayment).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
+                {Number(profile.outstandingPayment) > 0 && (profile.dueStartDate || profile.dueEndDate) && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    ({profile.dueStartDate ? formatDate(profile.dueStartDate, { month: 'short', year: 'numeric' }) : 'N/A'} — {profile.dueEndDate ? formatDate(profile.dueEndDate, { month: 'short', year: 'numeric' }) : 'N/A'})
+                  </p>
+                )}
               </div>
               <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Smart Wallet</p>
@@ -821,14 +877,14 @@ function CustomerProfile({ customerId, onClose }) {
                       onChange={(e) => setDateFilter(e.target.value)}
                       className="text-xs bg-transparent py-2 pr-3 font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:text-emerald-600 transition-colors"
                     >
-                      <option value="all">All Time</option>
-                      <option value="today">Today</option>
-                      <option value="last7">Last 7 Days</option>
-                      <option value="last14">Last 14 Days</option>
-                      <option value="thisMonth">This Month</option>
-                      <option value="lastMonth">Last Month</option>
-                      <option value="last3Months">Last 3 Months</option>
-                      <option value="custom">Custom Range</option>
+                      <option value="all" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">All Time</option>
+                      <option value="today" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Today</option>
+                      <option value="last7" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Last 7 Days</option>
+                      <option value="last14" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Last 14 Days</option>
+                      <option value="thisMonth" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">This Month</option>
+                      <option value="lastMonth" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Last Month</option>
+                      <option value="last3Months" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Last 3 Months</option>
+                      <option value="custom" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Custom Range</option>
                     </select>
                   </div>
 
@@ -1116,6 +1172,7 @@ export default function Customers() {
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{c.phone || <span className="text-slate-300 italic">—</span>}</td>
                       <td className={`px-6 py-4 text-right font-semibold ${outstanding > 0 ? 'text-red-600' : 'text-slate-400 dark:text-slate-500'}`}>
                         ₹{outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+
                       </td>
                       <td className={`px-6 py-4 text-right font-semibold ${advance > 0 ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'}`}>
                         ₹{advance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}

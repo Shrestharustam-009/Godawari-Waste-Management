@@ -144,11 +144,12 @@ export default function Dashboard() {
           <div class="header">
             <div>
               <h1 style="margin: 0; font-size: 24px; color: #065f46;">ACCOUNT STATEMENT</h1>
-              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #64748b;">Generated on ${formatDate(new Date().toISOString())}</p>
             </div>
             <div style="text-align: right;">
               <h3 style="margin: 0; color: #1e293b;">${profile?.name}</h3>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">ID: ${profile?.customerId}</p>
+              ${profile?.vatNumber ? `<p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b; font-weight: bold;">VAT No: ${profile.vatNumber}</p>` : ''}
             </div>
           </div>
 

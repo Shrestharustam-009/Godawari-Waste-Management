@@ -36,11 +36,14 @@ export default function DatePicker({ value, onChange, name, className, required 
   if (value) {
     try {
       const bsObj = toBS(value); // expects YYYY-MM-DD AD string
-      bsValue = `${bsObj.year}-${String(bsObj.month + 1).padStart(2, '0')}-${String(bsObj.date).padStart(2, '0')}`;
+      if (bsObj && bsObj.year) {
+        bsValue = `${bsObj.year}-${String(bsObj.month + 1).padStart(2, '0')}-${String(bsObj.date).padStart(2, '0')}`;
+      }
     } catch (e) {
       console.warn("Invalid AD date passed to toBS:", value);
     }
   }
+
 
   const nepaliToEnglish = (str) => {
     const ne = ['०','१','२','३','४','५','६','७','८','९'];
@@ -53,18 +56,25 @@ export default function DatePicker({ value, onChange, name, className, required 
   };
 
   const handleBSChange = (newBsValue) => {
-    // newBsValue is e.g. "2078-10-15" or "२०७८-१०-१५"
+    // newBsValue can be an object (_NepaliDate) or a string.
     if (!newBsValue) {
       onChange({ target: { name, value: '' } });
       return;
     }
     try {
-      const englishBsValue = nepaliToEnglish(newBsValue);
-      const adObj = toAD(englishBsValue);
+      // Safely convert the incoming value to an English digit string.
+      // If it's a _NepaliDate object, String() calls its toString() method.
+      const dateStr = nepaliToEnglish(String(newBsValue).trim());
+      
+      const adObj = toAD(dateStr);
+      if (!adObj || isNaN(adObj.year) || isNaN(adObj.month) || isNaN(adObj.date)) {
+        throw new Error("Invalid date object returned from toAD");
+      }
+      
       const adStr = `${adObj.year}-${String(adObj.month + 1).padStart(2, '0')}-${String(adObj.date).padStart(2, '0')}`;
       onChange({ target: { name, value: adStr } });
     } catch (e) {
-      console.warn("Invalid BS date passed to toAD:", newBsValue);
+      console.warn("Invalid BS date parsing failed:", e.message, "for value:", newBsValue);
     }
   };
 

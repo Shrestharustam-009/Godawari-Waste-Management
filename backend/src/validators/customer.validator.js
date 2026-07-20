@@ -54,6 +54,14 @@ const createCustomerSchema = z.object({
     .max(100, 'Area must not exceed 100 characters.')
     .transform(sanitizeText),
 
+  vatNumber: z
+    .string()
+    .trim()
+    .max(50, 'VAT Number must not exceed 50 characters.')
+    .transform(sanitizeText)
+    .optional()
+    .nullable(),
+
   monthlyFee: z
     .string()
     .regex(
@@ -73,6 +81,27 @@ const createCustomerSchema = z.object({
     )
     .optional()
     .default('500.00'),
+
+  increasedFee: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Increased fee must be a string in decimal format (e.g., "550.00").'
+    )
+    .refine(
+      (val) => {
+        try {
+          if (!val) return true;
+          const d = new Decimal(val);
+          return d.gte('0.00') && d.lte('99999999.99');
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
+    )
+    .optional()
+    .nullable(),
 
   outstandingPayment: z
     .string()
@@ -167,6 +196,35 @@ const updateCustomerSchema = z.object({
       { message: 'Monthly fee must be between ₹0.00 and ₹99,999,999.99.' }
     )
     .optional(),
+
+  increasedFee: z
+    .string()
+    .regex(
+      /^\d{1,8}(\.\d{1,2})?$/,
+      'Increased fee must be a string in decimal format (e.g., "550.00").'
+    )
+    .refine(
+      (val) => {
+        try {
+          if (!val) return true;
+          const d = new Decimal(val);
+          return d.gte('0.00') && d.lte('99999999.99');
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
+    )
+    .optional()
+    .nullable(),
+
+  vatNumber: z
+    .string()
+    .trim()
+    .max(50, 'VAT Number must not exceed 50 characters.')
+    .transform(sanitizeText)
+    .optional()
+    .nullable(),
     
   billingCycleDay: z
     .number()

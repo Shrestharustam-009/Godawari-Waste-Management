@@ -63,21 +63,26 @@ async function getAllCustomers(req, res) {
           name: true,
           phone: true,
           assignedArea: true,
+          vatNumber: true,
           billingCycleDay: true,
           monthlyFee: true,
+          increasedFee: true,
           outstandingPayment: true,
           advanceBalance: true,
           isActive: true,
           createdAt: true,
+          debtStartDate: true,
+          dueStartDate: true,
+          dueEndDate: true,
         },
       }),
       prisma.customer.count({ where }),
     ]);
 
-    // Cast Decimal fields to strings for safe JSON transport
     const formatted = customers.map((c) => ({
       ...c,
       monthlyFee: c.monthlyFee.toString(),
+      increasedFee: c.increasedFee ? c.increasedFee.toString() : null,
       outstandingPayment: c.outstandingPayment.toString(),
       advanceBalance: c.advanceBalance.toString(),
     }));
@@ -116,7 +121,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, password, assignedArea, billingCycleDay, monthlyFee, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -147,8 +152,10 @@ async function createCustomer(req, res) {
         phone: phone || null,
         pinHash,
         assignedArea,
+        vatNumber: vatNumber || null,
         billingCycleDay: billingCycleDay || null,
         monthlyFee: new Decimal(monthlyFee).toFixed(2),
+        increasedFee: increasedFee ? new Decimal(increasedFee).toFixed(2) : null,
         outstandingPayment: startingDebt.toFixed(2),
         debtStartDate,
         dueStartDate,
@@ -163,11 +170,16 @@ async function createCustomer(req, res) {
         name: customer.name,
         phone: customer.phone,
         assignedArea: customer.assignedArea,
+        vatNumber: customer.vatNumber,
         billingCycleDay: customer.billingCycleDay,
         monthlyFee: customer.monthlyFee.toString(),
+        increasedFee: customer.increasedFee ? customer.increasedFee.toString() : null,
         outstandingPayment: customer.outstandingPayment.toString(),
         advanceBalance: customer.advanceBalance.toString(),
         createdAt: customer.createdAt,
+        debtStartDate: customer.debtStartDate,
+        dueStartDate: customer.dueStartDate,
+        dueEndDate: customer.dueEndDate,
       },
     });
   } catch (error) {
@@ -251,8 +263,10 @@ async function getCustomerProfile(req, res) {
       name: customer.name,
       phone: customer.phone,
       assignedArea: customer.assignedArea,
+      vatNumber: customer.vatNumber,
       billingCycleDay: customer.billingCycleDay,
       monthlyFee: customer.monthlyFee.toString(),
+      increasedFee: customer.increasedFee ? customer.increasedFee.toString() : null,
       outstandingPayment: customer.outstandingPayment.toString(),
       advanceBalance: customer.advanceBalance.toString(),
       debtStartDate: customer.debtStartDate,
@@ -363,7 +377,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, monthlyFee, billingCycleDay, outstandingPayment, dueStartDate, dueEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
+    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, dueStartDate, dueEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -375,7 +389,9 @@ async function updateCustomer(req, res) {
     if (name) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone || null;
     if (assignedArea) updateData.assignedArea = assignedArea;
+    if (vatNumber !== undefined) updateData.vatNumber = vatNumber || null;
     if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
+    if (increasedFee !== undefined) updateData.increasedFee = increasedFee ? new Decimal(increasedFee).toFixed(2) : null;
     if (outstandingPayment !== undefined) updateData.outstandingPayment = new Decimal(outstandingPayment).toFixed(2);
     if (dueStartDate !== undefined) updateData.dueStartDate = dueStartDate;
     if (dueEndDate !== undefined) updateData.dueEndDate = dueEndDate;
@@ -403,10 +419,15 @@ async function updateCustomer(req, res) {
         name: updatedCustomer.name,
         phone: updatedCustomer.phone,
         assignedArea: updatedCustomer.assignedArea,
+        vatNumber: updatedCustomer.vatNumber,
         billingCycleDay: updatedCustomer.billingCycleDay,
         monthlyFee: updatedCustomer.monthlyFee.toString(),
+        increasedFee: updatedCustomer.increasedFee ? updatedCustomer.increasedFee.toString() : null,
         outstandingPayment: updatedCustomer.outstandingPayment.toString(),
         isActive: updatedCustomer.isActive,
+        debtStartDate: updatedCustomer.debtStartDate,
+        dueStartDate: updatedCustomer.dueStartDate,
+        dueEndDate: updatedCustomer.dueEndDate,
       },
     });
   } catch (error) {

@@ -178,10 +178,9 @@ const manualIncomeSchema = z.object({
     .optional(),
 }).strict().refine((data) => {
   const amountD = new Decimal(data.amount || '0');
-  const bonusD = new Decimal(data.bonusFee || '0');
-  return amountD.greaterThan(0) || bonusD.greaterThan(0);
+  return amountD.greaterThan(0);
 }, {
-  message: 'Either payment amount or bonus fee must be greater than zero.',
+  message: 'Payment amount must be greater than zero.',
   path: ['amount']
 });
 

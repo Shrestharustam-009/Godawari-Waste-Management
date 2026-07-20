@@ -109,7 +109,11 @@ async function runBillingCycle() {
       // 6. Process the batch within a transaction
       await prisma.$transaction(async (tx) => {
         for (const customer of customersToBill) {
-          const feeAmount = new Decimal(customer.monthlyFee.toString());
+          const baseFee = new Decimal(customer.monthlyFee.toString());
+          const feeAmount = customer.increasedFee && new Decimal(customer.increasedFee.toString()).gt(0)
+            ? new Decimal(customer.increasedFee.toString())
+            : baseFee;
+
           const currentAdvance = new Decimal(customer.advanceBalance.toString());
           const currentOutstanding = new Decimal(customer.outstandingPayment.toString());
           
