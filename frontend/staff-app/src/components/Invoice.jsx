@@ -7,6 +7,15 @@ import { toBS } from '@zener/nepali-datepicker-react';
 const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS }) => {
   const { formatDate, settings } = useSettings();
 
+  const numBonus = Number(bonusFee || 0);
+  const bonusBase = numBonus / 1.13;
+  const bonusVat = numBonus - bonusBase;
+  const numAmount = Number(amount || 0);
+  const mainBase = Number(baseAmount) || (numAmount - (Number(vatAmount) || 0));
+  const mainVat = Number(vatAmount) || 0;
+  const totalVat = mainVat + bonusVat;
+  const grandTotal = numAmount + numBonus;
+
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -54,8 +63,10 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           {/* POS Header */}
           <div style={{ textAlign: 'center', marginBottom: '10px' }}>
             <h2 style={{ fontSize: '15px', margin: '0 0 4px 0', fontWeight: 'bold' }}>विनायक फोहोर मैला</h2>
-            <p style={{ margin: '0' }}>व्यवस्थापन प्रा.लि.</p>
-            <p style={{ margin: '0' }}>मासिक शुल्क कार्ड</p>
+            <p style={{ margin: '0', fontWeight: 'bold' }}>व्यवस्थापन प्रा.लि.</p>
+            <p style={{ margin: '0', fontSize: '11px' }}>टोखा नगरपालिका-९, गोंगबु, काठमाडौँ</p>
+            <p style={{ margin: '0', fontSize: '11px' }}>VAT No: 606698005</p>
+            <p style={{ margin: '0', fontSize: '11px' }}>Phone: 01-4963742</p>
             <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
           </div>
           
@@ -70,9 +81,13 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           {/* POS Customer */}
           <div style={{ marginBottom: '8px' }}>
             <p style={{ margin: '2px 0' }}>Name: {customer?.name}</p>
+            <p style={{ margin: '2px 0' }}>Monthly Fee: Rs. {formatCurrency(customer?.monthlyFee)}</p>
+            {Number(customer?.increasedFee) > 0 && (
+              <p style={{ margin: '2px 0' }}>Increased fee (applicable): Rs. {formatCurrency(customer?.increasedFee)}</p>
+            )}
             <p style={{ margin: '2px 0' }}>ID: {customer?.customerId}</p>
-            {customer?.vatNumber && <p style={{ margin: '2px 0' }}>VAT No: {customer.vatNumber}</p>}
-            <p style={{ margin: '2px 0' }}>Phone: {customer?.phone}</p>
+            <p style={{ margin: '2px 0' }}>VAT No: {customer?.vatNumber || 'N/A'}</p>
+            <p style={{ margin: '2px 0' }}>Phone: {customer?.phone || 'N/A'}</p>
             <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
           </div>
 
@@ -97,22 +112,28 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           <div style={{ marginBottom: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Base:</span>
-              <span>Rs.{formatCurrency(baseAmount || (amount - (vatAmount || 0)))}</span>
+              <span>Rs.{formatCurrency(mainBase)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>VAT:</span>
-              <span>Rs.{formatCurrency(vatAmount || 0)}</span>
+              <span>Rs.{formatCurrency(mainVat)}</span>
             </div>
-            {Number(bonusFee) > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Bonus:</span>
-                <span>Rs.{formatCurrency(bonusFee)}</span>
-              </div>
+            {numBonus > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Bonus Base:</span>
+                  <span>Rs.{formatCurrency(bonusBase)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Bonus VAT:</span>
+                  <span>Rs.{formatCurrency(bonusVat)}</span>
+                </div>
+              </>
             )}
             <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginTop: '4px' }}>
               <span>TOTAL:</span>
-              <span>Rs.{formatCurrency(Number(amount) + Number(bonusFee || 0))}</span>
+              <span>Rs.{formatCurrency(grandTotal)}</span>
             </div>
           </div>
           
@@ -148,10 +169,14 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <td style={{ width: '50%', valign: 'top', textAlign: 'left', padding: 0 }}>
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#000', textTransform: 'uppercase' }}>Billed To</h3>
                 <p style={{ margin: '0 0 3px 0', fontWeight: 'bold', fontSize: '16px' }}>{customer?.name}</p>
+                <p style={{ margin: '0 0 3px 0' }}>Monthly Fee: Rs. {formatCurrency(customer?.monthlyFee)}</p>
+                {Number(customer?.increasedFee) > 0 && (
+                  <p style={{ margin: '0 0 3px 0' }}>Increased fee (applicable): Rs. {formatCurrency(customer?.increasedFee)}</p>
+                )}
                 <p style={{ margin: '0 0 3px 0' }}>ID: {customer?.customerId}</p>
-                {customer?.vatNumber && <p style={{ margin: '0 0 3px 0', fontWeight: 'bold' }}>VAT No: {customer.vatNumber}</p>}
+                <p style={{ margin: '0 0 3px 0', fontWeight: 'bold' }}>VAT No: {customer?.vatNumber || 'N/A'}</p>
                 <p style={{ margin: '0 0 3px 0' }}>Area: {customer?.assignedArea}</p>
-                <p style={{ margin: '0' }}>Phone: {customer?.phone}</p>
+                <p style={{ margin: '0 0 3px 0' }}>Phone: {customer?.phone || 'N/A'}</p>
               </td>
               <td style={{ width: '50%', valign: 'top', textAlign: 'right', padding: 0 }}>
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#000', textTransform: 'uppercase' }}>Receipt Details</h3>
@@ -187,30 +212,41 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                 })()}
               </td>
               <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                Rs. {formatCurrency(baseAmount || (amount - (vatAmount || 0)))}
+                Rs. {formatCurrency(mainBase)}
               </td>
             </tr>
-            {Number(vatAmount) > 0 && (
+            {mainVat > 0 && (
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '12px', textAlign: 'left', paddingLeft: '24px' }}>
                   <small>Add: VAT (13%)</small>
                 </td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
                 <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                  Rs. {formatCurrency(vatAmount)}
+                  Rs. {formatCurrency(mainVat)}
                 </td>
               </tr>
             )}
-            {Number(bonusFee) > 0 && (
-              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '12px', textAlign: 'left' }}>
-                  <strong>Festival Bonus Fee</strong>
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
-                <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                  Rs. {formatCurrency(bonusFee)}
-                </td>
-              </tr>
+            {numBonus > 0 && (
+              <>
+                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '12px', textAlign: 'left' }}>
+                    <strong>Festival Bonus Fee (Base)</strong>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                    Rs. {formatCurrency(bonusBase)}
+                  </td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '12px', textAlign: 'left', paddingLeft: '24px' }}>
+                    <small>Add: Bonus VAT (13%)</small>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                    Rs. {formatCurrency(bonusVat)}
+                  </td>
+                </tr>
+              </>
             )}
           </tbody>
           <tfoot>
@@ -219,7 +255,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                 TOTAL AMOUNT:
               </td>
               <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', fontSize: '16px', color: '#16a34a' }}>
-                Rs. {formatCurrency(Number(amount) + Number(bonusFee || 0))}
+                Rs. {formatCurrency(grandTotal)}
               </td>
             </tr>
           </tfoot>
@@ -229,22 +265,28 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
           <div style={{ width: '250px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-              <span style={{ fontSize: '14px', color: '#000' }}>Subtotal:</span>
-              <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(baseAmount || (amount - (vatAmount || 0)))}</span>
+              <span style={{ fontSize: '14px', color: '#000' }}>Service Base:</span>
+              <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(mainBase)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-              <span style={{ fontSize: '14px', color: '#000' }}>VAT:</span>
-              <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(vatAmount || 0)}</span>
+              <span style={{ fontSize: '14px', color: '#000' }}>VAT (13%):</span>
+              <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(mainVat)}</span>
             </div>
-            {Number(bonusFee) > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-                <span style={{ fontSize: '14px', color: '#000' }}>Bonus Fee:</span>
-                <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(bonusFee)}</span>
-              </div>
+            {numBonus > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                  <span style={{ fontSize: '14px', color: '#000' }}>Bonus Base:</span>
+                  <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(bonusBase)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                  <span style={{ fontSize: '14px', color: '#000' }}>Bonus VAT (13%):</span>
+                  <span style={{ fontSize: '14px', color: '#000' }}>Rs. {formatCurrency(bonusVat)}</span>
+                </div>
+              </>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderTop: '2px solid #000' }}>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Total Paid:</span>
-              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Rs. {formatCurrency(Number(amount) + Number(bonusFee || 0))}</span>
+              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Rs. {formatCurrency(grandTotal)}</span>
             </div>
           </div>
         </div>

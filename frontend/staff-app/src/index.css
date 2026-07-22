@@ -43,3 +43,14 @@
     display: none !important;
   }
 }
+
+/* Fix for Nepali Date Picker overflowing on very narrow mobile screens */
+@media (max-width: 380px) {
+  [class*="nepali-date-picker"],
+  [class*="calendar"],
+  #ndp-nepali-box {
+    transform: scale(0.85);
+    transform-origin: top left;
+    max-width: 100vw !important;
+  }
+}

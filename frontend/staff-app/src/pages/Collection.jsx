@@ -209,10 +209,10 @@ export default function Collection() {
               <p className="text-xs font-semibold text-blue-600 mb-1">
                 {Number(customer.increasedFee) > 0 ? 'Active Monthly Fee (Increased)' : 'Monthly Fee'}
               </p>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xl font-black text-blue-700">₹{formatCurrency(Number(customer.increasedFee) > 0 ? customer.increasedFee : customer.monthlyFee)}</p>
                 {Number(customer.increasedFee) > 0 && (
-                  <div className="px-2.5 py-1.5 bg-blue-100/50 border border-blue-200 rounded-lg text-right">
+                  <div className="px-2.5 py-1.5 bg-blue-100/50 border border-blue-200 rounded-lg text-right flex-shrink-0">
                     <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide mb-0.5">Starting Monthly Fee (Original)</p>
                     <p className="text-sm font-black text-slate-500 line-through decoration-slate-400">₹{formatCurrency(customer.monthlyFee)}</p>
                   </div>

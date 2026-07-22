@@ -121,7 +121,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, dueStartDate, dueEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, advanceBalance, dueStartDate, dueEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -157,6 +157,7 @@ async function createCustomer(req, res) {
         monthlyFee: new Decimal(monthlyFee).toFixed(2),
         increasedFee: increasedFee ? new Decimal(increasedFee).toFixed(2) : null,
         outstandingPayment: startingDebt.toFixed(2),
+        advanceBalance: new Decimal(advanceBalance).toFixed(2),
         debtStartDate,
         dueStartDate,
         dueEndDate,
@@ -377,7 +378,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, dueStartDate, dueEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
+    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -393,6 +394,7 @@ async function updateCustomer(req, res) {
     if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
     if (increasedFee !== undefined) updateData.increasedFee = increasedFee ? new Decimal(increasedFee).toFixed(2) : null;
     if (outstandingPayment !== undefined) updateData.outstandingPayment = new Decimal(outstandingPayment).toFixed(2);
+    if (advanceBalance !== undefined) updateData.advanceBalance = new Decimal(advanceBalance).toFixed(2);
     if (dueStartDate !== undefined) updateData.dueStartDate = dueStartDate;
     if (dueEndDate !== undefined) updateData.dueEndDate = dueEndDate;
     if (billingCycleDay !== undefined) updateData.billingCycleDay = billingCycleDay;
@@ -424,6 +426,7 @@ async function updateCustomer(req, res) {
         monthlyFee: updatedCustomer.monthlyFee.toString(),
         increasedFee: updatedCustomer.increasedFee ? updatedCustomer.increasedFee.toString() : null,
         outstandingPayment: updatedCustomer.outstandingPayment.toString(),
+        advanceBalance: updatedCustomer.advanceBalance.toString(),
         isActive: updatedCustomer.isActive,
         debtStartDate: updatedCustomer.debtStartDate,
         dueStartDate: updatedCustomer.dueStartDate,

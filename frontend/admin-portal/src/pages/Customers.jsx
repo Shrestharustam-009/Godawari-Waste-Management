@@ -73,6 +73,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     monthlyFee: '500.00',
     billingCycleDay: '',
     outstandingPayment: '0.00',
+    advanceBalance: '0.00',
     dueStartDate: '',
     dueEndDate: '',
     vatNumber: '',
@@ -105,7 +106,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', dueStartDate: '', dueEndDate: '', vatNumber: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -144,7 +145,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer ID</label>
               <div className="relative">
@@ -159,9 +160,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 <input name="name" value={form.name} onChange={handleChange} placeholder="Ram Bahadur" required className={inputClass} />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number (Optional)</label>
               <div className="relative">
@@ -176,6 +175,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} placeholder="Godawari Ward-7" required className={inputClass} />
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">VAT Number (Optional)</label>
               <div className="relative">
@@ -183,9 +183,6 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 <input name="vatNumber" value={form.vatNumber} onChange={handleChange} placeholder="VAT Number for Company" className={inputClass} />
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹)</label>
               <div className="relative">
@@ -219,7 +216,14 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Debt (₹)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <input name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} placeholder="0.00" className={inputClass} />
+                <input type="number" step="0.01" name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} placeholder="0.00" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance Payment (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input type="number" step="0.01" name="advanceBalance" value={form.advanceBalance} onChange={handleChange} placeholder="0.00" className={inputClass} />
               </div>
             </div>
           </div>
@@ -293,6 +297,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         monthlyFee: customer.monthlyFee || '500.00',
         increasedFee: customer.increasedFee || '',
         outstandingPayment: customer.outstandingPayment || '0.00',
+        advanceBalance: customer.advanceBalance || '0.00',
         dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
         dueEndDate: customer.dueEndDate ? customer.dueEndDate.split('T')[0] : '',
         billingCycleDay: customer.billingCycleDay || '',
@@ -323,6 +328,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         monthlyFee: String(form.monthlyFee),
         ...(form.increasedFee ? { increasedFee: String(form.increasedFee) } : { increasedFee: null }),
         outstandingPayment: String(form.outstandingPayment),
+        advanceBalance: String(form.advanceBalance),
         billingCycleDay: form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : null,
         sudoPassword
       };
@@ -379,7 +385,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer ID</label>
               <div className="relative">
@@ -394,9 +400,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number (Optional)</label>
               <div className="relative">
@@ -411,9 +415,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 <input name="assignedArea" value={form.assignedArea} onChange={handleChange} required className={inputClass} />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Fee (₹) [Original]</label>
               <div className="relative">
@@ -435,14 +437,20 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 <input name="vatNumber" value={form.vatNumber} onChange={handleChange} placeholder="VAT Number for Company" className={inputClass} />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Debt (₹)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="number" step="0.01" name="outstandingPayment" value={form.outstandingPayment} onChange={handleChange} required className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance Payment (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input type="number" step="0.01" name="advanceBalance" value={form.advanceBalance} onChange={handleChange} placeholder="0.00" className={inputClass} />
               </div>
             </div>
             <div>
