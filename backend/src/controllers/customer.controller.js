@@ -74,6 +74,8 @@ async function getAllCustomers(req, res) {
           debtStartDate: true,
           dueStartDate: true,
           dueEndDate: true,
+          advanceStartDate: true,
+          advanceEndDate: true,
         },
       }),
       prisma.customer.count({ where }),
@@ -121,7 +123,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, advanceBalance, dueStartDate, dueEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -161,6 +163,8 @@ async function createCustomer(req, res) {
         debtStartDate,
         dueStartDate,
         dueEndDate,
+        advanceStartDate,
+        advanceEndDate,
       },
     });
 
@@ -181,6 +185,8 @@ async function createCustomer(req, res) {
         debtStartDate: customer.debtStartDate,
         dueStartDate: customer.dueStartDate,
         dueEndDate: customer.dueEndDate,
+        advanceStartDate: customer.advanceStartDate,
+        advanceEndDate: customer.advanceEndDate,
       },
     });
   } catch (error) {
@@ -230,6 +236,8 @@ async function getCustomerProfile(req, res) {
             source: true,
             status: true,
             note: true,
+            clearedDebtAmount: true,
+            addedToAdvanceAmount: true,
             createdAt: true,
             collectedBy: {
               select: {
@@ -273,6 +281,8 @@ async function getCustomerProfile(req, res) {
       debtStartDate: customer.debtStartDate,
       dueStartDate: customer.dueStartDate,
       dueEndDate: customer.dueEndDate,
+      advanceStartDate: customer.advanceStartDate,
+      advanceEndDate: customer.advanceEndDate,
       lastBilledDate: customer.lastBilledDate,
       createdAt: customer.createdAt,
       transactions: [
@@ -287,6 +297,8 @@ async function getCustomerProfile(req, res) {
           source: tx.source,
           status: tx.status,
           note: tx.note,
+          clearedDebtAmount: tx.clearedDebtAmount?.toString() || '0.00',
+          addedToAdvanceAmount: tx.addedToAdvanceAmount?.toString() || '0.00',
           collectedBy: tx.collectedBy?.name || 'System / Admin',
           createdAt: tx.createdAt,
         })),
@@ -378,7 +390,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
+    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -397,6 +409,8 @@ async function updateCustomer(req, res) {
     if (advanceBalance !== undefined) updateData.advanceBalance = new Decimal(advanceBalance).toFixed(2);
     if (dueStartDate !== undefined) updateData.dueStartDate = dueStartDate;
     if (dueEndDate !== undefined) updateData.dueEndDate = dueEndDate;
+    if (advanceStartDate !== undefined) updateData.advanceStartDate = advanceStartDate;
+    if (advanceEndDate !== undefined) updateData.advanceEndDate = advanceEndDate;
     if (billingCycleDay !== undefined) updateData.billingCycleDay = billingCycleDay;
     if (isActive !== undefined) updateData.isActive = isActive;
     
@@ -431,6 +445,8 @@ async function updateCustomer(req, res) {
         debtStartDate: updatedCustomer.debtStartDate,
         dueStartDate: updatedCustomer.dueStartDate,
         dueEndDate: updatedCustomer.dueEndDate,
+        advanceStartDate: updatedCustomer.advanceStartDate,
+        advanceEndDate: updatedCustomer.advanceEndDate,
       },
     });
   } catch (error) {

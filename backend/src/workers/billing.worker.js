@@ -114,8 +114,20 @@ async function runBillingCycle() {
             ? new Decimal(customer.increasedFee.toString())
             : baseFee;
 
-          const currentAdvance = new Decimal(customer.advanceBalance.toString());
-          const currentOutstanding = new Decimal(customer.outstandingPayment.toString());
+          // ── LOCK THE ROW: Prevent Race Conditions with concurrent payments ──
+          const lockedRows = await tx.$queryRaw`
+            SELECT "outstandingPayment"::text, "advanceBalance"::text, "debtStartDate"
+            FROM "customers"
+            WHERE "customerId" = ${customer.customerId}
+            FOR UPDATE
+          `;
+          
+          if (!lockedRows || lockedRows.length === 0) continue;
+          
+          const lockedCustomer = lockedRows[0];
+
+          const currentAdvance = new Decimal(lockedCustomer.advanceBalance.toString());
+          const currentOutstanding = new Decimal(lockedCustomer.outstandingPayment.toString());
           
           let newAdvance = currentAdvance;
           let newOutstanding = currentOutstanding;
@@ -135,7 +147,7 @@ async function runBillingCycle() {
           }
 
           // Determine if they just went into debt
-          let newDebtStartDate = customer.debtStartDate;
+          let newDebtStartDate = lockedCustomer.debtStartDate;
           if (newOutstanding.gt(0) && currentOutstanding.lte(0)) {
             newDebtStartDate = new Date();
           } else if (newOutstanding.lte(0)) {
@@ -143,14 +155,21 @@ async function runBillingCycle() {
           }
 
           // ── Update the customer balances ──
+          const updateData = {
+            advanceBalance: newAdvance.toFixed(2),
+            outstandingPayment: newOutstanding.toFixed(2),
+            lastBilledDate: today,
+            debtStartDate: newDebtStartDate,
+          };
+          
+          if (newAdvance.eq(0) && currentAdvance.gt(0)) {
+            updateData.advanceStartDate = null;
+            updateData.advanceEndDate = null;
+          }
+
           await tx.customer.update({
             where: { customerId: customer.customerId },
-            data: {
-              advanceBalance: newAdvance.toFixed(2),
-              outstandingPayment: newOutstanding.toFixed(2),
-              lastBilledDate: today,
-              debtStartDate: newDebtStartDate,
-            }
+            data: updateData
           });
           
           // ── Create a Digital Receipt in BillingLedger ──

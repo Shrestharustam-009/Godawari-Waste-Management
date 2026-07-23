@@ -178,6 +178,7 @@ function handlePaymentError(err, res) {
     CUSTOMER_INACTIVE: 403,
     CATEGORY_NOT_FOUND: 400,
     OVERPAYMENT_NOT_ALLOWED: 422,
+    INVALID_AMOUNT: 400,
     VAT_INTEGRITY_ERROR: 500,
   };
 

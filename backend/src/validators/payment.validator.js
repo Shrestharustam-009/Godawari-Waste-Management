@@ -96,13 +96,15 @@ const collectPaymentSchema = z.object({
   paymentForStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
   paymentForEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
 
-  bonusFee: z
-    .string()
-    .regex(
-      /^\d{1,8}(\.\d{1,2})?$/,
-      'Bonus amount must be a string in decimal format.'
-    )
-    .optional(),
+  bonusFee: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.string()
+      .regex(
+        /^\d{1,8}(\.\d{1,2})?$/,
+        'Bonus amount must be a string in decimal format.'
+      )
+      .optional()
+  ),
 
   bonusRemark: z
     .string()

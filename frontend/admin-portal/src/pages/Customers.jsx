@@ -76,6 +76,8 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     advanceBalance: '0.00',
     dueStartDate: '',
     dueEndDate: '',
+    advanceStartDate: '',
+    advanceEndDate: '',
     vatNumber: '',
   });
   const [loading, setLoading] = useState(false);
@@ -102,11 +104,15 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
         payload.dueStartDate = '';
         payload.dueEndDate = '';
       }
+      if (Number(payload.advanceBalance) <= 0) {
+        payload.advanceStartDate = '';
+        payload.advanceEndDate = '';
+      }
 
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', vatNumber: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -250,6 +256,29 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               </div>
             </div>
           )}
+          
+          {Number(form.advanceBalance) > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance From Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="advanceStartDate" value={form.advanceStartDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance To Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="advanceEndDate" value={form.advanceEndDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -278,6 +307,9 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     outstandingPayment: '',
     dueStartDate: '',
     dueEndDate: '',
+    advanceBalance: '',
+    advanceStartDate: '',
+    advanceEndDate: '',
     billingCycleDay: '',
     vatNumber: '',
     isActive: true,
@@ -300,6 +332,8 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         advanceBalance: customer.advanceBalance || '0.00',
         dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
         dueEndDate: customer.dueEndDate ? customer.dueEndDate.split('T')[0] : '',
+        advanceStartDate: customer.advanceStartDate ? customer.advanceStartDate.split('T')[0] : '',
+        advanceEndDate: customer.advanceEndDate ? customer.advanceEndDate.split('T')[0] : '',
         billingCycleDay: customer.billingCycleDay || '',
         vatNumber: customer.vatNumber || '',
         isActive: customer.isActive ?? true,
@@ -342,6 +376,10 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
       if (Number(payload.outstandingPayment) <= 0) {
         payload.dueStartDate = '';
         payload.dueEndDate = '';
+      }
+      if (Number(payload.advanceBalance) <= 0) {
+        payload.advanceStartDate = '';
+        payload.advanceEndDate = '';
       }
 
       const res = await api.put(`/customers/${customer.customerId}`, payload);
@@ -485,6 +523,29 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
             </div>
           )}
 
+          {Number(form.advanceBalance) > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance From Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="advanceStartDate" value={form.advanceStartDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance To Date</label>
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                  <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
+                    <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <DatePicker name="advanceEndDate" value={form.advanceEndDate} onChange={handleChange} className="flex-1" />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mt-4">
             <input type="checkbox" id="isActive" name="isActive" checked={form.isActive} onChange={handleChange} className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500" />
             <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Active</label>
@@ -596,7 +657,7 @@ function CustomerProfile({ customerId, onClose }) {
   const handleExportCSV = () => {
     if (!filteredTransactions || filteredTransactions.length === 0) return;
 
-    const headers = ['Transaction ID', 'Method', 'Source', 'Collected By', 'Date', 'VAT Amount (INR)', 'Amount (INR)', 'Note'];
+    const headers = ['Transaction ID', 'Method', 'Source', 'Collected By', 'Date', 'VAT Amount (INR)', 'Amount (INR)', 'Cleared Debt (INR)', 'Smart Wallet (INR)', 'Note'];
     const rows = filteredTransactions.map(tx => [
       tx.id || 'N/A',
       tx.paymentMethod,
@@ -605,6 +666,8 @@ function CustomerProfile({ customerId, onClose }) {
       formatDate(tx.date),
       tx.vatAmount || '0.00',
       tx.amount,
+      tx.clearedDebtAmount || '0.00',
+      tx.addedToAdvanceAmount || '0.00',
       tx.note || ''
     ]);
 
@@ -660,7 +723,13 @@ function CustomerProfile({ customerId, onClose }) {
           <td style="padding: 12px; text-align: right;">
             <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">Subtotal: ₹${(Number(tx.amount) - Number(tx.vatAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
             <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">VAT (13%): ₹${Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-            <div style="font-size: 13px; font-weight: bold; color: #16a34a; border-top: 1px dashed #cbd5e1; padding-top: 4px;">Total: +₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 13px; font-weight: bold; color: #16a34a; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-bottom: 4px;">Total: +₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            ${Number(tx.clearedDebtAmount) > 0 || Number(tx.addedToAdvanceAmount) > 0 ? `
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 4px;">
+                ${Number(tx.clearedDebtAmount) > 0 ? `<div style="font-size: 10px; color: #64748b;">To Debt: ₹${Number(tx.clearedDebtAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>` : ''}
+                ${Number(tx.addedToAdvanceAmount) > 0 ? `<div style="font-size: 10px; color: #3b82f6;">To Wallet: ₹${Number(tx.addedToAdvanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>` : ''}
+              </div>
+            ` : ''}
           </td>
         </tr>
       `;
@@ -707,6 +776,7 @@ function CustomerProfile({ customerId, onClose }) {
             <div style="text-align: right;">
               <span style="font-size: 12px; color: #64748b; font-weight: bold;">Smart Wallet Balance</span>
               <h2 style="margin: 4px 0 0 0; color: #16a34a;">₹${Number(profile.advanceBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
+              ${Number(profile.advanceBalance) > 0 && profile.advanceStartDate && profile.advanceEndDate ? `<p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b;">${formatDate(profile.advanceStartDate)} — ${formatDate(profile.advanceEndDate)}</p>` : ''}
             </div>
           </div>
           <h3>Transaction Records</h3>
@@ -865,6 +935,11 @@ function CustomerProfile({ customerId, onClose }) {
                 <p className={`text-2xl font-bold ${Number(profile.advanceBalance) > 0 ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'}`}>
                   ₹{Number(profile.advanceBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
+                {Number(profile.advanceBalance) > 0 && (profile.advanceStartDate || profile.advanceEndDate) && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    ({profile.advanceStartDate ? formatDate(profile.advanceStartDate) : 'N/A'} — {profile.advanceEndDate ? formatDate(profile.advanceEndDate) : 'N/A'})
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1006,6 +1081,16 @@ function CustomerProfile({ customerId, onClose }) {
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                               VAT: ₹{Number(tx.vatAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
+                            {(Number(tx.clearedDebtAmount) > 0 || Number(tx.addedToAdvanceAmount) > 0) && (
+                              <div className="mt-1 pt-1 border-t border-slate-200 dark:border-slate-700/50 flex flex-col gap-0.5">
+                                {Number(tx.clearedDebtAmount) > 0 && (
+                                  <p className="text-[10px] text-slate-500 font-medium">To Debt: ₹{Number(tx.clearedDebtAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                                )}
+                                {Number(tx.addedToAdvanceAmount) > 0 && (
+                                  <p className="text-[10px] text-blue-500 font-medium">To Wallet: ₹{Number(tx.addedToAdvanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         {tx.note && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 italic border-t border-slate-200 dark:border-slate-700 pt-2">{tx.note}</p>}

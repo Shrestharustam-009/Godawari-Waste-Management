@@ -170,6 +170,7 @@ export default function Collection() {
           vatAmount={receiptData?.vatBreakdown?.vat}
           bonusFee={bonusFee}
           isPOS={isPOSPrint}
+          balanceSnapshot={receiptData?.balanceSnapshot}
         />
       </div>
     );
@@ -204,6 +205,11 @@ export default function Collection() {
             <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100 col-span-2 sm:col-span-1">
               <p className="text-xs font-semibold text-emerald-600 mb-1">Smart Wallet</p>
               <p className="text-lg font-black text-emerald-700">₹{formatCurrency(customer.advanceBalance || 0)}</p>
+              {Number(customer.advanceBalance) > 0 && (customer.advanceStartDate || customer.advanceEndDate) && (
+                <div className="text-[10px] text-emerald-600 font-medium mt-0.5 leading-tight whitespace-nowrap">
+                  {customer.advanceStartDate ? formatDate(customer.advanceStartDate) : 'N/A'} - {customer.advanceEndDate ? formatDate(customer.advanceEndDate) : 'N/A'}
+                </div>
+              )}
             </div>
             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 col-span-2">
               <p className="text-xs font-semibold text-blue-600 mb-1">

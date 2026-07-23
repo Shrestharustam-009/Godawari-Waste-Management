@@ -94,6 +94,14 @@ async function processFieldPayment({
 
   const grossAmount = new Decimal(amountReceived);
 
+  // GUARD: Reject zero or negative amounts to prevent debt inflation
+  if (grossAmount.lte(0)) {
+    throw Object.assign(
+      new Error('Payment amount must be greater than zero.'),
+      { code: 'INVALID_AMOUNT' }
+    );
+  }
+
   // ──────────────────────────────────────────────────────────────────────
   // STEP 2: IDEMPOTENCY CHECK — Return existing record if duplicate
   // ──────────────────────────────────────────────────────────────────────
@@ -212,6 +220,8 @@ async function processFieldPayment({
     let newOutstanding;
     let newAdvance;
     let route;
+    let clearedDebtAmount = new Decimal(0);
+    let addedToAdvanceAmount = new Decimal(0);
 
     if (grossAmount.lte(previousOutstanding)) {
       // ┌─────────────────────────────────────────────────────────────┐
@@ -221,6 +231,8 @@ async function processFieldPayment({
       // └─────────────────────────────────────────────────────────────┘
       newOutstanding = previousOutstanding.minus(grossAmount);
       newAdvance = previousAdvance;
+      clearedDebtAmount = grossAmount;
+      addedToAdvanceAmount = new Decimal(0);
       route = 'NORMAL';
 
     } else if (isAdvancePayment) {
@@ -236,6 +248,8 @@ async function processFieldPayment({
       const excess = grossAmount.minus(previousOutstanding);
       newOutstanding = new Decimal('0.00');
       newAdvance = previousAdvance.plus(excess);
+      clearedDebtAmount = previousOutstanding;
+      addedToAdvanceAmount = excess;
       route = 'ADVANCE';
 
     } else {
@@ -262,12 +276,36 @@ async function processFieldPayment({
     }
 
     // ── 5d. UPDATE customer balances (Decimal → string → Prisma Decimal) ──
+    const updateData = {
+      outstandingPayment: newOutstanding.toFixed(2),
+      advanceBalance: newAdvance.toFixed(2),
+    };
+
+    // Clear debtStartDate when debt is fully paid off
+    if (newOutstanding.eq(0) && previousOutstanding.gt(0)) {
+      updateData.debtStartDate = null;
+      updateData.dueStartDate = null;
+      updateData.dueEndDate = null;
+    }
+
+    // If this payment adds/keeps money in the Smart Wallet, push the dates to the profile
+    if (newAdvance.gt(0)) {
+      // Validate date strings before constructing Date objects
+      if (paymentForStartDate && !isNaN(new Date(paymentForStartDate).getTime())) {
+        updateData.advanceStartDate = new Date(paymentForStartDate);
+      }
+      if (paymentForEndDate && !isNaN(new Date(paymentForEndDate).getTime())) {
+        updateData.advanceEndDate = new Date(paymentForEndDate);
+      }
+    } else {
+      // Advance balance is zero — clear stale dates from profile
+      updateData.advanceStartDate = null;
+      updateData.advanceEndDate = null;
+    }
+
     await tx.customer.update({
       where: { customerId },
-      data: {
-        outstandingPayment: newOutstanding.toFixed(2),
-        advanceBalance: newAdvance.toFixed(2),
-      },
+      data: updateData,
     });
 
     // ── 5e. CREATE Income Ledger entry with VAT breakdown ──
@@ -326,6 +364,8 @@ async function processFieldPayment({
             collectedById: staffId,
             incomeCategoryId: bonusCategory.id,
             note: bonusRemark || null,
+            clearedDebtAmount: '0.00',
+            addedToAdvanceAmount: '0.00',
           }
         });
       }
@@ -392,6 +432,14 @@ async function processManualIncome({
 }) {
   const grossAmount = new Decimal(amountReceived);
 
+  // GUARD: Reject zero or negative amounts
+  if (grossAmount.lte(0)) {
+    throw Object.assign(
+      new Error('Payment amount must be greater than zero.'),
+      { code: 'INVALID_AMOUNT' }
+    );
+  }
+
   // ── VAT split ──
   const baseRevenue = grossAmount.dividedBy(VAT_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const vatAmount = grossAmount.minus(baseRevenue);
@@ -439,15 +487,21 @@ async function processManualIncome({
     let newOutstanding;
     let newAdvance;
     let route;
+    let clearedDebtAmount = new Decimal(0);
+    let addedToAdvanceAmount = new Decimal(0);
 
     if (grossAmount.lte(previousOutstanding)) {
       newOutstanding = previousOutstanding.minus(grossAmount);
       newAdvance = previousAdvance;
+      clearedDebtAmount = grossAmount;
+      addedToAdvanceAmount = new Decimal(0);
       route = 'NORMAL';
     } else if (isAdvancePayment) {
       const excess = grossAmount.minus(previousOutstanding);
       newOutstanding = new Decimal('0.00');
       newAdvance = previousAdvance.plus(excess);
+      clearedDebtAmount = previousOutstanding;
+      addedToAdvanceAmount = excess;
       route = 'ADVANCE';
     } else {
       throw Object.assign(
@@ -459,12 +513,27 @@ async function processManualIncome({
       );
     }
 
+    const updateData = {
+      outstandingPayment: newOutstanding.toFixed(2),
+      advanceBalance: newAdvance.toFixed(2),
+    };
+
+    // Clear debt tracking dates when debt is fully paid off
+    if (newOutstanding.eq(0) && previousOutstanding.gt(0)) {
+      updateData.debtStartDate = null;
+      updateData.dueStartDate = null;
+      updateData.dueEndDate = null;
+    }
+
+    // Clear advance tracking dates if advance hits 0
+    if (newAdvance.eq(0) && previousAdvance.gt(0)) {
+      updateData.advanceStartDate = null;
+      updateData.advanceEndDate = null;
+    }
+
     await tx.customer.update({
       where: { customerId },
-      data: {
-        outstandingPayment: newOutstanding.toFixed(2),
-        advanceBalance: newAdvance.toFixed(2),
-      },
+      data: updateData,
     });
 
     const income = await tx.incomeLedger.create({
@@ -480,6 +549,8 @@ async function processManualIncome({
         collectedById: staffId,
         incomeCategoryId,
         note: note || null,
+        clearedDebtAmount: clearedDebtAmount.toFixed(2),
+        addedToAdvanceAmount: addedToAdvanceAmount.toFixed(2),
       },
     });
 

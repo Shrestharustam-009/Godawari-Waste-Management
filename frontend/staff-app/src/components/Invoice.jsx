@@ -4,7 +4,7 @@ import invoiceHeaderImg from '../assets/invoice-header.png';
 import { useSettings } from '../context/SettingsContext';
 import { toBS } from '@zener/nepali-datepicker-react';
 
-const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS }) => {
+const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS, balanceSnapshot }) => {
   const { formatDate, settings } = useSettings();
 
   const numBonus = Number(bonusFee || 0);
@@ -19,6 +19,14 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  const clearedDebt = balanceSnapshot 
+    ? Math.max(0, Number(balanceSnapshot.previousOutstanding || 0) - Number(balanceSnapshot.newOutstanding || 0))
+    : 0;
+  
+  const addedToWallet = balanceSnapshot
+    ? Math.max(0, Number(balanceSnapshot.newAdvance || 0) - Number(balanceSnapshot.previousAdvance || 0))
+    : 0;
 
   const getMonthName = (dStr) => {
     if (!dStr) return '';
@@ -135,6 +143,24 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <span>TOTAL:</span>
               <span>Rs.{formatCurrency(grandTotal)}</span>
             </div>
+            
+            {(clearedDebt > 0 || addedToWallet > 0) && (
+              <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #000', fontSize: '11px', textAlign: 'left' }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>Payment Allocation:</p>
+                {clearedDebt > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Cleared Dues:</span>
+                    <span>Rs.{formatCurrency(clearedDebt)}</span>
+                  </div>
+                )}
+                {addedToWallet > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Smart Wallet Advance:</span>
+                    <span>Rs.{formatCurrency(addedToWallet)}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           {/* POS Footer */}
@@ -288,6 +314,24 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Total Paid:</span>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Rs. {formatCurrency(grandTotal)}</span>
             </div>
+            
+            {(clearedDebt > 0 || addedToWallet > 0) && (
+              <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '1px dashed #9ca3af' }}>
+                <p style={{ fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0', color: '#374151' }}>Payment Allocation:</p>
+                {clearedDebt > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>Cleared Dues:</span>
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>Rs. {formatCurrency(clearedDebt)}</span>
+                  </div>
+                )}
+                {addedToWallet > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>Smart Wallet Advance:</span>
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>Rs. {formatCurrency(addedToWallet)}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

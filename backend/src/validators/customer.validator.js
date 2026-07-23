@@ -35,6 +35,7 @@ const createCustomerSchema = z.object({
   phone: z
     .string()
     .trim()
+    .max(15, 'Phone number must not exceed 15 characters.')
     .regex(
       /^[0-9+\-() ]*$/,
       'Phone number may only contain digits, +, -, (, ), and spaces.'
@@ -59,6 +60,7 @@ const createCustomerSchema = z.object({
     .trim()
     .max(50, 'VAT Number must not exceed 50 characters.')
     .transform(sanitizeText)
+    .transform(val => val === '' ? null : val)
     .optional()
     .nullable(),
 
@@ -82,26 +84,28 @@ const createCustomerSchema = z.object({
     .optional()
     .default('500.00'),
 
-  increasedFee: z
-    .string()
-    .regex(
-      /^\d{1,8}(\.\d{1,2})?$/,
-      'Increased fee must be a string in decimal format (e.g., "550.00").'
-    )
-    .refine(
-      (val) => {
-        try {
-          if (!val) return true;
-          const d = new Decimal(val);
-          return d.gte('0.00') && d.lte('99999999.99');
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
-    )
-    .optional()
-    .nullable(),
+  increasedFee: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.string()
+      .regex(
+        /^\d{1,8}(\.\d{1,2})?$/,
+        'Increased fee must be a string in decimal format (e.g., "550.00").'
+      )
+      .refine(
+        (val) => {
+          try {
+            if (!val) return true;
+            const d = new Decimal(val);
+            return d.gte('0.00') && d.lte('99999999.99');
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
+      )
+      .optional()
+      .nullable()
+  ),
 
   outstandingPayment: z
     .string()
@@ -153,7 +157,17 @@ const createCustomerSchema = z.object({
 
   dueStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
   dueEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
-}).strict();
+  
+  advanceStartDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
+  advanceEndDate: z.preprocess((arg) => (arg === '' || arg === null ? undefined : arg), z.coerce.date().optional()),
+}).strict().refine((data) => {
+  const hasDebt = data.outstandingPayment && new Decimal(data.outstandingPayment).gt(0);
+  const hasAdvance = data.advanceBalance && new Decimal(data.advanceBalance).gt(0);
+  return !(hasDebt && hasAdvance);
+}, {
+  message: 'A customer cannot have both an outstanding payment and an advance balance simultaneously.',
+  path: ['advanceBalance']
+});
 
 const updateCustomerSchema = z.object({
   newCustomerId: z
@@ -178,6 +192,7 @@ const updateCustomerSchema = z.object({
   phone: z
     .string()
     .trim()
+    .max(15, 'Phone number must not exceed 15 characters.')
     .regex(
       /^[0-9+\-() ]*$/,
       'Phone number may only contain digits, +, -, (, ), and spaces.'
@@ -217,32 +232,35 @@ const updateCustomerSchema = z.object({
     )
     .optional(),
 
-  increasedFee: z
-    .string()
-    .regex(
-      /^\d{1,8}(\.\d{1,2})?$/,
-      'Increased fee must be a string in decimal format (e.g., "550.00").'
-    )
-    .refine(
-      (val) => {
-        try {
-          if (!val) return true;
-          const d = new Decimal(val);
-          return d.gte('0.00') && d.lte('99999999.99');
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
-    )
-    .optional()
-    .nullable(),
+  increasedFee: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.string()
+      .regex(
+        /^\d{1,8}(\.\d{1,2})?$/,
+        'Increased fee must be a string in decimal format (e.g., "550.00").'
+      )
+      .refine(
+        (val) => {
+          try {
+            if (!val) return true;
+            const d = new Decimal(val);
+            return d.gte('0.00') && d.lte('99999999.99');
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
+      )
+      .optional()
+      .nullable()
+  ),
 
   vatNumber: z
     .string()
     .trim()
     .max(50, 'VAT Number must not exceed 50 characters.')
     .transform(sanitizeText)
+    .transform(val => val === '' ? null : val)
     .optional()
     .nullable(),
     
@@ -295,8 +313,18 @@ const updateCustomerSchema = z.object({
   dueStartDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
   dueEndDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
 
+  advanceStartDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
+  advanceEndDate: z.preprocess((arg) => (arg === '' ? null : arg), z.coerce.date().nullable().optional()),
+
   isActive: z.boolean().optional(),
-}).strict();
+}).strict().refine((data) => {
+  const hasDebt = data.outstandingPayment && new Decimal(data.outstandingPayment).gt(0);
+  const hasAdvance = data.advanceBalance && new Decimal(data.advanceBalance).gt(0);
+  return !(hasDebt && hasAdvance);
+}, {
+  message: 'A customer cannot have both an outstanding payment and an advance balance simultaneously.',
+  path: ['advanceBalance']
+});
 
 module.exports = {
   createCustomerSchema,

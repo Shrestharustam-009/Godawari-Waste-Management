@@ -122,6 +122,8 @@ model Customer {
   billingCycleDay    Int?
   dueStartDate       DateTime?
   dueEndDate         DateTime?
+  advanceStartDate   DateTime?
+  advanceEndDate     DateTime?
 
   // ── Background automation tracking ──
   debtStartDate      DateTime? // Date when outstandingPayment first > 0
@@ -208,6 +210,10 @@ model IncomeLedger {
   paymentMethod   PaymentMethod
   source          IncomeSource
   status          PaymentStatus @default(SUCCESSFUL)
+
+  // ── Payment Transparency Tracking ──
+  clearedDebtAmount    Decimal @default(0.00) @db.Decimal(10, 2) // Amount used to clear existing dues
+  addedToAdvanceAmount Decimal @default(0.00) @db.Decimal(10, 2) // Amount stored in Smart Wallet
 
   // ── Idempotency & external reference ──
   idempotencyKey  String?       @unique @db.VarChar(128)
