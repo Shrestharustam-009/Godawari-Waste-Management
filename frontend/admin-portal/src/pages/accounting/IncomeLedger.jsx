@@ -3,7 +3,7 @@ import api from '../../api/axios';
 import { useSettings } from '../../context/SettingsContext';
 import { TrendingUp, Loader2, Plus, Tag, Search, Download } from 'lucide-react';
 import DatePicker from '../../components/DatePicker';
-
+import { generateInvoiceHTML } from '../../lib/printTemplates';
 const formatCurrency = (val) => {
   return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
@@ -160,7 +160,24 @@ export default function IncomeLedger() {
   
   const [filterType, setFilterType] = useState('ALL'); // ALL | MANUAL_ENTRY | FIELD_APP
   const [searchQuery, setSearchQuery] = useState('');
-  const { formatDate } = useSettings();
+  const { settings, formatDate } = useSettings();
+
+  const handlePrint = async (tx) => {
+    const html = generateInvoiceHTML(tx, settings, formatDate);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    // Only increment print count AFTER user completes the print dialog
+    printWindow.onafterprint = async () => {
+      try {
+        await api.post(`/accounting/income/${tx.id}/print`);
+        fetchStatements(); // Refresh to update print count
+      } catch (err) {
+        console.error('Failed to update print count', err);
+      }
+    };
+  };
 
   const fetchStatements = useCallback(async () => {
     setLoading(true);
@@ -310,7 +327,7 @@ export default function IncomeLedger() {
                 <th className="px-6 py-4 text-right">Base Revenue</th>
                 <th className="px-6 py-4 text-right text-emerald-600">Output VAT</th>
                 <th className="px-6 py-4 text-right font-extrabold text-slate-900 dark:text-white">Total Amount</th>
-                <th className="px-6 py-4">Notes</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -332,7 +349,14 @@ export default function IncomeLedger() {
                       {Number(tx.vatAmount) > 0 ? `+₹${formatCurrency(tx.vatAmount)} (13%)` : '-'}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">₹{formatCurrency(tx.amount)}</td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic max-w-xs truncate">{tx.note}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => handlePrint(tx)}
+                        className="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors inline-flex items-center"
+                      >
+                        Print {tx.printCount > 0 ? `(${tx.printCount})` : ''}
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (

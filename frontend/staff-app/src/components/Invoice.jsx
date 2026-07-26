@@ -4,7 +4,7 @@ import invoiceHeaderImg from '../assets/invoice-header.png';
 import { useSettings } from '../context/SettingsContext';
 import { toBS } from '@zener/nepali-datepicker-react';
 
-const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS, balanceSnapshot }) => {
+const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS, balanceSnapshot, printCount = 1, hsCode = "999999" }) => {
   const { formatDate, settings } = useSettings();
 
   const numBonus = Number(bonusFee || 0);
@@ -75,6 +75,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             <p style={{ margin: '0', fontSize: '11px' }}>टोखा नगरपालिका-९, गोंगबु, काठमाडौँ</p>
             <p style={{ margin: '0', fontSize: '11px' }}>VAT No: 606698005</p>
             <p style={{ margin: '0', fontSize: '11px' }}>Phone: 01-4963742</p>
+            <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
+            <p style={{ margin: '4px 0', fontSize: '14px', fontWeight: 'bold' }}>{mainVat > 0 ? 'TAX INVOICE' : 'INVOICE'}</p>
+            {printCount > 1 && <p style={{ margin: '2px 0 0 0', fontSize: '11px', fontStyle: 'italic' }}>Copy of Original</p>}
             <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
           </div>
           
@@ -186,6 +189,8 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             alt="Header" 
             style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
           />
+          <h2 style={{ margin: '10px 0 0 0', textTransform: 'uppercase', fontSize: '20px' }}>{mainVat > 0 ? 'Tax Invoice (कर विजक)' : 'Invoice'}</h2>
+          {printCount > 1 && <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontStyle: 'italic', color: '#dc2626' }}>Copy of Original (प्रतिलिपि)</p>}
         </div>
 
         {/* Info Grid */}
@@ -219,6 +224,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           <thead>
             <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 'bold' }}>Description</th>
+              <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 'bold' }}>H.S. Code</th>
               <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 'bold' }}>Period Covered</th>
               <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 'bold' }}>Amount</th>
             </tr>
@@ -228,6 +234,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <td style={{ padding: '12px', textAlign: 'left' }}>
                 <strong>Waste Collection Service Fee</strong>
               </td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>{hsCode}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>
                 {(() => {
                   const m1 = formatPeriodDate(paymentForStartDate) || getMonthName(paymentForStartDate);
@@ -246,6 +253,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                 <td style={{ padding: '12px', textAlign: 'left', paddingLeft: '24px' }}>
                   <small>Add: VAT (13%)</small>
                 </td>
+                <td style={{ padding: '12px', textAlign: 'center' }}></td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
                 <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
                   Rs. {formatCurrency(mainVat)}
@@ -258,6 +266,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                   <td style={{ padding: '12px', textAlign: 'left' }}>
                     <strong>Festival Bonus Fee (Base)</strong>
                   </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>{hsCode}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
                     Rs. {formatCurrency(bonusBase)}
@@ -267,6 +276,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                   <td style={{ padding: '12px', textAlign: 'left', paddingLeft: '24px' }}>
                     <small>Add: Bonus VAT (13%)</small>
                   </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}></td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
                     Rs. {formatCurrency(bonusVat)}
@@ -277,7 +287,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           </tbody>
           <tfoot>
             <tr style={{ backgroundColor: '#f9fafb', borderTop: '2px solid #d1d5db' }}>
-              <td colSpan="2" style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', fontSize: '16px' }}>
+              <td colSpan="3" style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', fontSize: '16px' }}>
                 TOTAL AMOUNT:
               </td>
               <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', fontSize: '16px', color: '#16a34a' }}>

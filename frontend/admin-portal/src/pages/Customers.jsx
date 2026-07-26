@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import invoiceHeaderImg from '../assets/company_logo.png';
-
+import { generateInvoiceHTML, generateSalesReturnHTML } from '../lib/printTemplates';
 // ============================================================================
 // SUDO MODAL
 // ============================================================================
@@ -577,11 +577,34 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 // ============================================================================
 // CUSTOMER PROFILE SLIDE-OVER
 // ============================================================================
-function CustomerProfile({ customerId, onClose }) {
+function CustomerProfile({ customerId, onClose, onReturnTx }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { formatDate } = useSettings();
+  const { settings, formatDate } = useSettings();
+
+  const handlePrintInvoice = async (tx) => {
+    // Determine if it's a regular invoice or a return
+    const isReturn = tx.isSalesReturn || tx.baseAmount < 0; // fallback logic
+    const html = isReturn 
+      ? generateSalesReturnHTML(tx, settings, formatDate) 
+      : generateInvoiceHTML(tx, settings, formatDate);
+      
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    // Only increment print count AFTER user completes the print dialog
+    if (!isReturn) {
+      printWindow.onafterprint = async () => {
+        try {
+          await api.post(`/accounting/income/${tx.id}/print`);
+        } catch (err) {
+          console.error('Failed to update print count', err);
+        }
+      };
+    }
+  };
 
   const [dateFilter, setDateFilter] = useState('all');
   const [customStart, setCustomStart] = useState('');
@@ -1091,6 +1114,22 @@ function CustomerProfile({ customerId, onClose }) {
                                 )}
                               </div>
                             )}
+
+                            {/* Return Button */}
+                            {!tx.isSalesReturn && !profile.incomeEntries?.some(t => t.returnRefId === tx.id) && Number(tx.amount) > 0 && (
+                              <button 
+                                onClick={() => onReturnTx(tx.id)}
+                                className="mt-2 text-[10px] font-medium text-red-500 hover:text-red-700 transition-colors uppercase bg-red-50 hover:bg-red-100 px-2 py-1 rounded w-full text-center"
+                              >
+                                Void Invoice
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handlePrintInvoice(tx)}
+                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                            >
+                              Print {tx.printCount > 0 && !tx.isSalesReturn ? `(${tx.printCount})` : ''}
+                            </button>
                           </div>
                         </div>
                         {tx.note && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 italic border-t border-slate-200 dark:border-slate-700 pt-2">{tx.note}</p>}
@@ -1129,6 +1168,10 @@ export default function Customers() {
   const [sudoError, setSudoError] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
 
+  // Sales Return State
+  const [returnTx, setReturnTx] = useState({ isOpen: false, txId: null, reason: '' });
+  const [returnLoading, setReturnLoading] = useState(false);
+
   const fetchCustomers = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     setError(null);
@@ -1147,6 +1190,30 @@ export default function Customers() {
       setLoading(false);
     }
   }, [pagination.limit]);
+
+  const handleSalesReturn = async () => {
+    if (!returnTx.txId || !returnTx.reason.trim()) return;
+    setReturnLoading(true);
+    try {
+      const res = await api.post(`/accounting/income/${returnTx.txId}/return`, {
+        reason: returnTx.reason
+      });
+      if (res.data?.success) {
+        setSuccessToast('Sales Return processed successfully. Original invoice reversed.');
+        setReturnTx({ isOpen: false, txId: null, reason: '' });
+        // Refresh data
+        if (selectedCustomerId) {
+          fetchCustomers(pagination.page, searchQuery);
+          // Normally we'd also refresh the active customer profile here, but closing the modal and re-opening is fine
+          // Or we can just let them know it succeeded.
+        }
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to process Sales Return.');
+    } finally {
+      setReturnLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCustomers(1, searchQuery);
@@ -1349,6 +1416,7 @@ export default function Customers() {
       <CustomerProfile
         customerId={selectedCustomerId}
         onClose={() => setSelectedCustomerId(null)}
+        onReturnTx={(txId) => setReturnTx({ isOpen: true, txId, reason: '' })}
       />
 
       {sudoConfig.isOpen && (
@@ -1368,6 +1436,53 @@ export default function Customers() {
           <CheckCircle2 className="w-6 h-6" />
           {successToast}
           <button onClick={() => setSuccessToast(null)} className="p-1 hover:bg-emerald-600 rounded-lg ml-2"><X className="w-5 h-5"/></button>
+        </div>
+      )}
+
+      {returnTx.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center">
+                <AlertCircle className="w-6 h-6 text-red-500 mr-2" />
+                Void Invoice (Sales Return)
+              </h2>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                You are about to issue a Sales Return. This will reverse the transaction and restore the customer's previous balances. This action is immutable.
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Reason for Cancellation
+                </label>
+                <textarea
+                  value={returnTx.reason}
+                  onChange={(e) => setReturnTx(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  rows="3"
+                  placeholder="e.g. Duplicate entry, Incorrect amount..."
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={() => setReturnTx({ isOpen: false, txId: null, reason: '' })}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white transition-colors"
+                disabled={returnLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSalesReturn}
+                disabled={!returnTx.reason.trim() || returnLoading}
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm disabled:opacity-50 flex items-center"
+              >
+                {returnLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Confirm Void
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
+import VatRegister from './pages/VatRegister';
+import SalesReturns from './pages/SalesReturns';
+import AuditLogs from './pages/AuditLogs';
 import AccountingAnalysis from './pages/accounting/AccountingAnalysis';
 import IncomeLedger from './pages/accounting/IncomeLedger';
 import ExpenseLedger from './pages/accounting/ExpenseLedger';
@@ -42,6 +45,9 @@ function App() {
           <Route path="/accounting/vehicle-expenses" element={<VehicleExpenses />} />
           <Route path="/accounting/staff-salary" element={<StaffSalary />} />
           <Route path="/accounting/bonus-fees" element={<BonusFees />} />
+          <Route path="/accounting/vat-register" element={<VatRegister />} />
+          <Route path="/accounting/sales-returns" element={<SalesReturns />} />
+          <Route path="/accounting/audit-logs" element={<AuditLogs />} />
           <Route path="/fleet" element={<FleetHR />} />
           <Route path="/settings" element={<Settings />} />
           

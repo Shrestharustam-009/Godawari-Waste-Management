@@ -36,14 +36,31 @@ export default function Recent() {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const handlePrint = (tx, isPOS = false) => {
-    setSelectedTxToPrint(tx);
-    setIsPOSPrint(isPOS);
-    // Wait briefly for React to render the Invoice component with the selected tx data
-    setTimeout(() => {
-      window.print();
-      setSelectedTxToPrint(null); // Cleanup after print dialog closes
-    }, 100);
+  const handlePrint = async (tx, isPOS = false) => {
+    try {
+      // 1. Tell backend we are printing this invoice
+      const res = await api.post(`/accounting/income/${tx.id}/print`);
+      const newPrintCount = res.data?.success ? res.data.printCount : 1;
+      
+      // 2. Set the data with updated print count
+      setSelectedTxToPrint({ ...tx, printCount: newPrintCount });
+      setIsPOSPrint(isPOS);
+      
+      // 3. Print
+      setTimeout(() => {
+        window.print();
+        setSelectedTxToPrint(null); // Cleanup after print dialog closes
+      }, 300); // give it slightly more time to render the new state
+    } catch (error) {
+      console.error('Print tracking failed:', error);
+      // Fallback: print anyway if offline
+      setSelectedTxToPrint({ ...tx, printCount: 2 }); // assume copy if it fails
+      setIsPOSPrint(isPOS);
+      setTimeout(() => {
+        window.print();
+        setSelectedTxToPrint(null);
+      }, 300);
+    }
   };
 
   return (
@@ -142,6 +159,7 @@ export default function Recent() {
           baseAmount={selectedTxToPrint.baseAmount}
           vatAmount={selectedTxToPrint.vatAmount}
           isPOS={isPOSPrint}
+          printCount={selectedTxToPrint.printCount}
         />
       )}
     </div>

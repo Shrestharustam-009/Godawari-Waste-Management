@@ -14,7 +14,10 @@ import {
   TrendingUp,
   TrendingDown,
   Truck,
-  UserCircle
+  UserCircle,
+  FileText,
+  RefreshCcw,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,6 +49,9 @@ export default function Sidebar({ isOpen, onClose }) {
     { name: 'Vehicle Expenses', path: '/accounting/vehicle-expenses', icon: Truck },
     { name: 'Staff Salary', path: '/accounting/staff-salary', icon: UserCircle },
     { name: 'Bonus Fees', path: '/accounting/bonus-fees', icon: Banknote },
+    { name: 'VAT Register (IRD)', path: '/accounting/vat-register', icon: FileText },
+    { name: 'Sales Returns (IRD)', path: '/accounting/sales-returns', icon: RefreshCcw },
+    { name: 'Audit Logs (IRD)', path: '/accounting/audit-logs', icon: ShieldAlert },
   ];
 
   const bottomNavItems = [
