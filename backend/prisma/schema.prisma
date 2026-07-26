@@ -59,6 +59,13 @@ model GlobalSettings {
   customDeductions Json?    @default("[]")
   calendarType     String   @default("AD") @db.VarChar(10)
   isBonusFeeEnabled Boolean @default(false)
+  
+  // ── Company Profile ──
+  companyName      String?  @db.VarChar(100)
+  companyAddress   String?  @db.VarChar(255)
+  panNumber        String?  @db.VarChar(20)
+  hsCode           String?  @db.VarChar(20)
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

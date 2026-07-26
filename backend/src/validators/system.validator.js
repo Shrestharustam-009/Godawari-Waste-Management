@@ -26,6 +26,11 @@ const updateSettingsSchema = z.object({
   isBonusFeeEnabled: z
     .boolean()
     .optional(),
+    
+  companyName: z.string().max(100).optional().nullable(),
+  companyAddress: z.string().max(255).optional().nullable(),
+  panNumber: z.string().max(20).optional().nullable(),
+  hsCode: z.string().max(20).optional().nullable(),
 }).strict();
 
 module.exports = {

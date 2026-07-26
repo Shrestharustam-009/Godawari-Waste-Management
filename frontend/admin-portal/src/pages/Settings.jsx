@@ -103,8 +103,8 @@ function SettingsSkeleton() {
 }
 
 export default function Settings() {
-  const [settings, setSettings] = useState({ billingCycleDay: 1, updatedAt: null, customDeductions: [], isBonusFeeEnabled: false });
-  const [formState, setFormState] = useState({ billingCycleDay: 1, calendarType: 'AD', isBonusFeeEnabled: false });
+  const [settings, setSettings] = useState({ billingCycleDay: 1, updatedAt: null, customDeductions: [], isBonusFeeEnabled: false, companyName: '', companyAddress: '', panNumber: '', hsCode: '' });
+  const [formState, setFormState] = useState({ billingCycleDay: 1, calendarType: 'AD', isBonusFeeEnabled: false, companyName: '', companyAddress: '', panNumber: '', hsCode: '' });
   const [deductions, setDeductions] = useState([]);
   
   // Fleet State
@@ -128,12 +128,20 @@ export default function Settings() {
           billingCycleDay: data.billingCycleDay ?? 1,
           updatedAt: data.updatedAt,
           customDeductions: data.customDeductions || [],
-          isBonusFeeEnabled: data.isBonusFeeEnabled || false
+          isBonusFeeEnabled: data.isBonusFeeEnabled || false,
+          companyName: data.companyName || '',
+          companyAddress: data.companyAddress || '',
+          panNumber: data.panNumber || '',
+          hsCode: data.hsCode || ''
         });
         setFormState({
           billingCycleDay: data.billingCycleDay ?? 1,
           calendarType: data.calendarType || 'AD',
-          isBonusFeeEnabled: data.isBonusFeeEnabled || false
+          isBonusFeeEnabled: data.isBonusFeeEnabled || false,
+          companyName: data.companyName || '',
+          companyAddress: data.companyAddress || '',
+          panNumber: data.panNumber || '',
+          hsCode: data.hsCode || ''
         });
         setDeductions(data.customDeductions || []);
       }
@@ -160,6 +168,10 @@ export default function Settings() {
           billingCycleDay: Number(formState.billingCycleDay),
           calendarType: formState.calendarType,
           isBonusFeeEnabled: formState.isBonusFeeEnabled,
+          companyName: formState.companyName,
+          companyAddress: formState.companyAddress,
+          panNumber: formState.panNumber,
+          hsCode: formState.hsCode,
           sudoPassword,
         });
         setSuccessMessage('System settings updated successfully.');
@@ -189,7 +201,7 @@ export default function Settings() {
   };
   const handleRemoveDeduction = (index) => setDeductions(deductions.filter((_, i) => i !== index));
 
-  const hasGeneralChanges = Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType || formState.isBonusFeeEnabled !== settings.isBonusFeeEnabled;
+  const hasGeneralChanges = Number(formState.billingCycleDay) !== Number(settings.billingCycleDay) || formState.calendarType !== settings.calendarType || formState.isBonusFeeEnabled !== settings.isBonusFeeEnabled || formState.companyName !== settings.companyName || formState.companyAddress !== settings.companyAddress || formState.panNumber !== settings.panNumber || formState.hsCode !== settings.hsCode;
   const hasDeductionChanges = JSON.stringify(deductions) !== JSON.stringify(settings.customDeductions);
 
   if (loading) return <SettingsSkeleton />;
@@ -211,6 +223,35 @@ export default function Settings() {
           <button onClick={() => setSuccessMessage(null)} className="ml-auto p-1 hover:bg-emerald-100 rounded-lg"><X className="w-4 h-4" /></button>
         </div>
       )}
+
+      <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Company Profile</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Details used for billing, invoices, and IRD compliance.</p>
+        </div>
+        <div className="p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">Company Name</label>
+              <input type="text" value={formState.companyName} onChange={e => setFormState({ ...formState, companyName: e.target.value })} placeholder="e.g., Godawari Waste Management" className="w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">PAN / VAT Number</label>
+              <input type="text" value={formState.panNumber} onChange={e => setFormState({ ...formState, panNumber: e.target.value })} placeholder="e.g., 123456789" className="w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">Company Address</label>
+              <input type="text" value={formState.companyAddress} onChange={e => setFormState({ ...formState, companyAddress: e.target.value })} placeholder="e.g., Godawari, Lalitpur, Nepal" className="w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">H.S. Code</label>
+              <input type="text" value={formState.hsCode} onChange={e => setFormState({ ...formState, hsCode: e.target.value })} placeholder="e.g., 999999" className="w-full bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 font-semibold focus:ring-2 focus:ring-brand-500 outline-none" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/50">

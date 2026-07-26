@@ -59,6 +59,10 @@ async function getSettings(req, res) {
         calendarType: settings.calendarType,
         isBonusFeeEnabled: settings.isBonusFeeEnabled,
         customDeductions: settings.customDeductions,
+        companyName: settings.companyName,
+        companyAddress: settings.companyAddress,
+        panNumber: settings.panNumber,
+        hsCode: settings.hsCode,
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
       },
@@ -81,14 +85,10 @@ async function updateSettings(req, res) {
     // ── Step 1: Validate payload via Zod ──
     const parseResult = updateSettingsSchema.safeParse(req.body);
     if (!parseResult.success) {
-      const errors = parseResult.error.errors.map((e) => ({
-        field: e.path.join('.'),
-        message: e.message,
-      }));
-      return res.status(400).json({ success: false, errors });
+      return res.status(400).json({ success: false, errors: parseResult.error.errors });
     }
 
-    const { sudoPassword, billingCycleDay, calendarType, isBonusFeeEnabled } = parseResult.data;
+    const { sudoPassword, billingCycleDay, calendarType, isBonusFeeEnabled, companyName, companyAddress, panNumber, hsCode } = parseResult.data;
 
     // ── Step 2: SUDO RE-AUTHENTICATION ──
     // Fetch the current admin's password hash from the database.
@@ -146,19 +146,28 @@ async function updateSettings(req, res) {
     if (existingSettings) {
       updatedSettings = await prisma.globalSettings.update({
         where: { id: existingSettings.id },
-        data: {
-          billingCycleDay,
-          ...(calendarType && { calendarType }),
-          ...(typeof isBonusFeeEnabled === 'boolean' && { isBonusFeeEnabled }),
-        },
+        data: { 
+          billingCycleDay: billingCycleDay !== undefined ? billingCycleDay : existingSettings.billingCycleDay,
+          calendarType: calendarType !== undefined ? calendarType : existingSettings.calendarType,
+          isBonusFeeEnabled: isBonusFeeEnabled !== undefined ? isBonusFeeEnabled : existingSettings.isBonusFeeEnabled,
+          companyName: companyName !== undefined ? companyName : existingSettings.companyName,
+          companyAddress: companyAddress !== undefined ? companyAddress : existingSettings.companyAddress,
+          panNumber: panNumber !== undefined ? panNumber : existingSettings.panNumber,
+          hsCode: hsCode !== undefined ? hsCode : existingSettings.hsCode,
+        }
       });
     } else {
+      // First time initialization (fallback if seed wasn't run)
       updatedSettings = await prisma.globalSettings.create({
-        data: {
-          billingCycleDay,
+        data: { 
+          billingCycleDay: billingCycleDay || DEFAULTS.billingCycleDay,
           calendarType: calendarType || 'AD',
-          ...(typeof isBonusFeeEnabled === 'boolean' && { isBonusFeeEnabled }),
-        },
+          isBonusFeeEnabled: isBonusFeeEnabled !== undefined ? isBonusFeeEnabled : false,
+          companyName,
+          companyAddress,
+          panNumber,
+          hsCode,
+        }
       });
     }
 
@@ -193,6 +202,11 @@ async function updateSettings(req, res) {
         billingCycleDay: updatedSettings.billingCycleDay,
         calendarType: updatedSettings.calendarType,
         customDeductions: updatedSettings.customDeductions,
+        isBonusFeeEnabled: updatedSettings.isBonusFeeEnabled,
+        companyName: updatedSettings.companyName,
+        companyAddress: updatedSettings.companyAddress,
+        panNumber: updatedSettings.panNumber,
+        hsCode: updatedSettings.hsCode,
       },
     });
   } catch (error) {

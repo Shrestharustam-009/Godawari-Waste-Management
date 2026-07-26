@@ -73,7 +73,7 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
         
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'Godawari Waste Management'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.address) || 'Godawari, Lalitpur, Nepal'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'Godawari, Lalitpur, Nepal'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || 'NOT CONFIGURED'}</div>
           <div class="title">${invoiceType}</div>
           ${copyLabel}
@@ -105,7 +105,7 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
             <tr>
               <td class="text-left">1</td>
               <td class="text-left">${escapeHTML(tx.category?.name || tx.categoryName || 'Service Rendered')} ${tx.subCategory && tx.subCategory !== '-' ? '- ' + escapeHTML(tx.subCategory) : ''}</td>
-              <td class="text-center">${escapeHTML(tx.hsCode) || '999999'}</td>
+              <td class="text-center">${escapeHTML(settings?.hsCode) || 'N/A'}</td>
               <td class="text-right">${formatCurrency(tx.baseAmount)}</td>
             </tr>
           </tbody>
@@ -154,7 +154,7 @@ export const generateSalesReturnHTML = (tx, settings, customFormatDate) => {
         
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'Godawari Waste Management'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.address) || 'Godawari, Lalitpur, Nepal'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'Godawari, Lalitpur, Nepal'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || 'NOT CONFIGURED'}</div>
           <div class="title">CREDIT NOTE (SALES RETURN)</div>
         </div>
@@ -184,7 +184,7 @@ export const generateSalesReturnHTML = (tx, settings, customFormatDate) => {
             <tr>
               <td class="text-left">1</td>
               <td class="text-left">${escapeHTML(tx.returnReason || tx.note || 'Cancellation')}</td>
-              <td class="text-center">${escapeHTML(tx.hsCode) || '999999'}</td>
+              <td class="text-center">${escapeHTML(settings?.hsCode) || 'N/A'}</td>
               <td class="text-right">${formatCurrency(Math.abs(tx.baseAmount))}</td>
             </tr>
           </tbody>

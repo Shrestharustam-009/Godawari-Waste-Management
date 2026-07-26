@@ -73,7 +73,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             <h2 style={{ fontSize: '15px', margin: '0 0 4px 0', fontWeight: 'bold' }}>विनायक फोहोर मैला</h2>
             <p style={{ margin: '0', fontWeight: 'bold' }}>व्यवस्थापन प्रा.लि.</p>
             <p style={{ margin: '0', fontSize: '11px' }}>टोखा नगरपालिका-९, गोंगबु, काठमाडौँ</p>
-            <p style={{ margin: '0', fontSize: '11px' }}>VAT No: 606698005</p>
+            <p style={{ margin: '0', fontSize: '11px' }}>VAT No: {settings?.panNumber || '606698005'}</p>
             <p style={{ margin: '0', fontSize: '11px' }}>Phone: 01-4963742</p>
             <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
             <p style={{ margin: '4px 0', fontSize: '14px', fontWeight: 'bold' }}>{mainVat > 0 ? 'TAX INVOICE' : 'INVOICE'}</p>
@@ -234,7 +234,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
               <td style={{ padding: '12px', textAlign: 'left' }}>
                 <strong>Waste Collection Service Fee</strong>
               </td>
-              <td style={{ padding: '12px', textAlign: 'center' }}>{hsCode}</td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>{settings?.hsCode || 'N/A'}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>
                 {(() => {
                   const m1 = formatPeriodDate(paymentForStartDate) || getMonthName(paymentForStartDate);
@@ -266,7 +266,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
                   <td style={{ padding: '12px', textAlign: 'left' }}>
                     <strong>Festival Bonus Fee (Base)</strong>
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>{hsCode}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>{settings?.hsCode || 'N/A'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>-</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
                     Rs. {formatCurrency(bonusBase)}
