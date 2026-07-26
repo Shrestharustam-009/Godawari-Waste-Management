@@ -236,6 +236,16 @@ model IncomeLedger {
 
   note            String?       @db.Text
 
+  // ── IRD Compliance (CBMS) ──
+  printCount      Int           @default(0) // Tracks "Copy of Original"
+  hsCode          String?       @default("999999") @db.VarChar(20) // Harmonized System Code for services
+  isSyncedWithIRD Boolean       @default(false)
+  irdSyncDate     DateTime?
+  irdReceiptNo    String?       @db.VarChar(100) // IRD response sync ID
+  isSalesReturn   Boolean       @default(false) // True if this is a Credit Note
+  returnRefId     Int?          // If isSalesReturn=true, links to the original IncomeLedger ID
+  returnReason    String?       @db.VarChar(255)
+
   createdAt       DateTime      @default(now())
   isDeleted       Boolean       @default(false)
 
@@ -243,6 +253,8 @@ model IncomeLedger {
   @@index([collectedById])
   @@index([date])
   @@index([paymentMethod])
+  @@index([isSyncedWithIRD])
+  @@index([isSalesReturn])
   @@map("income_ledger")
 }
 

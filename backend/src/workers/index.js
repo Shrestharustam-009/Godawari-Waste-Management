@@ -8,6 +8,7 @@
 const { initBillingWorker } = require('./billing.worker');
 const { initDebtWorker } = require('./debt.worker');
 const { initReconciliationWorker } = require('./reconciliation.worker');
+const { initIrdSyncWorker } = require('./irdSync.worker');
 
 function startBackgroundWorkers() {
   // SECURITY GUARD: Allow disabling workers via environment variable
@@ -29,6 +30,7 @@ function startBackgroundWorkers() {
   initBillingWorker();          // Zero-Touch Billing Engine (01:00 AM daily)
   initDebtWorker();             // 15-Day Debt Hunter (02:00 AM daily)
   initReconciliationWorker();   // Webhook Auto-Reconciliation (every 15 mins)
+  initIrdSyncWorker();          // IRD CBMS Sync (every 10 mins)
   
   console.log('──────────────────────────────────────────────────────────────');
 }

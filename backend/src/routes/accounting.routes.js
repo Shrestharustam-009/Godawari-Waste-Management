@@ -5,6 +5,7 @@ const {
   createCategory,
   getAllCategories,
   logManualIncome,
+  incrementPrintCount,
   logExpense,
   logSalary,
   getSalaries,
@@ -13,7 +14,11 @@ const {
   getAccountingAnalysis,
   getFinancialStatements,
   getIncomeHistory,
-  getBonusFees
+  getBonusFees,
+  processSalesReturnRoute,
+  getVatRegister,
+  getSalesReturns,
+  getAuditLogs
 } = require('../controllers/accounting.controller');
 
 const { checkAuth, authorizeRoles } = require('../middleware/checkAuth');
@@ -28,6 +33,8 @@ router.get('/categories', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), getAllCate
 // Ledgers
 router.get('/income/history', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), getIncomeHistory);
 router.post('/income', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), logManualIncome);
+router.post('/income/:id/print', authorizeRoles('ADMIN', 'STAFF', 'DRIVER'), incrementPrintCount);
+router.post('/income/:id/return', authorizeRoles('ADMIN'), processSalesReturnRoute);
 router.post('/expense', authorizeRoles('ADMIN'), logExpense);
 router.post('/salary', authorizeRoles('ADMIN'), logSalary);
 router.get('/salary', authorizeRoles('ADMIN'), getSalaries);
@@ -40,5 +47,8 @@ router.get('/expenses/vehicle', authorizeRoles('ADMIN'), getVehicleExpenses);
 router.get('/analysis', authorizeRoles('ADMIN'), getAccountingAnalysis);
 router.get('/statements', authorizeRoles('ADMIN'), getFinancialStatements);
 router.get('/bonus-fees', authorizeRoles('ADMIN', 'STAFF'), getBonusFees);
+router.get('/vat-register', authorizeRoles('ADMIN'), getVatRegister);
+router.get('/sales-returns', authorizeRoles('ADMIN'), getSalesReturns);
+router.get('/audit-logs', authorizeRoles('ADMIN'), getAuditLogs);
 
 module.exports = router;

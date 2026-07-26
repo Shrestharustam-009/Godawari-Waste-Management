@@ -238,6 +238,8 @@ async function getCustomerProfile(req, res) {
             note: true,
             clearedDebtAmount: true,
             addedToAdvanceAmount: true,
+            isSalesReturn: true,
+            returnRefId: true,
             createdAt: true,
             collectedBy: {
               select: {

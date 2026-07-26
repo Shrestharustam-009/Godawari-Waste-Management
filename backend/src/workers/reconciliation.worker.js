@@ -53,11 +53,15 @@ async function runReconciliation() {
       try {
         const actualStatus = await fetchGatewayStatus(tx.referenceId);
         
-        // Use a transaction if we needed to update balances based on success,
-        // but since they were already recorded, we just update the status flag.
-        await prisma.incomeLedger.update({
-          where: { id: tx.id },
-          data: { status: actualStatus }
+        // Use a transaction to set the audit log user context
+        await prisma.$transaction(async (tx) => {
+          // SET AUDIT LOG USER CONTEXT: '0' denotes the automated system worker
+          await tx.$executeRaw`SET LOCAL app.current_user_id = ${'0'}`;
+
+          await tx.incomeLedger.update({
+            where: { id: tx.id },
+            data: { status: actualStatus }
+          });
         });
 
         // Log the automated fix

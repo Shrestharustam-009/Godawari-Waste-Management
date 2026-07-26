@@ -141,6 +141,9 @@ async function logManualIncome(req, res) {
         newOutstanding = newOutstanding.minus(grossAmount);
       }
 
+      // SET AUDIT LOG USER CONTEXT
+      await tx.$executeRaw`SET LOCAL app.current_user_id = ${String(req.user.id)}`;
+
       // UPDATE CUSTOMER
       await tx.customer.update({
         where: { customerId: resolvedCustomerId },
@@ -565,7 +568,7 @@ async function getFinancialStatements(req, res) {
     // Fetch entries
     const incomeEntries = await prisma.incomeLedger.findMany({
       where: { date: dateFilter, isDeleted: false, status: 'SUCCESSFUL' },
-      include: { incomeCategory: true },
+      include: { incomeCategory: true, customer: { select: { name: true, vatNumber: true, assignedArea: true } } },
       orderBy: { date: 'desc' }
     });
 
@@ -580,13 +583,17 @@ async function getFinancialStatements(req, res) {
       id: tx.id,
       date: tx.date,
       source: tx.source,
+      paymentMethod: tx.paymentMethod,
       amount: tx.amount.toString(),
       baseAmount: tx.baseAmount.toString(),
       vatRate: tx.vatRate.toString(),
       vatAmount: tx.vatAmount.toString(),
       categoryName: tx.incomeCategory.name,
       subCategory: tx.subCategory || '-',
-      note: tx.note
+      note: tx.note,
+      printCount: tx.printCount,
+      customer: tx.customer,
+      isSalesReturn: tx.isSalesReturn || false
     }));
 
     const formattedExpense = expenseEntries.map(tx => ({
@@ -652,10 +659,181 @@ async function getBonusFees(req, res) {
   }
 }
 
+// ============================================================================
+// INCREMENT INVOICE PRINT COUNT (IRD COMPLIANCE)
+// ============================================================================
+async function incrementPrintCount(req, res) {
+  try {
+    const { id } = req.params;
+    const ledger = await prisma.incomeLedger.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!ledger) {
+      return res.status(404).json({ success: false, error: 'Invoice not found.' });
+    }
+
+    // Ownership check: non-ADMIN users can only print their own invoices
+    if (req.user.role !== 'ADMIN' && ledger.collectedById !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'You can only print your own invoices.' });
+    }
+
+    const updated = await prisma.incomeLedger.update({
+      where: { id: Number(id) },
+      data: {
+        printCount: { increment: 1 }
+      }
+    });
+
+    return res.status(200).json({ success: true, printCount: updated.printCount });
+  } catch (error) {
+    console.error('[ACCOUNTING] incrementPrintCount error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to increment print count.' });
+  }
+}
+
+// ============================================================================
+// SALES RETURN ROUTE (ADMIN ONLY)
+// ============================================================================
+async function processSalesReturnRoute(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    // Validate reason is provided (IRD compliance requires documented reason)
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 3) {
+      return res.status(400).json({ success: false, error: 'A valid reason (minimum 3 characters) is required for sales returns.' });
+    }
+
+    // Using the centralized service engine for ACID guarantees
+    const { processSalesReturn } = require('../services/payment.service');
+    
+    const result = await processSalesReturn({
+      originalIncomeId: id,
+      reason: reason.trim(),
+      staffId: req.user.id
+    });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[ACCOUNTING] processSalesReturnRoute error:', error);
+    if (error.code) {
+      return res.status(400).json({ success: false, error: error.message, code: error.code });
+    }
+    return res.status(500).json({ success: false, error: 'Failed to process sales return.' });
+  }
+}
+
+// ============================================================================
+// IRD REPORTING (ADMIN ONLY)
+// ============================================================================
+
+async function getVatRegister(req, res) {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        date: {
+          gte: new Date(startDate),
+          lte: new Date(endDate + 'T23:59:59.999Z')
+        }
+      };
+    }
+
+    const vatRecords = await prisma.incomeLedger.findMany({
+      where: {
+        vatAmount: { gt: 0 },
+        isDeleted: false,
+        ...dateFilter
+      },
+      include: {
+        customer: { select: { customerId: true, name: true, vatNumber: true } },
+        collectedBy: { select: { name: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    return res.status(200).json({ success: true, data: vatRecords });
+  } catch (error) {
+    console.error('[ACCOUNTING] getVatRegister error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve VAT register.' });
+  }
+}
+
+async function getSalesReturns(req, res) {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        date: {
+          gte: new Date(startDate),
+          lte: new Date(endDate + 'T23:59:59.999Z')
+        }
+      };
+    }
+
+    const returnRecords = await prisma.incomeLedger.findMany({
+      where: {
+        isSalesReturn: true,
+        isDeleted: false,
+        ...dateFilter
+      },
+      include: {
+        customer: { select: { customerId: true, name: true, vatNumber: true } },
+        collectedBy: { select: { name: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    return res.status(200).json({ success: true, data: returnRecords });
+  } catch (error) {
+    console.error('[ACCOUNTING] getSalesReturns error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve Sales Returns.' });
+  }
+}
+
+async function getAuditLogs(req, res) {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const [logs, totalCount] = await Promise.all([
+      prisma.auditLog.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { performedBy: { select: { name: true, username: true } } }
+      }),
+      prisma.auditLog.count()
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+  } catch (error) {
+    console.error('[ACCOUNTING] getAuditLogs error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve Audit Logs.' });
+  }
+}
+
 module.exports = {
   createCategory,
   getAllCategories,
   logManualIncome,
+  incrementPrintCount,
+  processSalesReturnRoute,
   logExpense,
   logSalary,
   getSalaries,
@@ -664,5 +842,10 @@ module.exports = {
   getAccountingAnalysis,
   getFinancialStatements,
   getIncomeHistory,
-  getBonusFees
+  getBonusFees,
+  getVatRegister,
+  getSalesReturns,
+  getAuditLogs
 };
+
+

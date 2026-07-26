@@ -613,8 +613,141 @@ async function getCustomerBalance(customerId) {
   };
 }
 
+// ============================================================================
+// 4. PROCESS SALES RETURN (CANCEL INVOICE - IRD COMPLIANCE)
+// ============================================================================
+/**
+ * Issues a Sales Return (Credit Note) for a previously issued invoice.
+ * This effectively voids the original invoice without deleting it from DB,
+ * maintaining IRD compliance.
+ * It reverses the financial impact (restores debt / removes advance).
+ */
+async function processSalesReturn({
+  originalIncomeId,
+  reason,
+  staffId
+}) {
+  return await prisma.$transaction(async (tx) => {
+    // SET AUDIT LOG USER CONTEXT
+    await tx.$executeRaw`SET LOCAL app.current_user_id = ${String(staffId)}`;
+
+    // 1. Fetch original ledger record
+    const originalLedger = await tx.incomeLedger.findUnique({
+      where: { id: Number(originalIncomeId) },
+      include: { customer: true }
+    });
+
+    if (!originalLedger) {
+      throw Object.assign(new Error('Original invoice not found.'), { code: 'INVOICE_NOT_FOUND' });
+    }
+
+    if (originalLedger.isSalesReturn) {
+      throw Object.assign(new Error('Cannot return a return invoice.'), { code: 'INVALID_RETURN' });
+    }
+
+    if (originalLedger.isDeleted) {
+      throw Object.assign(new Error('Invoice is already deleted.'), { code: 'INVALID_RETURN' });
+    }
+
+    // Check if already returned
+    const existingReturn = await tx.incomeLedger.findFirst({
+      where: { returnRefId: originalLedger.id, isSalesReturn: true }
+    });
+
+    if (existingReturn) {
+      throw Object.assign(new Error('This invoice has already been returned.'), { code: 'ALREADY_RETURNED' });
+    }
+
+    const { customer } = originalLedger;
+
+    // 2. Reverse customer balances
+    // Find out how much was cleared vs added to advance in original transaction
+    const clearedDebtAmount = new Decimal(originalLedger.clearedDebtAmount || 0);
+    const addedToAdvanceAmount = new Decimal(originalLedger.addedToAdvanceAmount || 0);
+
+    const currentOutstanding = new Decimal(customer.outstandingPayment);
+    const currentAdvance = new Decimal(customer.advanceBalance);
+
+    // If it was added to advance, remove it from advance. 
+    // If current advance is not enough, the rest becomes debt.
+    let newAdvance = currentAdvance.minus(addedToAdvanceAmount);
+    let extraDebtFromAdvance = new Decimal(0);
+    
+    if (newAdvance.lt(0)) {
+      extraDebtFromAdvance = newAdvance.abs();
+      newAdvance = new Decimal(0);
+    }
+
+    // The new debt is the current debt + what was cleared previously + any shortfall from advance
+    const newOutstanding = currentOutstanding.plus(clearedDebtAmount).plus(extraDebtFromAdvance);
+
+    // Ensure due dates and advance dates are restored if they were cleared
+    // For simplicity, we just set the dates to today if they are missing and there's a balance.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updateData = {
+      outstandingPayment: newOutstanding.toFixed(2),
+      advanceBalance: newAdvance.toFixed(2)
+    };
+
+    if (newOutstanding.gt(0) && currentOutstanding.eq(0)) {
+      updateData.debtStartDate = today;
+      updateData.dueStartDate = today;
+      updateData.dueEndDate = today;
+    }
+    
+    if (newAdvance.eq(0) && currentAdvance.gt(0)) {
+      updateData.advanceStartDate = null;
+      updateData.advanceEndDate = null;
+    }
+
+    await tx.customer.update({
+      where: { customerId: customer.customerId },
+      data: updateData
+    });
+
+    // 3. Create negative ledger entry (Sales Return)
+    const returnLedger = await tx.incomeLedger.create({
+      data: {
+        customerId: customer.customerId,
+        // Reverse amounts
+        amount: new Decimal(originalLedger.amount).negated().toFixed(2),
+        baseAmount: new Decimal(originalLedger.baseAmount).negated().toFixed(2),
+        vatAmount: new Decimal(originalLedger.vatAmount).negated().toFixed(2),
+        vatRate: originalLedger.vatRate,
+        paymentMethod: originalLedger.paymentMethod,
+        source: originalLedger.source,
+        date: new Date(),
+        idempotencyKey: `RETURN_${originalLedger.id}_${Date.now()}`,
+        collectedById: Number(staffId),
+        incomeCategoryId: originalLedger.incomeCategoryId,
+        note: `Sales Return for Receipt: REC-${originalLedger.id}`,
+        clearedDebtAmount: clearedDebtAmount.negated().toFixed(2),
+        addedToAdvanceAmount: addedToAdvanceAmount.negated().toFixed(2),
+        
+        // IRD Fields
+        isSalesReturn: true,
+        returnRefId: originalLedger.id,
+        returnReason: reason || 'Customer requested cancellation'
+      }
+    });
+
+    return {
+      success: true,
+      returnLedger,
+      previousOutstanding: currentOutstanding.toFixed(2),
+      newOutstanding: newOutstanding.toFixed(2),
+      previousAdvance: currentAdvance.toFixed(2),
+      newAdvance: newAdvance.toFixed(2)
+    };
+  }, { isolationLevel: 'Serializable' });
+}
+
 module.exports = {
   processFieldPayment,
   processManualIncome,
   getCustomerBalance,
+  processSalesReturn,
 };
+
