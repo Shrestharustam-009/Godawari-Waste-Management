@@ -40,10 +40,12 @@ export default function Recent() {
     try {
       // 1. Tell backend we are printing this invoice
       const res = await api.post(`/accounting/income/${tx.id}/print`);
-      const newPrintCount = res.data?.success ? res.data.printCount : 1;
+      if (res.data?.success) {
+        setTransactions(prev => prev.map(item => item.id === tx.id ? { ...item, printCount: res.data.printCount } : item));
+      }
       
       // 2. Set the data with updated print count
-      setSelectedTxToPrint({ ...tx, printCount: newPrintCount });
+      setSelectedTxToPrint(tx);
       setIsPOSPrint(isPOS);
       
       // 3. Print

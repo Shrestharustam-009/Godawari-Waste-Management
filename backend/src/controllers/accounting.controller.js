@@ -678,11 +678,16 @@ async function incrementPrintCount(req, res) {
       return res.status(403).json({ success: false, error: 'You can only print your own invoices.' });
     }
 
-    const updated = await prisma.incomeLedger.update({
-      where: { id: Number(id) },
-      data: {
-        printCount: { increment: 1 }
+    const updated = await prisma.$transaction(async (tx) => {
+      if (req.user?.id) {
+        await tx.$executeRawUnsafe(`SET LOCAL app.current_user_id = '${req.user.id}'`);
       }
+      return await tx.incomeLedger.update({
+        where: { id: Number(id) },
+        data: {
+          printCount: { increment: 1 }
+        }
+      });
     });
 
     return res.status(200).json({ success: true, printCount: updated.printCount });
@@ -730,26 +735,39 @@ async function processSalesReturnRoute(req, res) {
 
 async function getVatRegister(req, res) {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, search } = req.query;
     
-    let dateFilter = {};
-    if (startDate && endDate) {
-      dateFilter = {
-        date: {
-          gte: new Date(startDate),
-          lte: new Date(endDate + 'T23:59:59.999Z')
-        }
-      };
+    const where = {
+      vatAmount: { gt: 0 },
+      isDeleted: false,
+    };
+
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) {
+        where.date.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.date.lte = new Date(endDate + 'T23:59:59.999Z');
+      }
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      const numId = parseInt(term.replace(/^REC-/i, ''));
+      where.OR = [
+        ...(isNaN(numId) ? [] : [{ id: numId }]),
+        { customer: { is: { name: { contains: term, mode: 'insensitive' } } } },
+        { customer: { is: { vatNumber: { contains: term, mode: 'insensitive' } } } },
+        { customer: { is: { customerId: { contains: term, mode: 'insensitive' } } } },
+        { irdReceiptNo: { contains: term, mode: 'insensitive' } }
+      ];
     }
 
     const vatRecords = await prisma.incomeLedger.findMany({
-      where: {
-        vatAmount: { gt: 0 },
-        isDeleted: false,
-        ...dateFilter
-      },
+      where,
       include: {
-        customer: { select: { customerId: true, name: true, vatNumber: true } },
+        customer: { select: { customerId: true, name: true, vatNumber: true, assignedArea: true } },
         collectedBy: { select: { name: true } }
       },
       orderBy: { date: 'desc' }
@@ -783,7 +801,7 @@ async function getSalesReturns(req, res) {
         ...dateFilter
       },
       include: {
-        customer: { select: { customerId: true, name: true, vatNumber: true } },
+        customer: { select: { customerId: true, name: true, vatNumber: true, assignedArea: true } },
         collectedBy: { select: { name: true } }
       },
       orderBy: { date: 'desc' }
@@ -799,17 +817,56 @@ async function getSalesReturns(req, res) {
 async function getAuditLogs(req, res) {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-    const skip = (page - 1) * limit;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 1000);
+    const isExportAll = req.query.all === 'true';
+    const skip = isExportAll ? 0 : (page - 1) * limit;
+    const take = isExportAll ? 10000 : limit; // Higher cap for IRD audit exports
+    const { action, entityType, startDate, endDate, search } = req.query;
+
+    const where = {};
+
+    if (action && action !== 'ALL') {
+      where.action = action;
+    }
+
+    if (entityType && entityType !== 'ALL') {
+      where.entityType = entityType;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { entityId: { contains: term, mode: 'insensitive' } },
+        { action: { contains: term, mode: 'insensitive' } },
+        { entityType: { contains: term, mode: 'insensitive' } },
+        { performedBy: { is: { name: { contains: term, mode: 'insensitive' } } } },
+        { performedBy: { is: { username: { contains: term, mode: 'insensitive' } } } },
+        // Also match system/trigger events stored in JSON details.db_user
+        { details: { path: ['db_user'], string_contains: term } }
+      ];
+    }
 
     const [logs, totalCount] = await Promise.all([
       prisma.auditLog.findMany({
+        where,
         skip,
-        take: limit,
+        take,
         orderBy: { createdAt: 'desc' },
-        include: { performedBy: { select: { name: true, username: true } } }
+        include: { performedBy: { select: { id: true, name: true, username: true, role: true } } }
       }),
-      prisma.auditLog.count()
+      prisma.auditLog.count({ where })
     ]);
 
     return res.status(200).json({
@@ -817,9 +874,9 @@ async function getAuditLogs(req, res) {
       data: logs,
       pagination: {
         page,
-        limit,
+        limit: take,
         totalCount,
-        totalPages: Math.ceil(totalCount / limit)
+        totalPages: Math.ceil(totalCount / (take || 1))
       }
     });
   } catch (error) {

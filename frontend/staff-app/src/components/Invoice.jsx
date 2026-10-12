@@ -4,8 +4,12 @@ import invoiceHeaderImg from '../assets/invoice-header.png';
 import { useSettings } from '../context/SettingsContext';
 import { toBS } from '@zener/nepali-datepicker-react';
 
-const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS, balanceSnapshot, printCount = 1, hsCode = "999999" }) => {
+const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStartDate, paymentForEndDate, baseAmount, vatAmount, bonusFee, isPOS, balanceSnapshot, printCount = 0, hsCode = "999999", dualCopy }) => {
   const { formatDate, settings } = useSettings();
+
+  const isCopy = Number(printCount || 0) > 0;
+  const copyLabel = isCopy ? `Copy of Original (${printCount})` : '';
+  const copyLabelNepali = isCopy ? `Copy of Original (प्रतिलिपि) (${printCount})` : '';
 
   const numBonus = Number(bonusFee || 0);
   const bonusBase = numBonus / 1.13;
@@ -18,6 +22,58 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
 
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const amountToWords = (num) => {
+    const n = Number(num);
+    if (isNaN(n) || n === 0) return 'Rupees Zero Only';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const convertLessThanOneThousand = (val) => {
+      let str = '';
+      if (val >= 100) {
+        str += ones[Math.floor(val / 100)] + ' Hundred ';
+        val %= 100;
+      }
+      if (val >= 20) {
+        str += tens[Math.floor(val / 10)] + ' ';
+        val %= 10;
+      }
+      if (val > 0) {
+        str += ones[val] + ' ';
+      }
+      return str.trim();
+    };
+
+    const integerPart = Math.floor(Math.abs(n));
+    const decimalPart = Math.round((Math.abs(n) - integerPart) * 100);
+
+    let result = '';
+    let crore = Math.floor(integerPart / 10000000);
+    let remainder = integerPart % 10000000;
+    let lakh = Math.floor(remainder / 100000);
+    remainder %= 100000;
+    let thousand = Math.floor(remainder / 1000);
+    remainder %= 1000;
+    let hundred = remainder;
+
+    if (crore > 0) result += convertLessThanOneThousand(crore) + ' Crore ';
+    if (lakh > 0) result += convertLessThanOneThousand(lakh) + ' Lakh ';
+    if (thousand > 0) result += convertLessThanOneThousand(thousand) + ' Thousand ';
+    if (hundred > 0) result += convertLessThanOneThousand(hundred) + ' ';
+
+    result = result.trim();
+    if (!result) result = 'Zero';
+
+    let finalStr = 'Rupees ' + result;
+    if (decimalPart > 0) {
+      finalStr += ' and ' + convertLessThanOneThousand(decimalPart) + ' Paisa';
+    }
+    finalStr += ' Only';
+    return finalStr;
   };
 
   const clearedDebt = balanceSnapshot 
@@ -64,115 +120,176 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
     }
   };
 
+  // Simultaneous dual printing for field POS: prints Customer Copy followed by Office Copy
+  const shouldPrintDual = isPOS && (dualCopy !== undefined ? dualCopy : (Number(printCount || 0) === 0));
+
+  const renderPOSSlip = (isOfficeCopy = false) => {
+    const isThisSlipCopy = isOfficeCopy || isCopy;
+    const slipCopyNumber = isOfficeCopy ? (Number(printCount || 0) > 0 ? printCount : 1) : printCount;
+    const slipCopyLabelNepali = `Copy of Original (प्रतिलिपि) (${slipCopyNumber})`;
+
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '50mm',
+        margin: '0 auto',
+        padding: '8mm 2mm 4mm 2mm',
+        boxSizing: 'border-box',
+        fontFamily: 'monospace, "Courier New", Courier',
+        color: '#000',
+        fontSize: '11px',
+        lineHeight: '1.25'
+      }}>
+        {/* POS Header */}
+        <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+          {isOfficeCopy && (
+            <div style={{ marginBottom: '4px' }}>
+              <span style={{ fontSize: '9.5px', fontWeight: 'bold', border: '1px solid #000', padding: '1px 5px', textTransform: 'uppercase' }}>
+                OFFICE COPY (कार्यालय प्रति)
+              </span>
+            </div>
+          )}
+          <h2 style={{ fontSize: '13.5px', margin: '0 0 2px 0', fontWeight: 'bold', textTransform: 'uppercase' }}>
+            {settings?.companyName || 'Godawari Waste Management'}
+          </h2>
+          <p style={{ margin: '0', fontSize: '10px' }}>{settings?.companyAddress || 'Godawari, Lalitpur, Nepal'}</p>
+          <p style={{ margin: '0', fontSize: '10px' }}>PAN/VAT: {settings?.panNumber || '606698005'}</p>
+          <p style={{ margin: '0', fontSize: '10px' }}>Phone: {settings?.contactNumber || settings?.phone || '01-4963742'}</p>
+          <div style={{ borderBottom: '1px solid #000', margin: '5px 0' }}></div>
+          <p style={{ margin: '3px 0', fontSize: '12px', fontWeight: 'bold' }}>
+            {mainVat > 0 || customer?.vatNumber ? 'TAX INVOICE (कर विजक)' : 'ABBREVIATED TAX INVOICE (संक्षिप्त कर विजक)'}
+          </p>
+          {isThisSlipCopy && (
+            <p style={{ margin: '2px 0 0 0', fontSize: '10.5px', fontStyle: 'italic', fontWeight: 'bold', color: '#b91c1c' }}>
+              {slipCopyLabelNepali}
+            </p>
+          )}
+          <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+        </div>
+        
+        {/* POS Info */}
+        <div style={{ textAlign: 'center', marginBottom: '6px', fontSize: '10.5px' }}>
+          <p style={{ margin: '1px 0' }}>Date: {formatPeriodDate(date)}</p>
+          <p style={{ margin: '1px 0' }}>Receipt No: {receiptNo || 'N/A'}</p>
+          <p style={{ margin: '1px 0' }}>Staff: {staffName || 'Staff'}</p>
+          <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+        </div>
+
+        {/* POS Customer */}
+        <div style={{ marginBottom: '6px', fontSize: '10.5px' }}>
+          <p style={{ margin: '1px 0', fontWeight: 'bold' }}>Name: {customer?.name}</p>
+          <p style={{ margin: '1px 0' }}>Monthly Fee: Rs.{formatCurrency(customer?.monthlyFee)}</p>
+          {Number(customer?.increasedFee) > 0 && (
+            <p style={{ margin: '1px 0' }}>Increased fee: Rs.{formatCurrency(customer?.increasedFee)}</p>
+          )}
+          <p style={{ margin: '1px 0' }}>Cust ID: {customer?.customerId}</p>
+          {customer?.vatNumber && <p style={{ margin: '1px 0' }}>PAN: {customer?.vatNumber}</p>}
+          <p style={{ margin: '1px 0' }}>Phone: {customer?.phone || 'N/A'}</p>
+          <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+        </div>
+
+        {/* POS Period & Amounts */}
+        <div style={{ marginBottom: '6px', fontSize: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '3px' }}>
+            <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Period:</span>
+            <span style={{ textAlign: 'right' }}>
+              {(() => {
+                const m1 = formatPeriodDate(paymentForStartDate) || getMonthName(paymentForStartDate);
+                const m2 = formatPeriodDate(paymentForEndDate) || getMonthName(paymentForEndDate);
+                if (m1 && m2) return m1 === m2 ? m1 : `${m1} - ${m2}`;
+                if (m1 || m2) return m1 || m2;
+                return getMonthName(date) || 'N/A';
+              })()}
+            </span>
+          </div>
+          <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+        </div>
+
+        {/* POS Totals */}
+        <div style={{ marginBottom: '8px', fontSize: '11px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Base:</span>
+            <span>Rs.{formatCurrency(mainBase)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>VAT (13%):</span>
+            <span>Rs.{formatCurrency(mainVat)}</span>
+          </div>
+          {numBonus > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Bonus Base:</span>
+                <span>Rs.{formatCurrency(bonusBase)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Bonus VAT:</span>
+                <span>Rs.{formatCurrency(bonusVat)}</span>
+              </div>
+            </>
+          )}
+          <div style={{ borderBottom: '1px solid #000', margin: '5px 0' }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13.5px', marginTop: '3px' }}>
+            <span>TOTAL:</span>
+            <span>Rs.{formatCurrency(grandTotal)}</span>
+          </div>
+          <p style={{ margin: '3px 0 0 0', fontSize: '9.5px', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.2' }}>
+            In Words: {amountToWords(grandTotal)}
+          </p>
+          
+          {(clearedDebt > 0 || addedToWallet > 0) && (
+            <div style={{ marginTop: '6px', paddingTop: '5px', borderTop: '1px dashed #000', fontSize: '10px', textAlign: 'left' }}>
+              <p style={{ margin: '0 0 2px 0', fontWeight: 'bold' }}>Payment Allocation:</p>
+              {clearedDebt > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Cleared Dues:</span>
+                  <span>Rs.{formatCurrency(clearedDebt)}</span>
+                </div>
+              )}
+              {addedToWallet > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Wallet Advance:</span>
+                  <span>Rs.{formatCurrency(addedToWallet)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* POS Footer */}
+        <div style={{ textAlign: 'center', marginTop: '10px' }}>
+          <p style={{ margin: '0', fontSize: '10px' }}>Thank you!</p>
+          <p style={{ margin: '2px 0 0 0', fontSize: '10px' }}>Keep our city clean</p>
+          
+          {isOfficeCopy && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '4px', fontSize: '9.5px', textAlign: 'center' }}>
+              <div style={{ width: '45%', borderTop: '1px solid #000', paddingTop: '2px' }}>Collector Sign<br/>(संकलनकर्ता)</div>
+              <div style={{ width: '45%', borderTop: '1px solid #000', paddingTop: '2px' }}>Customer Sign<br/>(ग्राहक)</div>
+            </div>
+          )}
+          
+          <div style={{ height: '35px' }}></div> {/* Spacing for thermal tear off */}
+        </div>
+      </div>
+    );
+  };
+
   if (isPOS) {
     return createPortal(
       <div className="print-only">
-        <div style={{ width: '58mm', margin: '0 auto', fontFamily: 'monospace', color: '#000', fontSize: '12px', lineHeight: '1.3' }}>
-          {/* POS Header */}
-          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-            <h2 style={{ fontSize: '15px', margin: '0 0 4px 0', fontWeight: 'bold' }}>विनायक फोहोर मैला</h2>
-            <p style={{ margin: '0', fontWeight: 'bold' }}>व्यवस्थापन प्रा.लि.</p>
-            <p style={{ margin: '0', fontSize: '11px' }}>टोखा नगरपालिका-९, गोंगबु, काठमाडौँ</p>
-            <p style={{ margin: '0', fontSize: '11px' }}>VAT No: {settings?.panNumber || '606698005'}</p>
-            <p style={{ margin: '0', fontSize: '11px' }}>Phone: 01-4963742</p>
-            <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
-            <p style={{ margin: '4px 0', fontSize: '14px', fontWeight: 'bold' }}>{mainVat > 0 ? 'TAX INVOICE' : 'INVOICE'}</p>
-            {printCount > 1 && <p style={{ margin: '2px 0 0 0', fontSize: '11px', fontStyle: 'italic' }}>Copy of Original</p>}
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
-          </div>
-          
-          {/* POS Info */}
-          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <p style={{ margin: '2px 0' }}>Date: {formatPeriodDate(date)}</p>
-            <p style={{ margin: '2px 0' }}>Receipt No: {receiptNo || 'N/A'}</p>
-            <p style={{ margin: '2px 0' }}>Staff: {staffName || 'Staff'}</p>
-            <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-          </div>
+        {/* Slip 1: Original Tax Invoice */}
+        {renderPOSSlip(false)}
 
-          {/* POS Customer */}
-          <div style={{ marginBottom: '8px' }}>
-            <p style={{ margin: '2px 0' }}>Name: {customer?.name}</p>
-            <p style={{ margin: '2px 0' }}>Monthly Fee: Rs. {formatCurrency(customer?.monthlyFee)}</p>
-            {Number(customer?.increasedFee) > 0 && (
-              <p style={{ margin: '2px 0' }}>Increased fee (applicable): Rs. {formatCurrency(customer?.increasedFee)}</p>
-            )}
-            <p style={{ margin: '2px 0' }}>ID: {customer?.customerId}</p>
-            <p style={{ margin: '2px 0' }}>VAT No: {customer?.vatNumber || 'N/A'}</p>
-            <p style={{ margin: '2px 0' }}>Phone: {customer?.phone || 'N/A'}</p>
-            <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
-          </div>
-
-          {/* POS Period & Amounts */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Period:</span>
-              <span style={{ textAlign: 'right' }}>
-                {(() => {
-                  const m1 = formatPeriodDate(paymentForStartDate) || getMonthName(paymentForStartDate);
-                  const m2 = formatPeriodDate(paymentForEndDate) || getMonthName(paymentForEndDate);
-                  if (m1 && m2) return m1 === m2 ? m1 : `${m1} to ${m2}`;
-                  if (m1 || m2) return m1 || m2;
-                  return getMonthName(date) || 'N/A';
-                })()}
-              </span>
+        {/* Separator and Slip 2: Office Copy (Simultaneous Print) */}
+        {shouldPrintDual && (
+          <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+            <div style={{ textAlign: 'center', margin: '0 auto', maxWidth: '50mm', borderTop: '2px dashed #000', paddingTop: '6px', fontSize: '9px', fontWeight: 'bold' }}>
+              ✂ - - - - - - - - - - - - - - ✂
+              <div style={{ margin: '2px 0' }}>TEAR HERE / यहाँबाट च्यात्नुहोस्</div>
+              ✂ - - - - - - - - - - - - - - ✂
             </div>
-            <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }}></div>
+            {renderPOSSlip(true)}
           </div>
-
-          {/* POS Totals */}
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Base:</span>
-              <span>Rs.{formatCurrency(mainBase)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>VAT:</span>
-              <span>Rs.{formatCurrency(mainVat)}</span>
-            </div>
-            {numBonus > 0 && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Bonus Base:</span>
-                  <span>Rs.{formatCurrency(bonusBase)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Bonus VAT:</span>
-                  <span>Rs.{formatCurrency(bonusVat)}</span>
-                </div>
-              </>
-            )}
-            <div style={{ borderBottom: '1px solid #000', margin: '6px 0' }}></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginTop: '4px' }}>
-              <span>TOTAL:</span>
-              <span>Rs.{formatCurrency(grandTotal)}</span>
-            </div>
-            
-            {(clearedDebt > 0 || addedToWallet > 0) && (
-              <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #000', fontSize: '11px', textAlign: 'left' }}>
-                <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>Payment Allocation:</p>
-                {clearedDebt > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Cleared Dues:</span>
-                    <span>Rs.{formatCurrency(clearedDebt)}</span>
-                  </div>
-                )}
-                {addedToWallet > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Smart Wallet Advance:</span>
-                    <span>Rs.{formatCurrency(addedToWallet)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* POS Footer */}
-          <div style={{ textAlign: 'center', marginTop: '20px' }}>
-            <p style={{ margin: '0', fontSize: '11px' }}>Thank you!</p>
-            <p style={{ margin: '2px 0 0 0', fontSize: '11px' }}>Keep our city clean</p>
-            <div style={{ height: '40px' }}></div> {/* Spacing for tear off */}
-          </div>
-        </div>
+        )}
       </div>,
       document.body
     );
@@ -189,8 +306,8 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             alt="Header" 
             style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
           />
-          <h2 style={{ margin: '10px 0 0 0', textTransform: 'uppercase', fontSize: '20px' }}>{mainVat > 0 ? 'Tax Invoice (कर विजक)' : 'Invoice'}</h2>
-          {printCount > 1 && <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontStyle: 'italic', color: '#dc2626' }}>Copy of Original (प्रतिलिपि)</p>}
+          <h2 style={{ margin: '10px 0 0 0', textTransform: 'uppercase', fontSize: '20px' }}>{(mainVat > 0 || customer?.vatNumber) ? 'Tax Invoice (कर विजक)' : 'Abbreviated Tax Invoice (संक्षिप्त कर विजक)'}</h2>
+          {isCopy && <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontStyle: 'italic', color: '#dc2626', fontWeight: 'bold' }}>{copyLabelNepali}</p>}
         </div>
 
         {/* Info Grid */}
@@ -323,6 +440,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderTop: '2px solid #000' }}>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Total Paid:</span>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Rs. {formatCurrency(grandTotal)}</span>
+            </div>
+            <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #9ca3af', fontSize: '12px' }}>
+              <strong>In Words (अक्षरेपी):</strong> <em>{amountToWords(grandTotal)}</em>
             </div>
             
             {(clearedDebt > 0 || addedToWallet > 0) && (

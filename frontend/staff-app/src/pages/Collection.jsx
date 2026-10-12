@@ -123,8 +123,15 @@ export default function Collection() {
 
   const handlePrintReceipt = (isPOS = false) => {
     setIsPOSPrint(isPOS);
-    setTimeout(() => {
+    setTimeout(async () => {
       window.print();
+      if (receiptData?.incomeId) {
+        try {
+          await api.post(`/accounting/income/${receiptData.incomeId}/print`);
+        } catch (err) {
+          console.error('Failed to track print count:', err);
+        }
+      }
     }, 100);
   };
 
@@ -171,6 +178,8 @@ export default function Collection() {
           bonusFee={bonusFee}
           isPOS={isPOSPrint}
           balanceSnapshot={receiptData?.balanceSnapshot}
+          printCount={0}
+          dualCopy={true}
         />
       </div>
     );
