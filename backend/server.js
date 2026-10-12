@@ -238,8 +238,8 @@ app.get('/api/health', async (req, res) => {
 // Apply authRateLimiter ONLY to authentication routes.
 // Apply authenticateJWT + blacklistGuard to ALL protected routes.
 
-// ── Auth Routes (rate-limited, public) ──
-app.use('/api/v1/auth', authRateLimiter, require('./src/routes/auth.routes'));
+// ── Auth Routes (public, login endpoints have dedicated rate limiter) ──
+app.use('/api/v1/auth', require('./src/routes/auth.routes'));
 
 // ── Protected Routes (checkAuth handles JWT verification + blacklist) ──
 app.use('/api/v1/payments', checkAuth, require('./src/routes/payment.routes'));
