@@ -629,7 +629,7 @@ async function processSalesReturn({
 }) {
   return await prisma.$transaction(async (tx) => {
     // SET AUDIT LOG USER CONTEXT
-    await tx.$executeRaw`SET LOCAL app.current_user_id = ${String(staffId)}`;
+    await tx.$executeRawUnsafe(`SET LOCAL app.current_user_id = '${String(staffId)}'`);
 
     // 1. Fetch original ledger record
     const originalLedger = await tx.incomeLedger.findUnique({

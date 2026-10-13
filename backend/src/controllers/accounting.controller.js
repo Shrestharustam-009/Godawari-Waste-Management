@@ -142,7 +142,7 @@ async function logManualIncome(req, res) {
       }
 
       // SET AUDIT LOG USER CONTEXT
-      await tx.$executeRaw`SET LOCAL app.current_user_id = ${String(req.user.id)}`;
+      await tx.$executeRawUnsafe(`SET LOCAL app.current_user_id = '${String(req.user.id)}'`);
 
       // UPDATE CUSTOMER
       await tx.customer.update({

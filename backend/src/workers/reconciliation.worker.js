@@ -56,7 +56,7 @@ async function runReconciliation() {
         // Use a transaction to set the audit log user context
         await prisma.$transaction(async (tx) => {
           // SET AUDIT LOG USER CONTEXT: '0' denotes the automated system worker
-          await tx.$executeRaw`SET LOCAL app.current_user_id = ${'0'}`;
+          await tx.$executeRawUnsafe(`SET LOCAL app.current_user_id = '0'`);
 
           await tx.incomeLedger.update({
             where: { id: tx.id },

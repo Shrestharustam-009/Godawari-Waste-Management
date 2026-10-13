@@ -84,7 +84,7 @@ async function syncIncomeLedgers() {
         // 4. Persistence Transaction to update your web dashboard grid values
         await prisma.$transaction(async (tx) => {
           // SET AUDIT LOG USER CONTEXT: '1' denotes system administrator or background worker
-          await tx.$executeRaw`SET LOCAL app.current_user_id = '1'`;
+          await tx.$executeRawUnsafe(`SET LOCAL app.current_user_id = '1'`);
           
           await tx.incomeLedger.update({
             where: { id: record.id },
