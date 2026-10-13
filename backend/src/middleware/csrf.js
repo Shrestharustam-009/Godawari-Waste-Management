@@ -21,8 +21,26 @@
  * @returns {Function} Express middleware
  */
 function csrfProtection({ allowedOrigins = [] } = {}) {
+  const envOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+  const defaultAllowed = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'https://admin.vinayakfohotbewasthapan.com',
+    'https://staff.vinayakfohotbewasthapan.com',
+    'https://customer.vinayakfohotbewasthapan.com',
+    'https://vinayakfohotbewasthapan.com',
+    ...allowedOrigins,
+    ...envOrigins,
+  ];
+
   // Pre-filter falsy values (e.g., undefined CORS_ORIGIN env var)
-  const trustedOrigins = new Set(allowedOrigins.filter(Boolean));
+  const trustedOrigins = new Set(defaultAllowed.filter(Boolean));
 
   return (req, res, next) => {
     // Safe methods don't change state — skip validation
@@ -47,6 +65,13 @@ function csrfProtection({ allowedOrigins = [] } = {}) {
     if (trustedOrigins.has(requestOrigin)) {
       return next();
     }
+
+    try {
+      const url = new URL(requestOrigin);
+      if (url.hostname.endsWith('vinayakfohotbewasthapan.com')) {
+        return next();
+      }
+    } catch (e) {}
 
     // Block the request — origin is not trusted
     return res.status(403).json({

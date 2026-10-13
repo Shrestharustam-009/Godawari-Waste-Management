@@ -35,16 +35,36 @@ const PORT = parseInt(process.env.PORT, 10) || 4000;
 app.use(helmet());
 
 // CORS: Restrict to known frontend origins in production
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  const envOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+  const allowedOrigins = [
+    'http://localhost:3000', 
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'https://admin.vinayakfohotbewasthapan.com',
+    'https://staff.vinayakfohotbewasthapan.com',
+    'https://customer.vinayakfohotbewasthapan.com',
+    'https://vinayakfohotbewasthapan.com',
+    ...envOrigins
+  ];
+
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith('vinayakfohotbewasthapan.com')) return true;
+  } catch (e) {}
+  return false;
+};
+
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000', 
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      process.env.CORS_ORIGIN
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
