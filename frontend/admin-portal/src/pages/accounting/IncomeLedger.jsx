@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
 import { useSettings } from '../../context/SettingsContext';
-import { TrendingUp, Loader2, Plus, Tag, Search, Download } from 'lucide-react';
+import { TrendingUp, Loader2, Plus, Tag, Search, Download, RotateCcw } from 'lucide-react';
 import DatePicker from '../../components/DatePicker';
-import { generateInvoiceHTML } from '../../lib/printTemplates';
+import { generateInvoiceHTML, generateSalesReturnHTML } from '../../lib/printTemplates';
 const formatCurrency = (val) => {
   return Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
@@ -158,25 +158,66 @@ export default function IncomeLedger() {
   const [showModal, setShowModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   
+  // Sales Return State
+  const [returnTx, setReturnTx] = useState({ isOpen: false, tx: null, reason: '' });
+  const [returnLoading, setReturnLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
   const [filterType, setFilterType] = useState('ALL'); // ALL | MANUAL_ENTRY | FIELD_APP
   const [searchQuery, setSearchQuery] = useState('');
   const { settings, formatDate } = useSettings();
 
+  // Track which original invoices have already been returned
+  const returnedRefIds = useMemo(() => {
+    return new Set(
+      entries
+        .filter(e => e.isSalesReturn && e.returnRefId)
+        .map(e => Number(e.returnRefId))
+    );
+  }, [entries]);
+
   const handlePrint = async (tx) => {
-    const html = generateInvoiceHTML(tx, settings, formatDate);
+    const isReturn = tx.isSalesReturn || Number(tx.amount) < 0;
+    const html = isReturn 
+      ? generateSalesReturnHTML(tx, settings, formatDate) 
+      : generateInvoiceHTML(tx, settings, formatDate);
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(html);
     printWindow.document.close();
     
-    // Only increment print count AFTER user completes the print dialog
-    printWindow.onafterprint = async () => {
-      try {
-        await api.post(`/accounting/income/${tx.id}/print`);
-        fetchStatements(); // Refresh to update print count
-      } catch (err) {
-        console.error('Failed to update print count', err);
+    // Only increment print count for regular tax invoices, AFTER user completes print dialog
+    if (!isReturn) {
+      printWindow.onafterprint = async () => {
+        try {
+          await api.post(`/accounting/income/${tx.id}/print`);
+          fetchStatements(); // Refresh to update print count
+        } catch (err) {
+          console.error('Failed to update print count', err);
+        }
+      };
+    }
+  };
+
+  const handleSalesReturn = async () => {
+    if (!returnTx.tx?.id || !returnTx.reason.trim()) return;
+    setReturnLoading(true);
+    try {
+      const res = await api.post(`/accounting/income/${returnTx.tx.id}/return`, {
+        reason: returnTx.reason.trim()
+      });
+      if (res.data?.success) {
+        setToastMessage({ type: 'success', text: `Sales Return processed successfully for REC-${returnTx.tx.id}. Credit Note created.` });
+        setReturnTx({ isOpen: false, tx: null, reason: '' });
+        fetchStatements();
+        setTimeout(() => setToastMessage(null), 5000);
       }
-    };
+    } catch (err) {
+      console.error('Sales Return failed:', err);
+      setToastMessage({ type: 'error', text: err.response?.data?.error || 'Failed to process Sales Return.' });
+    } finally {
+      setReturnLoading(false);
+    }
   };
 
   const fetchStatements = useCallback(async () => {
@@ -350,12 +391,32 @@ export default function IncomeLedger() {
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">₹{formatCurrency(tx.amount)}</td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => handlePrint(tx)}
-                        className="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors inline-flex items-center"
-                      >
-                        Print {tx.printCount > 0 ? `(${tx.printCount})` : ''}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handlePrint(tx)}
+                          className="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors inline-flex items-center shadow-sm"
+                        >
+                          Print {tx.printCount > 0 && !tx.isSalesReturn ? `(${tx.printCount})` : ''}
+                        </button>
+
+                        {tx.isSalesReturn ? (
+                          <span className="text-[11px] font-bold px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md border border-amber-200 dark:border-amber-700">
+                            Credit Note (फिर्ता)
+                          </span>
+                        ) : returnedRefIds.has(tx.id) ? (
+                          <span className="text-[11px] font-semibold px-2 py-1 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 rounded-md border border-slate-200 dark:border-slate-700">
+                            Voided (फिर्ता भइसकेको)
+                          </span>
+                        ) : Number(tx.amount) > 0 ? (
+                          <button 
+                            onClick={() => setReturnTx({ isOpen: true, tx, reason: '' })}
+                            className="text-xs font-semibold px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 dark:text-rose-300 rounded-md transition-colors inline-flex items-center border border-rose-200 dark:border-rose-800 shadow-sm"
+                            title="Issue Sales Return (Credit Note)"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 mr-1" /> Return
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -367,6 +428,70 @@ export default function IncomeLedger() {
           </div>
         )}
       </div>
+
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className={`p-4 rounded-xl border text-sm font-semibold flex items-center justify-between shadow-lg animate-in slide-in-from-bottom-2 duration-300 ${toastMessage.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800'}`}>
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="text-xs uppercase underline ml-4">Dismiss</button>
+        </div>
+      )}
+
+      {/* Sales Return Confirmation Modal */}
+      {returnTx.isOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setReturnTx({ isOpen: false, tx: null, reason: '' })}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 text-rose-600 mb-4">
+              <div className="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Issue Sales Return (Credit Note)</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Receipt: REC-{returnTx.tx?.id} • Amount: ₹{formatCurrency(returnTx.tx?.amount)}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-200 mb-4">
+              <strong>IRD Compliance Notice:</strong> This action will NOT delete the original invoice. It will create a compensating Credit Note, reverse customer dues/advance, and add to Schedule 9.
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                Reason for Return (Mandatory) *
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Billed wrong customer, double collection, customer requested refund..."
+                value={returnTx.reason}
+                onChange={(e) => setReturnTx(prev => ({ ...prev, reason: e.target.value }))}
+                className="w-full text-sm p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={returnLoading}
+                onClick={() => setReturnTx({ isOpen: false, tx: null, reason: '' })}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!returnTx.reason.trim() || returnLoading}
+                onClick={handleSalesReturn}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 inline-flex items-center shadow-sm transition"
+              >
+                {returnLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                Confirm Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LogIncomeModal isOpen={showModal} onClose={() => setShowModal(false)} onSuccess={fetchStatements} categories={categories} />
       <AddCategoryModal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} onSuccess={fetchCategories} type="INCOME" />

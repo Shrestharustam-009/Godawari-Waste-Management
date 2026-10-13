@@ -593,7 +593,9 @@ async function getFinancialStatements(req, res) {
       note: tx.note,
       printCount: tx.printCount,
       customer: tx.customer,
-      isSalesReturn: tx.isSalesReturn || false
+      isSalesReturn: tx.isSalesReturn || false,
+      returnRefId: tx.returnRefId || null,
+      returnReason: tx.returnReason || null
     }));
 
     const formattedExpense = expenseEntries.map(tx => ({
