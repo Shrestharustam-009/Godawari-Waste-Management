@@ -131,9 +131,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
     return (
       <div style={{
         width: '100%',
-        maxWidth: '50mm',
+        maxWidth: '52mm',
         margin: '0 auto',
-        padding: '8mm 2mm 4mm 2mm',
+        padding: '2mm 1.5mm',
         boxSizing: 'border-box',
         fontFamily: 'monospace, "Courier New", Courier',
         color: '#000',
@@ -275,14 +275,14 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
 
   if (isPOS) {
     return createPortal(
-      <div className="print-only">
+      <div className="print-only pos-receipt-wrapper">
         {/* Slip 1: Original Tax Invoice */}
         {renderPOSSlip(false)}
 
         {/* Separator and Slip 2: Office Copy (Simultaneous Print) */}
         {shouldPrintDual && (
           <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
-            <div style={{ textAlign: 'center', margin: '0 auto', maxWidth: '50mm', borderTop: '2px dashed #000', paddingTop: '6px', fontSize: '9px', fontWeight: 'bold' }}>
+            <div style={{ textAlign: 'center', margin: '0 auto', maxWidth: '52mm', borderTop: '2px dashed #000', paddingTop: '6px', fontSize: '9px', fontWeight: 'bold' }}>
               ✂ - - - - - - - - - - - - - - ✂
               <div style={{ margin: '2px 0' }}>TEAR HERE / यहाँबाट च्यात्नुहोस्</div>
               ✂ - - - - - - - - - - - - - - ✂
@@ -290,6 +290,45 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             {renderPOSSlip(true)}
           </div>
         )}
+
+        <style dangerouslySetInnerHTML={{__html: `
+          @media screen {
+            .print-only {
+              display: none !important;
+            }
+          }
+          @media print {
+            @page {
+              size: 58mm auto;
+              margin: 0mm;
+            }
+            html, body {
+              width: 58mm !important;
+              max-width: 58mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body * {
+              visibility: hidden;
+            }
+            .print-only, .print-only * {
+              visibility: visible !important;
+            }
+            .print-only {
+              display: block !important;
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 58mm !important;
+              max-width: 58mm !important;
+              margin: 0 auto !important;
+              padding: 0 !important;
+            }
+          }
+        `}} />
       </div>,
       document.body
     );
@@ -481,8 +520,8 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         }
         @media print {
           @page {
-            size: auto;
-            margin: 5mm 0mm;
+            size: A4 portrait;
+            margin: 8mm 6mm;
           }
           body {
             margin: 0;
