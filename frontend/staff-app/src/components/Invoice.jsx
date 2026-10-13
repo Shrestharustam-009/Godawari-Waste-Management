@@ -299,7 +299,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           }
           @media print {
             @page {
-              size: 58mm auto;
+              size: 58mm 185mm;
               margin: 0mm;
             }
             html, body {
