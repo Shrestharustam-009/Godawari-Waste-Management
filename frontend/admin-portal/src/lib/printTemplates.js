@@ -128,7 +128,7 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
         
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
           <div class="title">${invoiceType}</div>
           ${copyLabel}
@@ -213,7 +213,7 @@ export const generateSalesReturnHTML = (tx, settings, customFormatDate) => {
         
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
           <div class="title">CREDIT NOTE / SALES RETURN (क्रेडिट नोट / बिक्री फिर्ता)</div>
         </div>
@@ -336,7 +336,7 @@ export const generateSalesReturnRegisterHTML = ({
         ${getPrintButtons()}
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
           <div class="title" style="margin-top: 8px;">SALES RETURN REGISTER / बिक्री फिर्ता खाता (अनुसूची - ९)</div>
           <div style="font-size: 10px; color: #444;">(नियम २३ को उपनियम (१) को खण्ड (छ) सँग सम्बन्धित)</div>
@@ -427,7 +427,7 @@ export const generateAuditLogReportHTML = ({ logs = [], settings = {}, filterTex
         ${getPrintButtons()}
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
           <div class="title" style="margin-top: 8px;">TRANSACTION ACTIVITY LOG / AUDIT LOG REPORT (कारोबार गतिविधि तथा अडिट लग प्रतिवेदन)</div>
           <div style="font-size: 10px; color: #444;">(IRD Electronic Billing Directive - Section 6 System Audit Compliance)</div>
@@ -506,7 +506,7 @@ export const generateVatRegisterHTML = ({ records = [], startDate = '', endDate 
         ${getPrintButtons()}
         <div class="header-section">
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
-          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</div>
+          <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
           <div class="title" style="margin-top: 8px;">SALES REGISTER / बिक्री खाता (अनुसूची - ८)</div>
           <div style="font-size: 10px; color: #444;">(नियम २३ को उपनियम (१) को खण्ड (च) सँग सम्बन्धित)</div>

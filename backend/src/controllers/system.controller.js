@@ -60,7 +60,7 @@ async function getSettings(req, res) {
         isBonusFeeEnabled: settings.isBonusFeeEnabled,
         customDeductions: settings.customDeductions,
         companyName: settings.companyName || 'विनायक फोहोर व्यवस्थापन',
-        companyAddress: settings.companyAddress || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ',
+        companyAddress: settings.companyAddress || 'टोखा-९, गणेशस्थान, काठमाडौँ',
         panNumber: settings.panNumber || '606698005',
         hsCode: settings.hsCode,
         createdAt: settings.createdAt,

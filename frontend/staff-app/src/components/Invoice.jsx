@@ -152,7 +152,7 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           <h2 style={{ fontSize: '13.5px', margin: '0 0 2px 0', fontWeight: 'bold', textTransform: 'uppercase' }}>
             {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
           </h2>
-          <p style={{ margin: '0', fontSize: '10px' }}>{settings?.companyAddress || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</p>
+          <p style={{ margin: '0', fontSize: '10px' }}>{settings?.companyAddress || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</p>
           <p style={{ margin: '0', fontSize: '10px' }}>PAN/VAT: {settings?.panNumber || '606698005'}</p>
           <p style={{ margin: '0', fontSize: '10px' }}>Phone: {settings?.contactNumber || settings?.phone || '01-4963742'}</p>
           <div style={{ borderBottom: '1px solid #000', margin: '5px 0' }}></div>
@@ -262,8 +262,8 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           
           {isOfficeCopy && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '4px', fontSize: '9.5px', textAlign: 'center' }}>
-              <div style={{ width: '45%', borderTop: '1px solid #000', paddingTop: '2px' }}>Collector Sign<br/>(संकलनकर्ता)</div>
-              <div style={{ width: '45%', borderTop: '1px solid #000', paddingTop: '2px' }}>Customer Sign<br/>(ग्राहक)</div>
+              <div style={{ width: '60%', borderTop: '1px solid #000', paddingTop: '2px' }}>Collector Sign<br/>(संकलनकर्ता)</div>
+       
             </div>
           )}
           
@@ -344,13 +344,13 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
           </h1>
           <p style={{ margin: '0 0 3px 0', fontSize: '13px' }}>
-            {settings?.companyAddress || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}
+            {settings?.companyAddress || 'टोखा-९, गणेशस्थान, काठमाडौँ'}
           </p>
           <p style={{ margin: '0 0 4px 0', fontSize: '13px' }}>
             <strong>स्थायी लेखा नं. (PAN/VAT):</strong> {settings?.panNumber || '606698005'} &nbsp;|&nbsp; <strong>फोन:</strong> {settings?.contactNumber || settings?.phone || '01-4963742'}
           </p>
           <h2 style={{ margin: '8px 0 0 0', textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }}>
-            {(mainVat > 0 || customer?.vatNumber) ? 'TAX INVOICE (कर विजक)' : 'ABBREVIATED TAX INVOICE (संक्षिप्त कर विजक)'}
+            {(mainVat > 0 || customer?.vatNumber) ? 'INVOICE (विजक)' : 'ABBREVIATED TAX INVOICE (संक्षिप्त कर विजक)'}
           </h2>
           {isCopy && <p style={{ margin: '4px 0 0 0', fontSize: '13px', fontStyle: 'italic', color: '#dc2626', fontWeight: 'bold' }}>{copyLabelNepali}</p>}
         </div>
