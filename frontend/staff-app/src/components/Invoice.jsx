@@ -150,9 +150,9 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
             </div>
           )}
           <h2 style={{ fontSize: '13.5px', margin: '0 0 2px 0', fontWeight: 'bold', textTransform: 'uppercase' }}>
-            {settings?.companyName || 'Godawari Waste Management'}
+            {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
           </h2>
-          <p style={{ margin: '0', fontSize: '10px' }}>{settings?.companyAddress || 'Godawari, Lalitpur, Nepal'}</p>
+          <p style={{ margin: '0', fontSize: '10px' }}>{settings?.companyAddress || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}</p>
           <p style={{ margin: '0', fontSize: '10px' }}>PAN/VAT: {settings?.panNumber || '606698005'}</p>
           <p style={{ margin: '0', fontSize: '10px' }}>Phone: {settings?.contactNumber || settings?.phone || '01-4963742'}</p>
           <div style={{ borderBottom: '1px solid #000', margin: '5px 0' }}></div>
@@ -338,15 +338,21 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
     <div className="print-only">
       <div style={{ padding: '15px', maxWidth: '750px', margin: '0 auto', fontFamily: 'sans-serif', color: '#000' }}>
         
-        {/* Header Image */}
-        <div style={{ width: '100%', textAlign: 'center', marginBottom: '15px' }}>
-          <img 
-            src={invoiceHeaderImg} 
-            alt="Header" 
-            style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', display: 'block', margin: '0 auto' }} 
-          />
-          <h2 style={{ margin: '10px 0 0 0', textTransform: 'uppercase', fontSize: '20px' }}>{(mainVat > 0 || customer?.vatNumber) ? 'Tax Invoice (कर विजक)' : 'Abbreviated Tax Invoice (संक्षिप्त कर विजक)'}</h2>
-          {isCopy && <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontStyle: 'italic', color: '#dc2626', fontWeight: 'bold' }}>{copyLabelNepali}</p>}
+        {/* Official Header */}
+        <div style={{ width: '100%', textAlign: 'center', marginBottom: '15px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: 'bold' }}>
+            {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
+          </h1>
+          <p style={{ margin: '0 0 3px 0', fontSize: '13px' }}>
+            {settings?.companyAddress || 'टोखा नगरपालिका-९, गोंगबु, काठमाडौँ'}
+          </p>
+          <p style={{ margin: '0 0 4px 0', fontSize: '13px' }}>
+            <strong>स्थायी लेखा नं. (PAN/VAT):</strong> {settings?.panNumber || '606698005'} &nbsp;|&nbsp; <strong>फोन:</strong> {settings?.contactNumber || settings?.phone || '01-4963742'}
+          </p>
+          <h2 style={{ margin: '8px 0 0 0', textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }}>
+            {(mainVat > 0 || customer?.vatNumber) ? 'TAX INVOICE (कर विजक)' : 'ABBREVIATED TAX INVOICE (संक्षिप्त कर विजक)'}
+          </h2>
+          {isCopy && <p style={{ margin: '4px 0 0 0', fontSize: '13px', fontStyle: 'italic', color: '#dc2626', fontWeight: 'bold' }}>{copyLabelNepali}</p>}
         </div>
 
         {/* Info Grid */}
