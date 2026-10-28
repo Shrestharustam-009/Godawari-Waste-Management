@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
 import { useSettings } from '../../context/SettingsContext';
-import { TrendingUp, Loader2, Plus, Tag, Search, Download, RotateCcw } from 'lucide-react';
+import { TrendingUp, Loader2, Plus, Tag, Search, Download, RotateCcw, Filter } from 'lucide-react';
 import DatePicker from '../../components/DatePicker';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../../lib/printTemplates';
 const formatCurrency = (val) => {
