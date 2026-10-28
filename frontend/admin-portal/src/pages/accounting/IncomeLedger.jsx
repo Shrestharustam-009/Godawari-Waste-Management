@@ -255,25 +255,63 @@ export default function IncomeLedger() {
   const filteredEntries = useMemo(() => {
     return entries.filter(tx => {
       const matchType = filterType === 'ALL' ? true : tx.source === filterType;
-      const q = searchQuery.toLowerCase();
-      const matchSearch = tx.categoryName.toLowerCase().includes(q) || 
-                          formatDate(tx.date).toLowerCase().includes(q) || 
-                          (tx.note && tx.note.toLowerCase().includes(q));
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return matchType;
+
+      const recordIdStr = String(tx.id || '');
+      const recFormatted = `rec-${tx.id || ''}`.toLowerCase();
+      const returnRefFormatted = tx.returnRefId ? `rec-${tx.returnRefId}`.toLowerCase() : '';
+      const customerName = (tx.customer?.name || '').toLowerCase();
+      const customerId = (tx.customer?.customerId || '').toLowerCase();
+      const category = (tx.categoryName || '').toLowerCase();
+      const subCat = (tx.subCategory || '').toLowerCase();
+      const dateStr = formatDate(tx.date).toLowerCase();
+      const note = (tx.note || '').toLowerCase();
+      const reason = (tx.returnReason || '').toLowerCase();
+      const method = (tx.paymentMethod || '').toLowerCase();
+
+      const matchSearch = 
+        recordIdStr.includes(q) ||
+        recFormatted.includes(q) ||
+        returnRefFormatted.includes(q) ||
+        customerName.includes(q) ||
+        customerId.includes(q) ||
+        category.includes(q) ||
+        subCat.includes(q) ||
+        dateStr.includes(q) ||
+        note.includes(q) ||
+        reason.includes(q) ||
+        method.includes(q);
+
       return matchType && matchSearch;
     });
   }, [entries, filterType, searchQuery, formatDate]);
 
+  const handleResetFilter = () => {
+    setSearchQuery('');
+    setFilterType('ALL');
+    const resetRange = {
+      startDate: new Date(new Date().setDate(1)).toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0]
+    };
+    setDateRange(resetRange);
+  };
+
   const exportCSV = () => {
-    const headers = ['Date', 'Source', 'Main Category', 'Sub-Category', 'Base Revenue', 'VAT Amount', 'Total Amount', 'Notes'];
+    const headers = ['Invoice No', 'Date', 'Source', 'Customer Name', 'Customer ID', 'Main Category', 'Sub-Category', 'Base Revenue', 'VAT Amount', 'Total Amount', 'Payment Method', 'Notes'];
     const rows = filteredEntries.map(tx => [
+      tx.isSalesReturn ? `CN-${tx.id}` : `REC-${tx.id}`,
       formatDate(tx.date),
-      tx.source,
-      tx.categoryName,
-      tx.subCategory || '-',
+      tx.source === 'FIELD_APP' ? 'Field Collection' : 'Manual Income',
+      `"${(tx.customer?.name || '').replace(/"/g, '""')}"`,
+      `"${(tx.customer?.customerId || '').replace(/"/g, '""')}"`,
+      `"${(tx.categoryName || '').replace(/"/g, '""')}"`,
+      `"${(tx.subCategory || '-').replace(/"/g, '""')}"`,
       tx.baseAmount,
       tx.vatAmount,
       tx.amount,
-      `"${tx.note || ''}"`
+      tx.paymentMethod || '-',
+      `"${(tx.note || '').replace(/"/g, '""')}"`
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -305,51 +343,104 @@ export default function IncomeLedger() {
       </div>
 
       <div className="bg-white dark:bg-slate-800 transition-colors duration-200 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col gap-4 bg-slate-50 dark:bg-slate-900/50">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/50 space-y-4">
           
-          {/* Top Row: Categories and Search/Export */}
-          <div className="flex flex-col md:flex-row gap-4 justify-between items-center w-full">
-            <div className="flex flex-wrap items-center bg-slate-200/50 dark:bg-slate-900/50 p-1 rounded-lg w-full md:w-auto">
-              {['ALL', 'MANUAL_ENTRY', 'FIELD_APP'].map(type => (
-                <button 
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all flex-1 md:flex-none ${filterType === type ? 'bg-white dark:bg-slate-800 transition-colors duration-200 shadow text-brand-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300'}`}
+          {/* Top Sub-Row: Source Tabs & Export CSV */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex flex-wrap items-center bg-slate-200/60 dark:bg-slate-900/70 p-1 rounded-xl w-full sm:w-auto">
+              {[
+                { key: 'ALL', label: 'All Collections' },
+                { key: 'FIELD_APP', label: 'Field Staff' },
+                { key: 'MANUAL_ENTRY', label: 'Manual Income' }
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFilterType(tab.key)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex-1 sm:flex-none ${
+                    filterType === tab.key
+                      ? 'bg-white dark:bg-slate-800 shadow text-brand-600 dark:text-brand-400 font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
                 >
-                  {type === 'ALL' ? 'All' : type === 'MANUAL_ENTRY' ? 'Manual Income' : 'Field Income'}
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <div className="relative w-full sm:w-auto">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                <input 
-                  type="text" 
-                  placeholder="Search category or date..." 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white dark:bg-slate-800 transition-colors duration-200 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                />
-              </div>
-              
-              <button onClick={exportCSV} className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-lg font-semibold text-sm shadow-sm transition-all w-full sm:w-auto">
-                <Download className="w-4 h-4 mr-2" /> Export
-              </button>
-            </div>
+            <button
+              onClick={exportCSV}
+              disabled={loading || filteredEntries.length === 0}
+              className="inline-flex items-center justify-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm disabled:opacity-50 w-full sm:w-auto"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              Export CSV
+            </button>
           </div>
 
-          {/* Bottom Row: Date Range Filter */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start gap-3 pt-3 border-t border-slate-200 dark:border-slate-700/60 w-full">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 sm:mb-0">Filter Date:</span>
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[40px] w-full sm:w-[150px]">
-                <DatePicker name="startDate" value={dateRange.startDate} onChange={e => setDateRange({...dateRange, startDate: e.target.value})} className="h-full w-full" />
+          {/* Main Filter Grid (Styled exactly like Sales Register) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end pt-2 border-t border-slate-200 dark:border-slate-700/50">
+            <div className="lg:col-span-1">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                Search Invoice / Customer
+              </label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search REC-ID, customer, category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
+                />
               </div>
-              <span className="text-slate-400 dark:text-slate-500 text-sm hidden sm:inline-block">to</span>
-              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[40px] w-full sm:w-[150px]">
-                <DatePicker name="endDate" value={dateRange.endDate} onChange={e => setDateRange({...dateRange, endDate: e.target.value})} className="h-full w-full" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                From Date
+              </label>
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[38px] bg-white dark:bg-slate-900 flex items-center px-2.5 shadow-sm">
+                <DatePicker
+                  name="startDate"
+                  value={dateRange.startDate}
+                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                  className="h-full w-full text-sm outline-none"
+                />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                To Date
+              </label>
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg h-[38px] bg-white dark:bg-slate-900 flex items-center px-2.5 shadow-sm">
+                <DatePicker
+                  name="endDate"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                  className="h-full w-full text-sm outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={fetchStatements}
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-sm font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition shadow-sm h-[38px]"
+              >
+                <Filter className="w-3.5 h-3.5 mr-1" />
+                Filter
+              </button>
+              <button
+                type="button"
+                onClick={handleResetFilter}
+                className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-300 dark:border-slate-600 rounded-lg h-[38px] flex items-center justify-center bg-white dark:bg-slate-800"
+                title="Reset Filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
@@ -362,39 +453,73 @@ export default function IncomeLedger() {
             <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Type</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4 text-right">Base Revenue</th>
-                <th className="px-6 py-4 text-right text-emerald-600">Output VAT</th>
-                <th className="px-6 py-4 text-right font-extrabold text-slate-900 dark:text-white">Total Amount</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-5 py-3.5">Invoice No</th>
+                <th className="px-5 py-3.5">Date</th>
+                <th className="px-5 py-3.5">Customer / Category</th>
+                <th className="px-5 py-3.5">Source</th>
+                <th className="px-5 py-3.5 text-right">Base Revenue</th>
+                <th className="px-5 py-3.5 text-right text-emerald-600">VAT (13%)</th>
+                <th className="px-5 py-3.5 text-right font-extrabold text-slate-900 dark:text-white">Total Amount</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
               {filteredEntries.length > 0 ? (
                 filteredEntries.map(tx => (
-                  <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-900/50/80 transition-colors bg-white dark:bg-slate-800 transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-medium">{formatDate(tx.date)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-md text-xs font-bold ${tx.source === 'FIELD_APP' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300'}`}>
+                  <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/40 transition-colors bg-white dark:bg-slate-800">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {tx.isSalesReturn ? (
+                        <div>
+                          <span className="font-bold font-mono text-amber-600 dark:text-amber-400 text-xs">CN-{tx.id}</span>
+                          {tx.returnRefId && (
+                            <div className="text-[10px] text-slate-400 font-mono">Ref: REC-{tx.returnRefId}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="font-bold font-mono text-brand-600 dark:text-brand-400 text-xs">
+                          REC-{tx.id}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap text-slate-600 dark:text-slate-400 text-xs font-medium">
+                      {formatDate(tx.date)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="text-slate-900 dark:text-white font-medium text-xs">
+                        {tx.customer?.name || tx.categoryName}
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1.5">
+                        <span>{tx.customer?.name ? tx.categoryName : (tx.subCategory !== '-' ? tx.subCategory : '')}</span>
+                        {tx.customer?.customerId && (
+                          <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">
+                            {tx.customer.customerId}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        tx.source === 'FIELD_APP' 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}>
                         {tx.source === 'FIELD_APP' ? 'Field' : 'Manual'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-slate-900 dark:text-white font-medium">{tx.categoryName}</div>
-                      <div className="text-slate-500 dark:text-slate-400 text-xs">{tx.subCategory !== '-' ? tx.subCategory : ''}</div>
+                    <td className="px-5 py-3.5 text-right font-medium text-slate-600 dark:text-slate-400 text-xs">
+                      Rs. {formatCurrency(tx.baseAmount)}
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-slate-600 dark:text-slate-400">₹{formatCurrency(tx.baseAmount)}</td>
-                    <td className="px-6 py-4 text-right font-medium text-emerald-600">
-                      {Number(tx.vatAmount) > 0 ? `+₹${formatCurrency(tx.vatAmount)} (13%)` : '-'}
+                    <td className="px-5 py-3.5 text-right font-medium text-emerald-600 text-xs">
+                      {Number(tx.vatAmount) > 0 ? `Rs. ${formatCurrency(tx.vatAmount)}` : '-'}
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">₹{formatCurrency(tx.amount)}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-3.5 text-right font-bold text-slate-900 dark:text-white text-xs">
+                      Rs. {formatCurrency(tx.amount)}
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handlePrint(tx)}
-                          className="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors inline-flex items-center shadow-sm"
+                          className="text-xs font-semibold px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md transition-colors inline-flex items-center shadow-sm"
                         >
                           Print {tx.printCount > 0 && !tx.isSalesReturn ? `(${tx.printCount})` : ''}
                         </button>
@@ -421,7 +546,7 @@ export default function IncomeLedger() {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={7} className="text-center py-16 text-slate-400 dark:text-slate-500 font-medium bg-white dark:bg-slate-800 transition-colors duration-200">No income entries found matching criteria.</td></tr>
+                <tr><td colSpan={8} className="text-center py-16 text-slate-400 dark:text-slate-500 font-medium bg-white dark:bg-slate-800 transition-colors duration-200">No income entries found matching criteria.</td></tr>
               )}
             </tbody>
           </table>
