@@ -260,9 +260,8 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
           <p style={{ margin: '2px 0 0 0', fontSize: '10px' }}>Keep our city clean</p>
           
           {isOfficeCopy && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '4px', fontSize: '9.5px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', paddingTop: '4px', fontSize: '9.5px', textAlign: 'center' }}>
               <div style={{ width: '60%', borderTop: '1px solid #000', paddingTop: '2px' }}>Collector Sign<br/>(संकलनकर्ता)</div>
-       
             </div>
           )}
           

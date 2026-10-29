@@ -203,11 +203,8 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
           <strong>Amount in Words (अक्षरेपी):</strong> ${escapeHTML(amountToWords(tx.amount))}
         </div>
         
-        <div style="margin-top: 45px; display: flex; justify-content: space-between; font-size: 11px; padding: 0 20px;">
-          <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">
-            Customer's Signature (ग्राहकको दस्तखत)
-          </div>
-          <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">
+        <div style="margin-top: 45px; display: flex; justify-content: flex-end; font-size: 11px; padding: 0 20px;">
+          <div style="text-align: center; border-top: 1px solid #000; width: 220px; padding-top: 5px;">
             Authorized Signature (अधिकृत दस्तखत)
           </div>
         </div>
