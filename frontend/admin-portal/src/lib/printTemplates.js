@@ -97,10 +97,19 @@ const getBaseStyles = () => `
   }
 `;
 
-const getPrintButtons = () => `
-  <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-    <button onclick="window.print()" style="background: #000; color: #fff; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px;">Print</button>
-    <button onclick="window.close()" style="background: #ccc; color: #000; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin-left: 10px;">Close</button>
+const getPrintButtons = (hasCopyToggle = false) => `
+  <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      ${hasCopyToggle ? `
+        <span style="font-size: 11px; font-weight: bold; margin-right: 8px;">Select Copy:</span>
+        <button onclick="document.getElementById('copy-badge').innerText = 'CUSTOMER COPY (ग्राहक प्रति)'; window.print();" style="background: #2563eb; color: #fff; border: none; padding: 6px 12px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 11px;">Print Customer Copy (ग्राहक प्रति)</button>
+        <button onclick="document.getElementById('copy-badge').innerText = 'OFFICE COPY (कार्यालय प्रति)'; window.print();" style="background: #0d9488; color: #fff; border: none; padding: 6px 12px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 11px; margin-left: 8px;">Print Office Copy (कार्यालय प्रति)</button>
+      ` : ''}
+    </div>
+    <div>
+      <button onclick="window.print()" style="background: #000; color: #fff; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px;">Print</button>
+      <button onclick="window.close()" style="background: #ccc; color: #000; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin-left: 10px;">Close</button>
+    </div>
   </div>
 `;
 
@@ -124,9 +133,17 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
         <style>${getBaseStyles()}</style>
       </head>
       <body>
-        ${getPrintButtons()}
+        ${getPrintButtons(true)}
         
         <div class="header-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span id="copy-badge" style="font-size: 10px; font-weight: bold; border: 1px solid #000; padding: 2px 7px; text-transform: uppercase;">
+              CUSTOMER COPY (ग्राहक प्रति)
+            </span>
+            <span style="font-size: 10px; color: #555;">
+              ${isCopy ? `Reprint #${tx.printCount}` : 'Original (मूल प्रति)'}
+            </span>
+          </div>
           <h2 style="margin:0;">${escapeHTML(settings?.companyName) || 'विनायक फोहोर व्यवस्थापन'}</h2>
           <div class="mb-1">${escapeHTML(settings?.companyAddress) || 'टोखा-९, गणेशस्थान, काठमाडौँ'}</div>
           <div class="mb-1">PAN/VAT No: ${escapeHTML(settings?.panNumber) || '606698005'}</div>
@@ -184,6 +201,15 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
 
         <div style="margin-top: 12px; padding: 6px 0; border-top: 1px dashed #000; font-size: 11px;">
           <strong>Amount in Words (अक्षरेपी):</strong> ${escapeHTML(amountToWords(tx.amount))}
+        </div>
+        
+        <div style="margin-top: 45px; display: flex; justify-content: space-between; font-size: 11px; padding: 0 20px;">
+          <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">
+            Customer's Signature (ग्राहकको दस्तखत)
+          </div>
+          <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">
+            Authorized Signature (अधिकृत दस्तखत)
+          </div>
         </div>
         
         <div class="mt-4 text-center border-t pt-2" style="font-size: 10px; color: #555;">

@@ -124,9 +124,10 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
   const shouldPrintDual = isPOS && (dualCopy !== undefined ? dualCopy : (Number(printCount || 0) === 0));
 
   const renderPOSSlip = (isOfficeCopy = false) => {
-    const isThisSlipCopy = isOfficeCopy || isCopy;
-    const slipCopyNumber = isOfficeCopy ? (Number(printCount || 0) > 0 ? printCount : 1) : printCount;
-    const slipCopyLabelNepali = `Copy of Original (प्रतिलिपि) (${slipCopyNumber})`;
+    // A slip is marked as "प्रतिलिपि" ONLY if the bill is being reprinted (printCount > 0)
+    // On the initial print, both Customer Copy and Office Copy print clean as Originals.
+    const isThisSlipCopy = Number(printCount || 0) > 0;
+    const slipCopyLabelNepali = `Copy of Original (प्रतिलिपि) (${printCount})`;
 
     return (
       <div style={{
@@ -142,13 +143,11 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
       }}>
         {/* POS Header */}
         <div style={{ textAlign: 'center', marginBottom: '6px' }}>
-          {isOfficeCopy && (
-            <div style={{ marginBottom: '4px' }}>
-              <span style={{ fontSize: '9.5px', fontWeight: 'bold', border: '1px solid #000', padding: '1px 5px', textTransform: 'uppercase' }}>
-                OFFICE COPY (कार्यालय प्रति)
-              </span>
-            </div>
-          )}
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{ fontSize: '9.5px', fontWeight: 'bold', border: '1px solid #000', padding: '1px 5px', textTransform: 'uppercase' }}>
+              {isOfficeCopy ? 'OFFICE COPY (कार्यालय प्रति)' : 'CUSTOMER COPY (ग्राहक प्रति)'}
+            </span>
+          </div>
           <h2 style={{ fontSize: '13.5px', margin: '0 0 2px 0', fontWeight: 'bold', textTransform: 'uppercase' }}>
             {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
           </h2>
@@ -340,6 +339,14 @@ const Invoice = ({ customer, staffName, amount, date, receiptNo, paymentForStart
         
         {/* Official Header */}
         <div style={{ width: '100%', textAlign: 'center', marginBottom: '15px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 'bold', border: '1px solid #000', padding: '2px 8px', textTransform: 'uppercase' }}>
+              CUSTOMER COPY (ग्राहक प्रति)
+            </span>
+            <span style={{ fontSize: '11px', color: '#555' }}>
+              {isCopy ? `Reprint #${printCount}` : 'Original (मूल प्रति)'}
+            </span>
+          </div>
           <h1 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: 'bold' }}>
             {settings?.companyName || 'विनायक फोहोर व्यवस्थापन'}
           </h1>
