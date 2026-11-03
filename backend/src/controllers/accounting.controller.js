@@ -887,7 +887,29 @@ async function getAuditLogs(req, res) {
   }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// MANUAL / ON-DEMAND BILLING TRIGGER (ADMIN ONLY)
+// ────────────────────────────────────────────────────────────────────────────
+const { runBillingCycle } = require('../workers/billing.worker');
+
+async function triggerBillingCycle(req, res) {
+  try {
+    const forceAll = req.body?.forceAll === true;
+    console.log(`[ACCOUNTING] Admin triggered billing cycle (forceAll: ${forceAll})`);
+    const result = await runBillingCycle({ forceAll });
+    return res.status(200).json({
+      success: true,
+      message: `Billing cycle executed successfully. ${result.totalBilled} customer(s) billed.`,
+      data: result,
+    });
+  } catch (error) {
+    console.error('[ACCOUNTING] triggerBillingCycle error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to execute billing cycle: ' + error.message });
+  }
+}
+
 module.exports = {
+  triggerBillingCycle,
   createCategory,
   getAllCategories,
   logManualIncome,

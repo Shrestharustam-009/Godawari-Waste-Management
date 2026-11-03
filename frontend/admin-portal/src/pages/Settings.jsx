@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
   Settings as SettingsIcon, Lock, Shield, Loader2, Calendar,
-  DollarSign, AlertTriangle, CheckCircle2, X, KeyRound, Truck, Users, Plus, Trash2
+  DollarSign, AlertTriangle, CheckCircle2, X, KeyRound, Truck, Users, Plus, Trash2, Zap
 } from 'lucide-react';
 
 const formatCurrency = (val) => Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -113,6 +113,27 @@ export default function Settings() {
   const [vehicleType, setVehicleType] = useState('Compactor');
 
   const [loading, setLoading] = useState(true);
+  const [runningBilling, setRunningBilling] = useState(false);
+
+  const handleRunBillingNow = async (forceAll = false) => {
+    const confirmMsg = forceAll
+      ? 'Force bill ALL customers for the current month, regardless of their trigger day?'
+      : 'Run billing cycle now? This will bill all customers whose billing cycle day (global default or custom) has arrived or passed for the current month.';
+    if (!window.confirm(confirmMsg)) return;
+
+    setRunningBilling(true);
+    try {
+      const res = await api.post('/accounting/trigger-billing', { forceAll });
+      if (res.data?.success) {
+        setSuccessMessage(`Billing complete! ${res.data.data?.totalBilled || 0} customer(s) billed (Total: Rs. ${res.data.data?.totalAmount || '0.00'}).`);
+        setTimeout(() => setSuccessMessage(null), 8000);
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to trigger billing cycle.');
+    } finally {
+      setRunningBilling(false);
+    }
+  };
   const [sudoConfig, setSudoConfig] = useState({ isOpen: false, action: null, title: '', message: '' });
   const [sudoLoading, setSudoLoading] = useState(false);
   const [sudoError, setSudoError] = useState(null);
@@ -301,7 +322,18 @@ export default function Settings() {
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-slate-800 transition-colors duration-200 transition-transform ${formState.isBonusFeeEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-700/50">
+          <div className="flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleRunBillingNow(false)}
+                disabled={runningBilling}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-sm transition disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4 text-amber-300" />
+                {runningBilling ? 'Running Engine...' : 'Run Billing Cycle Now'}
+              </button>
+            </div>
             <button onClick={() => openSudo('SAVE_GENERAL', 'Update Settings', 'Verify admin password to change global settings.')} disabled={!hasGeneralChanges} className="px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-2"><Lock className="w-4 h-4"/> Save Configurations</button>
           </div>
         </div>

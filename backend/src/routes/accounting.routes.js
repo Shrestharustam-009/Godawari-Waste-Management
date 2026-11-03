@@ -18,7 +18,8 @@ const {
   processSalesReturnRoute,
   getVatRegister,
   getSalesReturns,
-  getAuditLogs
+  getAuditLogs,
+  triggerBillingCycle
 } = require('../controllers/accounting.controller');
 
 const { checkAuth, authorizeRoles } = require('../middleware/checkAuth');
@@ -50,5 +51,6 @@ router.get('/bonus-fees', authorizeRoles('ADMIN', 'STAFF'), getBonusFees);
 router.get('/vat-register', authorizeRoles('ADMIN'), getVatRegister);
 router.get('/sales-returns', authorizeRoles('ADMIN'), getSalesReturns);
 router.get('/audit-logs', authorizeRoles('ADMIN'), getAuditLogs);
+router.post('/trigger-billing', authorizeRoles('ADMIN'), triggerBillingCycle);
 
 module.exports = router;

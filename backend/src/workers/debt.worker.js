@@ -14,10 +14,12 @@ async function runDebtHunter() {
 
   try {
     const today = new Date();
+    const nepalTimeStr = today.toLocaleString('en-US', { timeZone: 'Asia/Kathmandu' });
+    const localNepalDate = new Date(nepalTimeStr);
     // Calculate the date exactly 15 days ago
     // Using startOfDay and endOfDay to catch any time within that day
-    const fifteenDaysAgoStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 15, 0, 0, 0);
-    const fifteenDaysAgoEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 15, 23, 59, 59, 999);
+    const fifteenDaysAgoStart = new Date(localNepalDate.getFullYear(), localNepalDate.getMonth(), localNepalDate.getDate() - 15, 0, 0, 0);
+    const fifteenDaysAgoEnd = new Date(localNepalDate.getFullYear(), localNepalDate.getMonth(), localNepalDate.getDate() - 15, 23, 59, 59, 999);
 
     // Find customers whose debt started exactly 15 days ago
     const customersInDebt = await prisma.customer.findMany({
