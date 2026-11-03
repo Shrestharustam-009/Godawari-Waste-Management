@@ -13,8 +13,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const resetCustomerBalances = process.argv.includes('--reset-customer-balances');
-
   console.log('----------------------------------------------------');
   console.log('🔄 STARTING FINANCIAL STATS & TEST LEDGER RESET');
   console.log('----------------------------------------------------');
@@ -53,25 +51,8 @@ async function main() {
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE expense_ledger, vehicle_expense_ledger, salary_ledger RESTART IDENTITY CASCADE;`);
   console.log('✅ Expense and salary ledgers reset successfully.');
 
-  // 5. Customer Balances (Preserved unless specifically requested)
-  if (resetCustomerBalances) {
-    console.log('🧹 Resetting all customer outstanding dues & advance wallet balances to 0.00...');
-    await prisma.customer.updateMany({
-      data: {
-        outstandingPayment: 0.00,
-        advanceBalance: 0.00,
-        dueStartDate: null,
-        dueEndDate: null,
-        advanceStartDate: null,
-        advanceEndDate: null,
-        debtStartDate: null,
-        lastBilledDate: null,
-      },
-    });
-    console.log('✅ Customer balances reset to 0.00.');
-  } else {
-    console.log('🛡️  Customer dues and wallet balances PRESERVED (no changes to customer balances).');
-  }
+  // 5. Customer Balances (100% untouched)
+  console.log('🛡️  Customer balances, dues, and wallet balances are 100% PRESERVED.');
 
   console.log('\n----------------------------------------------------');
   console.log('🎉 RESET COMPLETE!');
