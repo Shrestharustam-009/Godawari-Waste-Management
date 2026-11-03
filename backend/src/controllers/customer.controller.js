@@ -67,6 +67,7 @@ async function getAllCustomers(req, res) {
           billingCycleDay: true,
           monthlyFee: true,
           increasedFee: true,
+          festivalBonus: true,
           outstandingPayment: true,
           advanceBalance: true,
           isActive: true,
@@ -85,6 +86,7 @@ async function getAllCustomers(req, res) {
       ...c,
       monthlyFee: c.monthlyFee.toString(),
       increasedFee: c.increasedFee ? c.increasedFee.toString() : null,
+      festivalBonus: c.festivalBonus ? c.festivalBonus.toString() : '500.00',
       outstandingPayment: c.outstandingPayment.toString(),
       advanceBalance: c.advanceBalance.toString(),
     }));
@@ -123,7 +125,7 @@ async function createCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate } = parseResult.data;
+    const { customerId, name, phone, password, assignedArea, vatNumber, billingCycleDay, monthlyFee, increasedFee, festivalBonus, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate } = parseResult.data;
 
     // 2. Check for duplicate customerId
     const existing = await prisma.customer.findUnique({
@@ -158,6 +160,7 @@ async function createCustomer(req, res) {
         billingCycleDay: billingCycleDay || null,
         monthlyFee: new Decimal(monthlyFee).toFixed(2),
         increasedFee: increasedFee ? new Decimal(increasedFee).toFixed(2) : null,
+        festivalBonus: new Decimal(festivalBonus || '500.00').toFixed(2),
         outstandingPayment: startingDebt.toFixed(2),
         advanceBalance: new Decimal(advanceBalance).toFixed(2),
         debtStartDate,
@@ -179,6 +182,7 @@ async function createCustomer(req, res) {
         billingCycleDay: customer.billingCycleDay,
         monthlyFee: customer.monthlyFee.toString(),
         increasedFee: customer.increasedFee ? customer.increasedFee.toString() : null,
+        festivalBonus: customer.festivalBonus ? customer.festivalBonus.toString() : '500.00',
         outstandingPayment: customer.outstandingPayment.toString(),
         advanceBalance: customer.advanceBalance.toString(),
         createdAt: customer.createdAt,
@@ -392,7 +396,7 @@ async function updateCustomer(req, res) {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, billingCycleDay, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
+    const { name, phone, assignedArea, vatNumber, monthlyFee, increasedFee, festivalBonus, billingCycleDay, outstandingPayment, advanceBalance, dueStartDate, dueEndDate, advanceStartDate, advanceEndDate, isActive, sudoPassword, newCustomerId } = parseResult.data;
 
     // Verify sudo password
     const isPasswordValid = await bcrypt.compare(sudoPassword, adminUser.passwordHash);
@@ -407,6 +411,7 @@ async function updateCustomer(req, res) {
     if (vatNumber !== undefined) updateData.vatNumber = vatNumber || null;
     if (monthlyFee) updateData.monthlyFee = new Decimal(monthlyFee).toFixed(2);
     if (increasedFee !== undefined) updateData.increasedFee = increasedFee ? new Decimal(increasedFee).toFixed(2) : null;
+    if (festivalBonus !== undefined) updateData.festivalBonus = festivalBonus ? new Decimal(festivalBonus).toFixed(2) : '0.00';
     if (outstandingPayment !== undefined) updateData.outstandingPayment = new Decimal(outstandingPayment).toFixed(2);
     if (advanceBalance !== undefined) updateData.advanceBalance = new Decimal(advanceBalance).toFixed(2);
     if (dueStartDate !== undefined) updateData.dueStartDate = dueStartDate;
@@ -441,6 +446,7 @@ async function updateCustomer(req, res) {
         billingCycleDay: updatedCustomer.billingCycleDay,
         monthlyFee: updatedCustomer.monthlyFee.toString(),
         increasedFee: updatedCustomer.increasedFee ? updatedCustomer.increasedFee.toString() : null,
+        festivalBonus: updatedCustomer.festivalBonus ? updatedCustomer.festivalBonus.toString() : '500.00',
         outstandingPayment: updatedCustomer.outstandingPayment.toString(),
         advanceBalance: updatedCustomer.advanceBalance.toString(),
         isActive: updatedCustomer.isActive,

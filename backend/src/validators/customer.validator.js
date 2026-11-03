@@ -84,6 +84,28 @@ const createCustomerSchema = z.object({
     .optional()
     .default('500.00'),
 
+  festivalBonus: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.string()
+      .regex(
+        /^\d{1,8}(\.\d{1,2})?$/,
+        'Festival bonus must be a string in decimal format (e.g., "500.00").'
+      )
+      .refine(
+        (val) => {
+          try {
+            const d = new Decimal(val);
+            return d.gte('0.00') && d.lte('99999999.99');
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Festival bonus must be between ₹0.00 and ₹99,999,999.99.' }
+      )
+      .optional()
+      .default('500.00')
+  ),
+
   increasedFee: z.preprocess(
     (arg) => (arg === '' || arg === null ? undefined : arg),
     z.string()
@@ -250,6 +272,29 @@ const updateCustomerSchema = z.object({
           }
         },
         { message: 'Increased fee must be between ₹0.00 and ₹99,999,999.99.' }
+      )
+      .optional()
+      .nullable()
+  ),
+
+  festivalBonus: z.preprocess(
+    (arg) => (arg === '' || arg === null ? undefined : arg),
+    z.string()
+      .regex(
+        /^\d{1,8}(\.\d{1,2})?$/,
+        'Festival bonus must be a string in decimal format (e.g., "500.00").'
+      )
+      .refine(
+        (val) => {
+          try {
+            if (!val) return true;
+            const d = new Decimal(val);
+            return d.gte('0.00') && d.lte('99999999.99');
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Festival bonus must be between ₹0.00 and ₹99,999,999.99.' }
       )
       .optional()
       .nullable()

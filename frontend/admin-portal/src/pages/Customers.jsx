@@ -71,6 +71,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     assignedArea: '',
     password: '',
     monthlyFee: '500.00',
+    festivalBonus: '500.00',
     billingCycleDay: '',
     outstandingPayment: '0.00',
     advanceBalance: '0.00',
@@ -112,7 +113,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', festivalBonus: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -194,6 +195,13 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="monthlyFee" value={form.monthlyFee} onChange={handleChange} placeholder="500.00" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="500.00" className={inputClass} />
               </div>
             </div>
 
@@ -304,6 +312,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
     assignedArea: '',
     monthlyFee: '',
     increasedFee: '',
+    festivalBonus: '',
     outstandingPayment: '',
     dueStartDate: '',
     dueEndDate: '',
@@ -328,6 +337,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         assignedArea: customer.assignedArea || '',
         monthlyFee: customer.monthlyFee || '500.00',
         increasedFee: customer.increasedFee || '',
+        festivalBonus: customer.festivalBonus || '500.00',
         outstandingPayment: customer.outstandingPayment || '0.00',
         advanceBalance: customer.advanceBalance || '0.00',
         dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
@@ -361,6 +371,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         ...form,
         monthlyFee: String(form.monthlyFee),
         ...(form.increasedFee ? { increasedFee: String(form.increasedFee) } : { increasedFee: null }),
+        festivalBonus: form.festivalBonus ? String(form.festivalBonus) : '0.00',
         outstandingPayment: String(form.outstandingPayment),
         advanceBalance: String(form.advanceBalance),
         billingCycleDay: form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : null,
@@ -466,6 +477,13 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input name="increasedFee" value={form.increasedFee} onChange={handleChange} placeholder="Optional" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="500.00" className={inputClass} />
               </div>
             </div>
             <div>
@@ -901,6 +919,10 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee (Original)</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus</p>
+                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">₹ {Number(profile.festivalBonus || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
                 {profile.increasedFee && Number(profile.increasedFee) > 0 && (
                 <div>

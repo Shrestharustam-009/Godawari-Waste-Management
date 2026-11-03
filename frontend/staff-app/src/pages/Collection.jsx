@@ -305,7 +305,18 @@ export default function Collection() {
 
         {settings?.isBonusFeeEnabled && (
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 border-l-4 border-l-amber-500">
-            <label className="block text-sm font-bold text-slate-700 mb-1">Festival Bonus Fee (Optional)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-bold text-slate-700">Festival Bonus Fee (Optional)</label>
+              {customer?.festivalBonus && Number(customer.festivalBonus) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setBonusFee(customer.festivalBonus)}
+                  className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition"
+                >
+                  Set ₹{customer.festivalBonus}
+                </button>
+              )}
+            </div>
             <p className="text-xs text-slate-500 mb-3">Record any extra festival tips or bonuses collected.</p>
             <div className="space-y-4">
               <div className="relative">
@@ -315,7 +326,7 @@ export default function Collection() {
                 <input 
                   type="number" 
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder={customer?.festivalBonus && Number(customer.festivalBonus) > 0 ? `Default: ₹${customer.festivalBonus}` : "0.00"}
                   value={bonusFee}
                   onChange={(e) => setBonusFee(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 text-lg font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
