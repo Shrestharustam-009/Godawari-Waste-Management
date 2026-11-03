@@ -282,6 +282,7 @@ async function getCustomerProfile(req, res) {
       billingCycleDay: customer.billingCycleDay,
       monthlyFee: customer.monthlyFee.toString(),
       increasedFee: customer.increasedFee ? customer.increasedFee.toString() : null,
+      festivalBonus: customer.festivalBonus ? customer.festivalBonus.toString() : '0.00',
       outstandingPayment: customer.outstandingPayment.toString(),
       advanceBalance: customer.advanceBalance.toString(),
       debtStartDate: customer.debtStartDate,

@@ -921,7 +921,7 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus (Rate)</p>
                   <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">₹ {Number(profile.festivalBonus || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
                 {profile.increasedFee && Number(profile.increasedFee) > 0 && (
