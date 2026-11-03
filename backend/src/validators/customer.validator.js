@@ -103,7 +103,7 @@ const createCustomerSchema = z.object({
         { message: 'Festival bonus must be between ₹0.00 and ₹99,999,999.99.' }
       )
       .optional()
-      .default('500.00')
+      .default('0.00')
   ),
 
   increasedFee: z.preprocess(

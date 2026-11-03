@@ -71,7 +71,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     assignedArea: '',
     password: '',
     monthlyFee: '500.00',
-    festivalBonus: '500.00',
+    festivalBonus: '',
     billingCycleDay: '',
     outstandingPayment: '0.00',
     advanceBalance: '0.00',
@@ -113,7 +113,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', festivalBonus: '500.00', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', festivalBonus: '', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -198,10 +198,10 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (Optional)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="500.00" className={inputClass} />
+                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="Optional (e.g. 100.00)" className={inputClass} />
               </div>
             </div>
 
@@ -337,7 +337,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
         assignedArea: customer.assignedArea || '',
         monthlyFee: customer.monthlyFee || '500.00',
         increasedFee: customer.increasedFee || '',
-        festivalBonus: customer.festivalBonus || '500.00',
+        festivalBonus: customer.festivalBonus && Number(customer.festivalBonus) > 0 ? customer.festivalBonus : '',
         outstandingPayment: customer.outstandingPayment || '0.00',
         advanceBalance: customer.advanceBalance || '0.00',
         dueStartDate: customer.dueStartDate ? customer.dueStartDate.split('T')[0] : '',
@@ -480,10 +480,10 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (₹)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (Optional)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="500.00" className={inputClass} />
+                <input name="festivalBonus" value={form.festivalBonus} onChange={handleChange} placeholder="Optional (e.g. 100.00)" className={inputClass} />
               </div>
             </div>
             <div>
@@ -920,10 +920,12 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee (Original)</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
+                {profile.festivalBonus && Number(profile.festivalBonus) > 0 ? (
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus (Rate)</p>
-                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">₹ {Number(profile.festivalBonus || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">₹ {Number(profile.festivalBonus).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
+                ) : null}
                 {profile.increasedFee && Number(profile.increasedFee) > 0 && (
                 <div>
                   <p className="text-xs text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-1">Active Fee (Increased)</p>
