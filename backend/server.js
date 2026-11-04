@@ -439,8 +439,9 @@ async function startServer() {
     await prisma.$connect();
     console.log('[DB] PostgreSQL connection established via Prisma.');
 
-    // Ensure festivalBonus column exists in customers table
+    // Ensure festivalBonus and festivalBonusPaidAt columns exist in customers table
     await prisma.$executeRawUnsafe(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS "festivalBonus" DECIMAL(10, 2) DEFAULT 0.00;`).catch(e => console.warn('[DB] festivalBonus column check:', e.message));
+    await prisma.$executeRawUnsafe(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS "festivalBonusPaidAt" TIMESTAMP(3);`).catch(e => console.warn('[DB] festivalBonusPaidAt column check:', e.message));
 
     // Load deactivated users + customers into memory blacklist
     await loadBlacklist();

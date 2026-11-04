@@ -34,6 +34,25 @@ import { toBS } from '@zener/nepali-datepicker-react';
 import invoiceHeaderImg from '../assets/company_logo.png';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../lib/printTemplates';
 
+function isBonusPaidInCurrentYear(paidAt, isBS = true) {
+  if (!paidAt) return false;
+  try {
+    const paidDate = new Date(paidAt);
+    if (isNaN(paidDate.getTime())) return false;
+    const now = new Date();
+    if (isBS) {
+      const paidAdStr = paidDate.toISOString().split('T')[0];
+      const nowAdStr = now.toISOString().split('T')[0];
+      const paidBS = toBS(paidAdStr);
+      const nowBS = toBS(nowAdStr);
+      return Boolean(paidBS && nowBS && paidBS.year === nowBS.year);
+    }
+    return paidDate.getFullYear() === now.getFullYear();
+  } catch (e) {
+    return false;
+  }
+}
+
 function calculateStartingDebt(dueStartDate, dueEndDate, monthlyFee, increasedFee, isBS = true) {
   if (!dueStartDate || !dueEndDate) return null;
   const activeFee = Number(increasedFee) > 0 ? Number(increasedFee) : Number(monthlyFee);
@@ -1015,12 +1034,39 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Monthly Fee (Original)</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
-                {profile.festivalBonus && Number(profile.festivalBonus) > 0 ? (
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus (Rate)</p>
-                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">₹ {Number(profile.festivalBonus).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-                </div>
-                ) : null}
+                {(() => {
+                  const isBS = settings?.calendarType === 'BS';
+                  const isPaidThisYear = isBonusPaidInCurrentYear(profile.festivalBonusPaidAt, isBS);
+                  const hasBonusRate = profile.festivalBonus && Number(profile.festivalBonus) > 0;
+                  if (!hasBonusRate && !isPaidThisYear) return null;
+                  const displayAmount = isPaidThisYear && Number(profile.festivalBonusPaidAmount) > 0
+                    ? Number(profile.festivalBonusPaidAmount)
+                    : Number(profile.festivalBonus || 0);
+                  return (
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Festival Bonus</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                          ₹ {displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </p>
+                        {isPaidThisYear ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3" /> PAID
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
+                            UNPAID
+                          </span>
+                        )}
+                      </div>
+                      {isPaidThisYear && profile.festivalBonusPaidAt && (
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
+                          Paid on {formatDate(profile.festivalBonusPaidAt)}{profile.festivalBonusReceiptId ? ` (REC-${profile.festivalBonusReceiptId})` : ''}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 {profile.increasedFee && Number(profile.increasedFee) > 0 && (
                 <div>
                   <p className="text-xs text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-1">Active Fee (Increased)</p>
@@ -1203,9 +1249,16 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                               <TrendingUp className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                {tx.paymentMethod} · {tx.source}
-                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                  {tx.paymentMethod} · {tx.source}
+                                </p>
+                                {tx.categoryName === 'Festival Bonus Fee' && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
+                                    FESTIVAL BONUS
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
                                   <User className="w-3 h-3 mr-1" /> {tx.collectedBy}

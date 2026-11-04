@@ -92,12 +92,13 @@ async function processFieldPayment({
   // The amount arrives as a STRING (enforced by Zod validator).
   // We convert to Decimal.js immediately — no native JS float ever touches it.
 
-  const grossAmount = new Decimal(amountReceived);
+  const grossAmount = new Decimal(amountReceived || '0.00');
+  const bonusAmountCheck = bonusFee ? new Decimal(bonusFee) : new Decimal('0.00');
 
-  // GUARD: Reject zero or negative amounts to prevent debt inflation
-  if (grossAmount.lte(0)) {
+  // GUARD: Reject negative amounts or when both main payment and bonus are zero
+  if (grossAmount.lt(0) || bonusAmountCheck.lt(0) || (grossAmount.eq(0) && bonusAmountCheck.eq(0))) {
     throw Object.assign(
-      new Error('Payment amount must be greater than zero.'),
+      new Error('Payment amount or festival bonus fee must be greater than zero.'),
       { code: 'INVALID_AMOUNT' }
     );
   }
@@ -308,27 +309,32 @@ async function processFieldPayment({
       data: updateData,
     });
 
-    // ── 5e. CREATE Income Ledger entry with VAT breakdown ──
-    const income = await tx.incomeLedger.create({
-      data: {
-        date: new Date(),
-        amount: grossAmount.toFixed(2),         // Gross (VAT-inclusive)
-        baseAmount: baseRevenue.toFixed(2),      // Revenue excl. VAT
-        vatAmount: vatAmount.toFixed(2),          // 13% VAT component
-        paymentMethod,
-        source: 'FIELD_APP',
-        idempotencyKey: idempotencyKey || null,
-        referenceId: referenceId || null,
-        customerId,
-        collectedById: staffId,
-        incomeCategoryId,
-        note: note || null,
-        paymentForStartDate: paymentForStartDate || null,
-        paymentForEndDate: paymentForEndDate || null,
-      },
-    });
+    // ── 5e. CREATE Income Ledger entry with VAT breakdown (when grossAmount > 0) ──
+    let income = null;
+    if (grossAmount.gt(0)) {
+      income = await tx.incomeLedger.create({
+        data: {
+          date: new Date(),
+          amount: grossAmount.toFixed(2),         // Gross (VAT-inclusive)
+          baseAmount: baseRevenue.toFixed(2),      // Revenue excl. VAT
+          vatAmount: vatAmount.toFixed(2),          // 13% VAT component
+          paymentMethod,
+          source: 'FIELD_APP',
+          idempotencyKey: idempotencyKey || null,
+          referenceId: referenceId || null,
+          customerId,
+          collectedById: staffId,
+          incomeCategoryId,
+          note: note || null,
+          paymentForStartDate: paymentForStartDate || null,
+          paymentForEndDate: paymentForEndDate || null,
+          clearedDebtAmount: clearedDebtAmount.toFixed(2),
+          addedToAdvanceAmount: addedToAdvanceAmount.toFixed(2),
+        },
+      });
+    }
 
-    // ── 5f. Create Bonus Fee Ledger entry if provided ──
+    // ── 5f. Create Bonus Fee Ledger entry if provided & mark customer festivalBonusPaidAt ──
     let bonusIncome = null;
     if (bonusFee) {
       const bonusAmount = new Decimal(bonusFee);
@@ -350,6 +356,7 @@ async function processFieldPayment({
         const bonusBase = bonusAmount.dividedBy(VAT_RATE).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
         const bonusVat = bonusAmount.minus(bonusBase);
 
+        const isBonusOnly = grossAmount.eq(0);
         bonusIncome = await tx.incomeLedger.create({
           data: {
             date: new Date(),
@@ -358,16 +365,27 @@ async function processFieldPayment({
             vatAmount: bonusVat.toFixed(2),
             paymentMethod,
             source: 'FIELD_APP',
-            idempotencyKey: idempotencyKey ? `${idempotencyKey}_bonus` : null,
-            referenceId: referenceId ? `${referenceId}_bonus` : null,
+            idempotencyKey: idempotencyKey ? (isBonusOnly ? idempotencyKey : `${idempotencyKey}_bonus`) : null,
+            referenceId: referenceId ? (isBonusOnly ? referenceId : `${referenceId}_bonus`) : null,
             customerId,
             collectedById: staffId,
             incomeCategoryId: bonusCategory.id,
-            note: bonusRemark || null,
+            note: bonusRemark || 'Festival Bonus',
             clearedDebtAmount: '0.00',
             addedToAdvanceAmount: '0.00',
           }
         });
+
+        // Record timestamp of Festival Bonus payment on the customer row
+        await tx.$executeRaw`
+          UPDATE "customers"
+          SET "festivalBonusPaidAt" = NOW()
+          WHERE "customerId" = ${customerId}
+        `.catch(() => {});
+
+        if (!income) {
+          income = bonusIncome;
+        }
       }
     }
 
@@ -634,7 +652,7 @@ async function processSalesReturn({
     // 1. Fetch original ledger record
     const originalLedger = await tx.incomeLedger.findUnique({
       where: { id: Number(originalIncomeId) },
-      include: { customer: true }
+      include: { customer: true, incomeCategory: true }
     });
 
     if (!originalLedger) {
@@ -732,6 +750,30 @@ async function processSalesReturn({
         returnReason: reason || 'Customer requested cancellation'
       }
     });
+
+    // 4. If the returned invoice was a Festival Bonus Fee, recalculate customer's festivalBonusPaidAt
+    if (originalLedger.incomeCategory?.name === 'Festival Bonus Fee') {
+      const allBonusEntries = await tx.incomeLedger.findMany({
+        where: {
+          customerId: customer.customerId,
+          isDeleted: false,
+          incomeCategory: { name: 'Festival Bonus Fee' },
+        },
+        orderBy: { date: 'desc' },
+      });
+      const returnedSet = new Set(
+        allBonusEntries.filter(e => e.isSalesReturn && e.returnRefId).map(e => e.returnRefId)
+      );
+      const latestValidBonus = allBonusEntries.find(
+        e => !e.isSalesReturn && !returnedSet.has(e.id) && Number(e.amount) > 0
+      );
+      const nextPaidAt = latestValidBonus ? latestValidBonus.date : null;
+      await tx.$executeRaw`
+        UPDATE "customers"
+        SET "festivalBonusPaidAt" = ${nextPaidAt}
+        WHERE "customerId" = ${customer.customerId}
+      `.catch(() => {});
+    }
 
     return {
       success: true,

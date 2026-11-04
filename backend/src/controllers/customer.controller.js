@@ -14,6 +14,33 @@ const { createCustomerSchema } = require('../validators/customer.validator');
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
+function extractFestivalBonusStatus(incomeEntries = []) {
+  const returnedIds = new Set(
+    incomeEntries
+      .filter((tx) => tx.isSalesReturn && tx.returnRefId)
+      .map((tx) => tx.returnRefId)
+  );
+  const validBonusTx = incomeEntries.find(
+    (tx) =>
+      !tx.isSalesReturn &&
+      !returnedIds.has(tx.id) &&
+      tx.incomeCategory?.name === 'Festival Bonus Fee' &&
+      Number(tx.amount) > 0
+  );
+  if (!validBonusTx) {
+    return {
+      festivalBonusPaidAt: null,
+      festivalBonusPaidAmount: null,
+      festivalBonusReceiptId: null,
+    };
+  }
+  return {
+    festivalBonusPaidAt: validBonusTx.date,
+    festivalBonusPaidAmount: validBonusTx.amount.toString(),
+    festivalBonusReceiptId: validBonusTx.id,
+  };
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // 1. GET ALL CUSTOMERS (Paginated + Area Filter)
 // ────────────────────────────────────────────────────────────────────────────
@@ -77,19 +104,39 @@ async function getAllCustomers(req, res) {
           dueEndDate: true,
           advanceStartDate: true,
           advanceEndDate: true,
+          incomeEntries: {
+            where: {
+              isDeleted: false,
+              incomeCategory: { name: 'Festival Bonus Fee' },
+            },
+            orderBy: { date: 'desc' },
+            select: {
+              id: true,
+              date: true,
+              amount: true,
+              isSalesReturn: true,
+              returnRefId: true,
+              incomeCategory: { select: { name: true } },
+            },
+          },
         },
       }),
       prisma.customer.count({ where }),
     ]);
 
-    const formatted = customers.map((c) => ({
-      ...c,
-      monthlyFee: c.monthlyFee.toString(),
-      increasedFee: c.increasedFee ? c.increasedFee.toString() : null,
-      festivalBonus: c.festivalBonus ? c.festivalBonus.toString() : '0.00',
-      outstandingPayment: c.outstandingPayment.toString(),
-      advanceBalance: c.advanceBalance.toString(),
-    }));
+    const formatted = customers.map((c) => {
+      const { incomeEntries, ...rest } = c;
+      const bonusStatus = extractFestivalBonusStatus(incomeEntries);
+      return {
+        ...rest,
+        monthlyFee: c.monthlyFee.toString(),
+        increasedFee: c.increasedFee ? c.increasedFee.toString() : null,
+        festivalBonus: c.festivalBonus ? c.festivalBonus.toString() : '0.00',
+        ...bonusStatus,
+        outstandingPayment: c.outstandingPayment.toString(),
+        advanceBalance: c.advanceBalance.toString(),
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -250,6 +297,11 @@ async function getCustomerProfile(req, res) {
                 name: true,
               },
             },
+            incomeCategory: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         billingEntries: {
@@ -272,6 +324,8 @@ async function getCustomerProfile(req, res) {
       });
     }
 
+    const bonusStatus = extractFestivalBonusStatus(customer.incomeEntries);
+
     // Cast all Decimal fields to strings
     const formatted = {
       customerId: customer.customerId,
@@ -283,6 +337,7 @@ async function getCustomerProfile(req, res) {
       monthlyFee: customer.monthlyFee.toString(),
       increasedFee: customer.increasedFee ? customer.increasedFee.toString() : null,
       festivalBonus: customer.festivalBonus ? customer.festivalBonus.toString() : '0.00',
+      ...bonusStatus,
       outstandingPayment: customer.outstandingPayment.toString(),
       advanceBalance: customer.advanceBalance.toString(),
       debtStartDate: customer.debtStartDate,
@@ -304,6 +359,9 @@ async function getCustomerProfile(req, res) {
           source: tx.source,
           status: tx.status,
           note: tx.note,
+          categoryName: tx.incomeCategory?.name || null,
+          isSalesReturn: tx.isSalesReturn || false,
+          returnRefId: tx.returnRefId || null,
           clearedDebtAmount: tx.clearedDebtAmount?.toString() || '0.00',
           addedToAdvanceAmount: tx.addedToAdvanceAmount?.toString() || '0.00',
           collectedBy: tx.collectedBy?.name || 'System / Admin',

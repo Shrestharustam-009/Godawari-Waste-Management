@@ -123,6 +123,7 @@ model Customer {
   monthlyFee         Decimal  @default(500.00) @db.Decimal(10, 2)
   increasedFee       Decimal? @db.Decimal(10, 2) // Overrides monthlyFee for automated billing
   festivalBonus      Decimal  @default(0.00) @db.Decimal(10, 2) // Optional annual festival bonus rate
+  festivalBonusPaidAt DateTime? // Timestamp when annual festival bonus was last collected
   outstandingPayment Decimal  @default(0.00) @db.Decimal(10, 2)
   advanceBalance     Decimal  @default(0.00) @db.Decimal(10, 2) // Smart Wallet
 

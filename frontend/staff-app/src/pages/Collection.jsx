@@ -6,7 +6,27 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Invoice from '../components/Invoice';
 import DatePicker from '../components/DatePicker';
+import { toBS } from '@zener/nepali-datepicker-react';
 import { useSettings } from '../context/SettingsContext';
+
+function isBonusPaidInCurrentYear(paidAt, isBS = true) {
+  if (!paidAt) return false;
+  try {
+    const paidDate = new Date(paidAt);
+    if (isNaN(paidDate.getTime())) return false;
+    const now = new Date();
+    if (isBS) {
+      const paidAdStr = paidDate.toISOString().split('T')[0];
+      const nowAdStr = now.toISOString().split('T')[0];
+      const paidBS = toBS(paidAdStr);
+      const nowBS = toBS(nowAdStr);
+      return Boolean(paidBS && nowBS && paidBS.year === nowBS.year);
+    }
+    return paidDate.getFullYear() === now.getFullYear();
+  } catch (e) {
+    return false;
+  }
+}
 
 export default function Collection() {
   const { customerId } = useParams();
@@ -142,7 +162,7 @@ export default function Collection() {
           <CheckCircle2 className="w-10 h-10 text-emerald-600" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Successful!</h2>
-        <p className="text-slate-500 mb-8">Collected ₹{formatCurrency(amount)} from {customer.name}</p>
+        <p className="text-slate-500 mb-8">Collected ₹{formatCurrency(Number(amount || 0) + Number(bonusFee || 0))} from {customer.name}</p>
         
         <div className="w-full flex gap-3 mb-3">
           <button 
@@ -234,6 +254,40 @@ export default function Collection() {
                 )}
               </div>
             </div>
+            {(() => {
+              const isPaidThisYear = isBonusPaidInCurrentYear(customer.festivalBonusPaidAt, settings?.calendarType === 'BS');
+              const hasBonusRate = customer.festivalBonus && Number(customer.festivalBonus) > 0;
+              if (!hasBonusRate && !isPaidThisYear) return null;
+              const displayBonus = isPaidThisYear && Number(customer.festivalBonusPaidAmount) > 0
+                ? customer.festivalBonusPaidAmount
+                : customer.festivalBonus;
+              return (
+                <div className={`p-3 rounded-xl border col-span-2 flex items-center justify-between gap-2 ${isPaidThisYear ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div>
+                    <p className={`text-xs font-semibold mb-0.5 ${isPaidThisYear ? 'text-emerald-700' : 'text-amber-700'}`}>Festival Bonus</p>
+                    <p className={`text-lg font-black ${isPaidThisYear ? 'text-emerald-800' : 'text-amber-800'}`}>₹{formatCurrency(displayBonus)}</p>
+                  </div>
+                  <div className="text-right">
+                    {isPaidThisYear ? (
+                      <>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> PAID
+                        </span>
+                        {customer.festivalBonusPaidAt && (
+                          <p className="text-[10px] text-emerald-700 font-medium mt-1">
+                            {formatDate(customer.festivalBonusPaidAt)}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
+                        UNPAID
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -303,21 +357,35 @@ export default function Collection() {
           </div>
         </div>
 
-        {settings?.isBonusFeeEnabled && (
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 border-l-4 border-l-amber-500">
+        {settings?.isBonusFeeEnabled && (() => {
+          const isPaidThisYear = isBonusPaidInCurrentYear(customer?.festivalBonusPaidAt, settings?.calendarType === 'BS');
+          return (
+          <div className={`bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 border-l-4 ${isPaidThisYear ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-bold text-slate-700">Festival Bonus Fee (Optional)</label>
-              {customer?.festivalBonus && Number(customer.festivalBonus) > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setBonusFee(customer.festivalBonus)}
-                  className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition"
-                >
-                  Set ₹{customer.festivalBonus}
-                </button>
+              {isPaidThisYear ? (
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Paid This Year
+                </span>
+              ) : (
+                customer?.festivalBonus && Number(customer.festivalBonus) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setBonusFee(customer.festivalBonus)}
+                    className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition"
+                  >
+                    Set ₹{customer.festivalBonus}
+                  </button>
+                )
               )}
             </div>
-            <p className="text-xs text-slate-500 mb-3">Record any extra festival tips or bonuses collected.</p>
+            {isPaidThisYear ? (
+              <p className="text-xs text-emerald-600 font-medium mb-3">
+                Festival bonus (₹{formatCurrency(customer.festivalBonusPaidAmount || customer.festivalBonus)}) was already collected on {formatDate(customer.festivalBonusPaidAt)}.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 mb-3">Record any extra festival tips or bonuses collected.</p>
+            )}
             <div className="space-y-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -343,7 +411,8 @@ export default function Collection() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         <button 
           onClick={handleReviewClick}
