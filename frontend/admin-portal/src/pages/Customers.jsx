@@ -34,6 +34,17 @@ import { toBS } from '@zener/nepali-datepicker-react';
 import invoiceHeaderImg from '../assets/company_logo.png';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../lib/printTemplates';
 
+function toNepalYMD(dateInput) {
+  if (!dateInput) return '';
+  const str = String(dateInput).trim();
+  if (/^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z)?$/.test(str)) {
+    return str.slice(0, 10);
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return str.slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' }).format(d);
+}
+
 function isBonusPaidInCurrentYear(paidAt, isBS = true) {
   if (!paidAt) return false;
   try {
@@ -41,8 +52,8 @@ function isBonusPaidInCurrentYear(paidAt, isBS = true) {
     if (isNaN(paidDate.getTime())) return false;
     const now = new Date();
     if (isBS) {
-      const paidAdStr = paidDate.toISOString().split('T')[0];
-      const nowAdStr = now.toISOString().split('T')[0];
+      const paidAdStr = toNepalYMD(paidAt);
+      const nowAdStr = toNepalYMD(now);
       const paidBS = toBS(paidAdStr);
       const nowBS = toBS(nowAdStr);
       return Boolean(paidBS && nowBS && paidBS.year === nowBS.year);
@@ -59,15 +70,19 @@ function calculateStartingDebt(dueStartDate, dueEndDate, monthlyFee, increasedFe
   if (isNaN(activeFee) || activeFee <= 0) return null;
 
   try {
+    const startYMD = toNepalYMD(dueStartDate);
+    const endYMD = toNepalYMD(dueEndDate);
+    if (!startYMD || !endYMD) return null;
+
     let monthsDiff = 0;
     if (isBS) {
-      const startBS = toBS(dueStartDate);
-      const endBS = toBS(dueEndDate);
+      const startBS = toBS(startYMD);
+      const endBS = toBS(endYMD);
       if (!startBS || !endBS || isNaN(startBS.year) || isNaN(endBS.year)) return null;
       monthsDiff = (endBS.year - startBS.year) * 12 + (endBS.month - startBS.month);
     } else {
-      const startAD = new Date(dueStartDate);
-      const endAD = new Date(dueEndDate);
+      const startAD = new Date(startYMD);
+      const endAD = new Date(endYMD);
       if (isNaN(startAD.getTime()) || isNaN(endAD.getTime())) return null;
       monthsDiff = (endAD.getFullYear() - startAD.getFullYear()) * 12 + (endAD.getMonth() - startAD.getMonth());
     }
@@ -118,7 +133,7 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
 // ============================================================================
 function AddCustomerModal({ isOpen, onClose, onSuccess }) {
   const { settings } = useSettings();
-  const isBS = settings?.calendarType === 'BS';
+  const isBS = settings?.calendarType !== 'AD';
   const [form, setForm] = useState({
     customerId: '',
     name: '',
@@ -390,7 +405,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 // ============================================================================
 function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
   const { settings } = useSettings();
-  const isBS = settings?.calendarType === 'BS';
+  const isBS = settings?.calendarType !== 'AD';
   const [form, setForm] = useState({
     newCustomerId: '',
     name: '',
@@ -1035,7 +1050,7 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">₹ {Number(profile.monthlyFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                 </div>
                 {(() => {
-                  const isBS = settings?.calendarType === 'BS';
+                  const isBS = settings?.calendarType !== 'AD';
                   const isPaidThisYear = isBonusPaidInCurrentYear(profile.festivalBonusPaidAt, isBS);
                   const hasBonusRate = profile.festivalBonus && Number(profile.festivalBonus) > 0;
                   if (!hasBonusRate && !isPaidThisYear) return null;

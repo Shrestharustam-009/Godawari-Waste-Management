@@ -6,7 +6,7 @@ import { toBS } from '@zener/nepali-datepicker-react';
 const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
-  const [settings, setSettings] = useState({ calendarType: 'AD' });
+  const [settings, setSettings] = useState({ calendarType: 'BS' });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth(); // fetch settings when user is logged in
 
@@ -40,7 +40,10 @@ export const SettingsProvider = ({ children }) => {
 
     if (settings?.calendarType === 'BS') {
       try {
-        const adStr = dateObj.toISOString().split('T')[0];
+        const str = String(dateString).trim();
+        const adStr = /^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z)?$/.test(str)
+          ? str.slice(0, 10)
+          : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' }).format(dateObj);
         const bsObj = toBS(adStr);
         return `${bsObj.year}-${String(bsObj.month + 1).padStart(2, '0')}-${String(bsObj.date).padStart(2, '0')} (BS)`;
       } catch (e) {

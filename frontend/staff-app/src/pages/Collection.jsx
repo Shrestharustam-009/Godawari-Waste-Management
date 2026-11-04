@@ -9,6 +9,17 @@ import DatePicker from '../components/DatePicker';
 import { toBS } from '@zener/nepali-datepicker-react';
 import { useSettings } from '../context/SettingsContext';
 
+function toNepalYMD(dateInput) {
+  if (!dateInput) return '';
+  const str = String(dateInput).trim();
+  if (/^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z)?$/.test(str)) {
+    return str.slice(0, 10);
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return str.slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' }).format(d);
+}
+
 function isBonusPaidInCurrentYear(paidAt, isBS = true) {
   if (!paidAt) return false;
   try {
@@ -16,8 +27,8 @@ function isBonusPaidInCurrentYear(paidAt, isBS = true) {
     if (isNaN(paidDate.getTime())) return false;
     const now = new Date();
     if (isBS) {
-      const paidAdStr = paidDate.toISOString().split('T')[0];
-      const nowAdStr = now.toISOString().split('T')[0];
+      const paidAdStr = toNepalYMD(paidAt);
+      const nowAdStr = toNepalYMD(now);
       const paidBS = toBS(paidAdStr);
       const nowBS = toBS(nowAdStr);
       return Boolean(paidBS && nowBS && paidBS.year === nowBS.year);
@@ -255,7 +266,7 @@ export default function Collection() {
               </div>
             </div>
             {(() => {
-              const isPaidThisYear = isBonusPaidInCurrentYear(customer.festivalBonusPaidAt, settings?.calendarType === 'BS');
+              const isPaidThisYear = isBonusPaidInCurrentYear(customer.festivalBonusPaidAt, settings?.calendarType !== 'AD');
               const hasBonusRate = customer.festivalBonus && Number(customer.festivalBonus) > 0;
               if (!hasBonusRate && !isPaidThisYear) return null;
               const displayBonus = isPaidThisYear && Number(customer.festivalBonusPaidAmount) > 0
@@ -358,7 +369,7 @@ export default function Collection() {
         </div>
 
         {settings?.isBonusFeeEnabled && (() => {
-          const isPaidThisYear = isBonusPaidInCurrentYear(customer?.festivalBonusPaidAt, settings?.calendarType === 'BS');
+          const isPaidThisYear = isBonusPaidInCurrentYear(customer?.festivalBonusPaidAt, settings?.calendarType !== 'AD');
           return (
           <div className={`bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 border-l-4 ${isPaidThisYear ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
             <div className="flex items-center justify-between mb-1">
