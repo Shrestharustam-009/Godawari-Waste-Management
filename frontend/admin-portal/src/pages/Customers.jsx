@@ -30,8 +30,42 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
+import { toBS } from '@zener/nepali-datepicker-react';
 import invoiceHeaderImg from '../assets/company_logo.png';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../lib/printTemplates';
+
+function calculateStartingDebt(dueStartDate, dueEndDate, monthlyFee, increasedFee, isBS = true) {
+  if (!dueStartDate || !dueEndDate) return null;
+  const activeFee = Number(increasedFee) > 0 ? Number(increasedFee) : Number(monthlyFee);
+  if (isNaN(activeFee) || activeFee <= 0) return null;
+
+  try {
+    let monthsDiff = 0;
+    if (isBS) {
+      const startBS = toBS(dueStartDate);
+      const endBS = toBS(dueEndDate);
+      if (!startBS || !endBS || isNaN(startBS.year) || isNaN(endBS.year)) return null;
+      monthsDiff = (endBS.year - startBS.year) * 12 + (endBS.month - startBS.month);
+    } else {
+      const startAD = new Date(dueStartDate);
+      const endAD = new Date(dueEndDate);
+      if (isNaN(startAD.getTime()) || isNaN(endAD.getTime())) return null;
+      monthsDiff = (endAD.getFullYear() - startAD.getFullYear()) * 12 + (endAD.getMonth() - startAD.getMonth());
+    }
+
+    if (monthsDiff < 0) return null;
+    const totalMonths = monthsDiff + 1;
+    const totalAmount = (totalMonths * activeFee).toFixed(2);
+    return {
+      monthsDiff,
+      totalMonths,
+      activeFee: activeFee.toFixed(2),
+      totalAmount,
+    };
+  } catch (e) {
+    return null;
+  }
+}
 // ============================================================================
 // SUDO MODAL
 // ============================================================================
@@ -64,6 +98,8 @@ function SudoModal({ isOpen, onClose, onConfirm, loading, error, title, message 
 // ADD CUSTOMER MODAL
 // ============================================================================
 function AddCustomerModal({ isOpen, onClose, onSuccess }) {
+  const { settings } = useSettings();
+  const isBS = settings?.calendarType === 'BS';
   const [form, setForm] = useState({
     customerId: '',
     name: '',
@@ -71,6 +107,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
     assignedArea: '',
     password: '',
     monthlyFee: '500.00',
+    increasedFee: '',
     festivalBonus: '',
     billingCycleDay: '',
     outstandingPayment: '0.00',
@@ -86,7 +123,18 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const fieldName = e.target.name;
+    const value = e.target.value;
+    setForm((prev) => {
+      const next = { ...prev, [fieldName]: value };
+      if (['dueStartDate', 'dueEndDate', 'monthlyFee', 'increasedFee'].includes(fieldName)) {
+        const calc = calculateStartingDebt(next.dueStartDate, next.dueEndDate, next.monthlyFee, next.increasedFee, isBS);
+        if (calc) {
+          next.outstandingPayment = calc.totalAmount;
+        }
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -99,6 +147,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const payload = { ...form };
       if (!payload.phone) delete payload.phone;
       if (!payload.vatNumber) delete payload.vatNumber;
+      if (!payload.increasedFee) delete payload.increasedFee;
       payload.billingCycleDay = form.billingCycleDay !== '' ? parseInt(form.billingCycleDay, 10) : undefined;
       
       if (Number(payload.outstandingPayment) <= 0) {
@@ -113,7 +162,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
       const res = await api.post('/customers', payload);
       if (res.data.success) {
         onSuccess(res.data.data);
-        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', festivalBonus: '', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
+        setForm({ customerId: '', name: '', phone: '', assignedArea: '', password: '', monthlyFee: '500.00', increasedFee: '', festivalBonus: '', billingCycleDay: '', outstandingPayment: '0.00', advanceBalance: '0.00', dueStartDate: '', dueEndDate: '', advanceStartDate: '', advanceEndDate: '', vatNumber: '' });
         onClose();
       }
     } catch (err) {
@@ -198,6 +247,13 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               </div>
             </div>
             <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Increased Fee (₹)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input name="increasedFee" value={form.increasedFee} onChange={handleChange} placeholder="Optional" className={inputClass} />
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Festival Bonus (Optional)</label>
               <div className="relative">
                 <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -242,11 +298,11 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
             </div>
           </div>
 
-          {Number(form.outstandingPayment) > 0 && (
+          <div className="space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt From Date</label>
-                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200 flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
                     <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
@@ -255,7 +311,7 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt To Date</label>
-                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200 flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
                     <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
@@ -263,7 +319,16 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
                 </div>
               </div>
             </div>
-          )}
+            {(() => {
+              const debtCalc = calculateStartingDebt(form.dueStartDate, form.dueEndDate, form.monthlyFee, form.increasedFee, isBS);
+              if (!debtCalc) return null;
+              return (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  Auto-calculated Starting Debt: {debtCalc.totalMonths} month(s) × ₹{debtCalc.activeFee} = ₹{debtCalc.totalAmount}
+                </p>
+              );
+            })()}
+          </div>
           
           {Number(form.advanceBalance) > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -305,6 +370,8 @@ function AddCustomerModal({ isOpen, onClose, onSuccess }) {
 // EDIT CUSTOMER MODAL
 // ============================================================================
 function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
+  const { settings } = useSettings();
+  const isBS = settings?.calendarType === 'BS';
   const [form, setForm] = useState({
     newCustomerId: '',
     name: '',
@@ -354,7 +421,17 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setForm((prev) => ({ ...prev, [e.target.name]: value }));
+    const fieldName = e.target.name;
+    setForm((prev) => {
+      const next = { ...prev, [fieldName]: value };
+      if (['dueStartDate', 'dueEndDate', 'monthlyFee', 'increasedFee'].includes(fieldName)) {
+        const calc = calculateStartingDebt(next.dueStartDate, next.dueEndDate, next.monthlyFee, next.increasedFee, isBS);
+        if (calc) {
+          next.outstandingPayment = calc.totalAmount;
+        }
+      }
+      return next;
+    });
   };
 
   const handleInitialSubmit = (e) => {
@@ -518,11 +595,11 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
             </div>
           </div>
 
-          {Number(form.outstandingPayment) > 0 && (
+          <div className="space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt From Date</label>
-                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200 flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
                     <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
@@ -531,7 +608,7 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Debt To Date</label>
-                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200  flex">
+                <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 focus-within:ring-2 focus-within:ring-brand-500 focus-within:bg-white dark:bg-slate-800 transition-colors duration-200 flex">
                   <div className="flex items-center justify-center pl-3 pr-2 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors duration-200">
                     <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
@@ -539,7 +616,25 @@ function EditCustomerModal({ isOpen, onClose, customer, onSuccess }) {
                 </div>
               </div>
             </div>
-          )}
+            {(() => {
+              const debtCalc = calculateStartingDebt(form.dueStartDate, form.dueEndDate, form.monthlyFee, form.increasedFee, isBS);
+              if (!debtCalc) return null;
+              return (
+                <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>Auto-calculated Starting Debt: {debtCalc.totalMonths} month(s) × ₹{debtCalc.activeFee} = ₹{debtCalc.totalAmount}</span>
+                  {Number(form.outstandingPayment) !== Number(debtCalc.totalAmount) && (
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, outstandingPayment: debtCalc.totalAmount }))}
+                      className="underline hover:text-emerald-700 dark:hover:text-emerald-300 ml-2"
+                    >
+                      Apply ₹{debtCalc.totalAmount}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
 
           {Number(form.advanceBalance) > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
