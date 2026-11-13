@@ -44,6 +44,7 @@ async function main() {
   // 3. Clear Billing Ledger & Restart Identity
   console.log('🧹 Clearing billing_ledger...');
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE billing_ledger RESTART IDENTITY CASCADE;`);
+  await prisma.$executeRawUnsafe(`UPDATE customers SET "lastBilledDate" = NULL, "festivalBonusPaidAt" = NULL;`).catch(() => {});
   console.log('✅ billing_ledger reset successfully.');
 
   // 4. Clear Expense & Salary Ledgers if any test entries exist

@@ -194,6 +194,14 @@ async function updateSettings(req, res) {
 
     console.log(`[SYSTEM] Settings updated by Admin "${admin.name}" (ID: ${admin.id}). Cycle Day: ${billingCycleDay}`);
 
+    // Trigger billing cycle check in background in case billingCycleDay was set to today
+    try {
+      const { runBillingCycle } = require('../workers/billing.worker');
+      runBillingCycle().catch(err => console.warn('[SYSTEM] Background billing trigger error:', err.message));
+    } catch (e) {
+      console.warn('[SYSTEM] Could not trigger billing worker:', e.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'System settings updated successfully.',

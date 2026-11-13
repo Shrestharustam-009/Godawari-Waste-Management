@@ -11,6 +11,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { createCustomerSchema } = require('../validators/customer.validator');
+const { runBillingCycle } = require('../workers/billing.worker');
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
@@ -196,7 +197,7 @@ async function createCustomer(req, res) {
     const debtStartDate = startingDebt.gt(0) ? new Date() : null;
 
     // 6. Insert
-    const customer = await prisma.customer.create({
+    let customer = await prisma.customer.create({
       data: {
         customerId,
         name,
@@ -217,6 +218,16 @@ async function createCustomer(req, res) {
         advanceEndDate,
       },
     });
+
+    // Check if this customer is eligible for immediate billing today (e.g. custom/global billing day is today)
+    try {
+      const billRes = await runBillingCycle({ customerId: customer.customerId });
+      if (billRes.totalBilled > 0) {
+        customer = await prisma.customer.findUnique({ where: { customerId: customer.customerId } });
+      }
+    } catch (billErr) {
+      console.warn('[CUSTOMER CTRL] Immediate billing check after create warning:', billErr.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -488,10 +499,20 @@ async function updateCustomer(req, res) {
       updateData.customerId = newCustomerId;
     }
 
-    const updatedCustomer = await prisma.customer.update({
+    let updatedCustomer = await prisma.customer.update({
       where: { customerId },
       data: updateData,
     });
+
+    // Check if this customer is eligible for immediate billing today (e.g. advance payment + billingCycleDay is today)
+    try {
+      const billRes = await runBillingCycle({ customerId: updatedCustomer.customerId });
+      if (billRes.totalBilled > 0) {
+        updatedCustomer = await prisma.customer.findUnique({ where: { customerId: updatedCustomer.customerId } });
+      }
+    } catch (billErr) {
+      console.warn('[CUSTOMER CTRL] Immediate billing check after update warning:', billErr.message);
+    }
 
     return res.status(200).json({
       success: true,
