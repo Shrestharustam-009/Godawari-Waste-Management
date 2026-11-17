@@ -595,6 +595,8 @@ async function getFinancialStatements(req, res) {
       categoryName: tx.incomeCategory.name,
       subCategory: tx.subCategory || '-',
       note: tx.note,
+      paymentForStartDate: tx.paymentForStartDate,
+      paymentForEndDate: tx.paymentForEndDate,
       printCount: tx.printCount,
       customer: tx.customer,
       collectedById: tx.collectedById,

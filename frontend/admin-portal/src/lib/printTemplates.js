@@ -124,6 +124,12 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
     : 'ABBREVIATED TAX INVOICE (संक्षिप्त कर विजक)';
   
   const formattedDate = customFormatDate ? customFormatDate(tx.date) : formatDate(tx.date);
+  const fmtPeriod = (d) => (d ? (customFormatDate ? customFormatDate(d) : formatDate(d)) : '');
+  const startPeriodStr = fmtPeriod(tx.paymentForStartDate);
+  const endPeriodStr = fmtPeriod(tx.paymentForEndDate);
+  const periodDisplay = startPeriodStr && endPeriodStr
+    ? (startPeriodStr === endPeriodStr ? startPeriodStr : `${startPeriodStr} — ${endPeriodStr}`)
+    : (startPeriodStr || endPeriodStr || '');
 
   return `
     <!DOCTYPE html>
@@ -155,6 +161,7 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
           <div>
             <div class="mb-1"><strong>Invoice No:</strong> REC-${tx.id}</div>
             <div class="mb-1"><strong>Transaction Date:</strong> ${escapeHTML(formattedDate)}</div>
+            ${periodDisplay ? `<div class="mb-1"><strong>Period (अवधि):</strong> ${escapeHTML(periodDisplay)}</div>` : ''}
             <div class="mb-1"><strong>Payment Method:</strong> ${escapeHTML(tx.paymentMethod)}</div>
           </div>
           <div class="text-right">
@@ -176,7 +183,7 @@ export const generateInvoiceHTML = (tx, settings, customFormatDate) => {
           <tbody>
             <tr>
               <td class="text-left">1</td>
-              <td class="text-left">${escapeHTML(tx.category?.name || tx.categoryName || 'Service Rendered')} ${tx.subCategory && tx.subCategory !== '-' ? '- ' + escapeHTML(tx.subCategory) : ''}</td>
+              <td class="text-left">${escapeHTML(tx.category?.name || tx.categoryName || 'Service Rendered')} ${tx.subCategory && tx.subCategory !== '-' ? '- ' + escapeHTML(tx.subCategory) : ''}${periodDisplay ? `<div style="font-size: 10px; color: #475569; margin-top: 2px;">Period: ${escapeHTML(periodDisplay)}</div>` : ''}</td>
               <td class="text-center">${escapeHTML(settings?.hsCode) || 'N/A'}</td>
               <td class="text-right">${formatCurrency(tx.baseAmount)}</td>
             </tr>
