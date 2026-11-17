@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
 import { useSettings } from '../../context/SettingsContext';
-import { TrendingUp, Loader2, Plus, Tag, Search, Download, RotateCcw, Filter } from 'lucide-react';
+import { TrendingUp, Loader2, Plus, Tag, Search, Download, RotateCcw, Filter, User } from 'lucide-react';
 import DatePicker from '../../components/DatePicker';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../../lib/printTemplates';
 const formatCurrency = (val) => {
@@ -164,6 +164,8 @@ export default function IncomeLedger() {
   const [toastMessage, setToastMessage] = useState(null);
 
   const [filterType, setFilterType] = useState('ALL'); // ALL | MANUAL_ENTRY | FIELD_APP
+  const [staffFilter, setStaffFilter] = useState('ALL');
+  const [staffList, setStaffList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { settings, formatDate } = useSettings();
 
@@ -247,16 +249,49 @@ export default function IncomeLedger() {
     } catch (err) {}
   };
 
+  const fetchStaff = async () => {
+    try {
+      const res = await api.get('/hr/staff', { params: { limit: 200 } });
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setStaffList(res.data.data);
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchCategories();
+    fetchStaff();
+  }, []);
+
   useEffect(() => {
     fetchStatements();
-    fetchCategories();
   }, [fetchStatements]);
+
+  const staffOptions = useMemo(() => {
+    const map = new Map();
+    staffList.forEach(s => {
+      if (s?.id && s?.name) {
+        map.set(String(s.id), { id: String(s.id), name: s.name, role: s.role });
+      }
+    });
+    entries.forEach(tx => {
+      if (tx.collectedById && tx.collectedByName && !map.has(String(tx.collectedById))) {
+        map.set(String(tx.collectedById), {
+          id: String(tx.collectedById),
+          name: tx.collectedByName,
+          role: tx.collectedByRole,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [staffList, entries]);
 
   const filteredEntries = useMemo(() => {
     return entries.filter(tx => {
       const matchType = filterType === 'ALL' ? true : tx.source === filterType;
+      const matchStaff = staffFilter === 'ALL' ? true : String(tx.collectedById) === String(staffFilter);
       const q = searchQuery.toLowerCase().trim();
-      if (!q) return matchType;
+      if (!q) return matchType && matchStaff;
 
       const recordIdStr = String(tx.id || '');
       const recFormatted = `rec-${tx.id || ''}`.toLowerCase();
@@ -269,6 +304,7 @@ export default function IncomeLedger() {
       const note = (tx.note || '').toLowerCase();
       const reason = (tx.returnReason || '').toLowerCase();
       const method = (tx.paymentMethod || '').toLowerCase();
+      const collector = (tx.collectedByName || '').toLowerCase();
 
       const matchSearch = 
         recordIdStr.includes(q) ||
@@ -281,15 +317,35 @@ export default function IncomeLedger() {
         dateStr.includes(q) ||
         note.includes(q) ||
         reason.includes(q) ||
-        method.includes(q);
+        method.includes(q) ||
+        collector.includes(q);
 
-      return matchType && matchSearch;
+      return matchType && matchStaff && matchSearch;
     });
-  }, [entries, filterType, searchQuery, formatDate]);
+  }, [entries, filterType, staffFilter, searchQuery, formatDate]);
+
+  const summaryTotals = useMemo(() => {
+    return filteredEntries.reduce(
+      (acc, tx) => {
+        acc.totalAmount += Number(tx.amount || 0);
+        acc.totalBase += Number(tx.baseAmount || 0);
+        acc.totalVat += Number(tx.vatAmount || 0);
+        acc.count += 1;
+        return acc;
+      },
+      { totalAmount: 0, totalBase: 0, totalVat: 0, count: 0 }
+    );
+  }, [filteredEntries]);
+
+  const selectedStaffName = useMemo(() => {
+    if (staffFilter === 'ALL') return null;
+    return staffOptions.find(s => s.id === String(staffFilter))?.name || 'Selected Staff';
+  }, [staffFilter, staffOptions]);
 
   const handleResetFilter = () => {
     setSearchQuery('');
     setFilterType('ALL');
+    setStaffFilter('ALL');
     const resetRange = {
       startDate: new Date(new Date().setDate(1)).toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0]
@@ -298,11 +354,12 @@ export default function IncomeLedger() {
   };
 
   const exportCSV = () => {
-    const headers = ['Invoice No', 'Date', 'Source', 'Customer Name', 'Customer ID', 'Main Category', 'Sub-Category', 'Base Revenue', 'VAT Amount', 'Total Amount', 'Payment Method', 'Notes'];
+    const headers = ['Invoice No', 'Date', 'Source', 'Collected By', 'Customer Name', 'Customer ID', 'Main Category', 'Sub-Category', 'Base Revenue', 'VAT Amount', 'Total Amount', 'Payment Method', 'Notes'];
     const rows = filteredEntries.map(tx => [
       tx.isSalesReturn ? `CN-${tx.id}` : `REC-${tx.id}`,
       formatDate(tx.date),
       tx.source === 'FIELD_APP' ? 'Field Collection' : 'Manual Income',
+      `"${(tx.collectedByName || 'System / Admin').replace(/"/g, '""')}"`,
       `"${(tx.customer?.name || '').replace(/"/g, '""')}"`,
       `"${(tx.customer?.customerId || '').replace(/"/g, '""')}"`,
       `"${(tx.categoryName || '').replace(/"/g, '""')}"`,
@@ -379,7 +436,7 @@ export default function IncomeLedger() {
           </div>
 
           {/* Main Filter Grid (Styled exactly like Sales Register) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end pt-2 border-t border-slate-200 dark:border-slate-700/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end pt-2 border-t border-slate-200 dark:border-slate-700/50">
             <div className="lg:col-span-1">
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
                 Search Invoice / Customer
@@ -388,11 +445,32 @@ export default function IncomeLedger() {
                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search REC-ID, customer, category..."
+                  placeholder="Search REC-ID, customer, staff..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                Staff / Collector
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+                <select
+                  value={staffFilter}
+                  onChange={(e) => setStaffFilter(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none h-[38px]"
+                >
+                  <option value="ALL">All Staff</option>
+                  {staffOptions.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -444,6 +522,31 @@ export default function IncomeLedger() {
             </div>
           </div>
 
+          {/* Staff / Filtered Collection Summary Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-700/50">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {selectedStaffName ? `Collected by ${selectedStaffName}:` : 'Showing Total:'}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {summaryTotals.count} {summaryTotals.count === 1 ? 'Receipt' : 'Receipts'}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div>
+                <span className="text-slate-500 dark:text-slate-400 mr-1.5">Base:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-200">Rs. {formatCurrency(summaryTotals.totalBase)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 dark:text-slate-400 mr-1.5">VAT (13%):</span>
+                <span className="font-semibold text-emerald-600">Rs. {formatCurrency(summaryTotals.totalVat)}</span>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-lg">
+                <span className="text-emerald-700 dark:text-emerald-300 font-semibold mr-1.5">Total Collected:</span>
+                <span className="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">Rs. {formatCurrency(summaryTotals.totalAmount)}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -498,13 +601,19 @@ export default function IncomeLedger() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                        tx.source === 'FIELD_APP' 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}>
-                        {tx.source === 'FIELD_APP' ? 'Field' : 'Manual'}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          tx.source === 'FIELD_APP' 
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}>
+                          {tx.source === 'FIELD_APP' ? 'Field' : 'Manual'}
+                        </span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1">
+                          <User className="w-3 h-3 text-slate-400" />
+                          {tx.collectedByName || 'System / Admin'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-right font-medium text-slate-600 dark:text-slate-400 text-xs">
                       Rs. {formatCurrency(tx.baseAmount)}

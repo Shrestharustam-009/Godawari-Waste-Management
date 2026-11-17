@@ -568,7 +568,11 @@ async function getFinancialStatements(req, res) {
     // Fetch entries
     const incomeEntries = await prisma.incomeLedger.findMany({
       where: { date: dateFilter, isDeleted: false, status: 'SUCCESSFUL' },
-      include: { incomeCategory: true, customer: { select: { name: true, vatNumber: true, assignedArea: true } } },
+      include: {
+        incomeCategory: true,
+        customer: { select: { name: true, vatNumber: true, assignedArea: true } },
+        collectedBy: { select: { id: true, name: true, role: true } },
+      },
       orderBy: { date: 'desc' }
     });
 
@@ -593,6 +597,9 @@ async function getFinancialStatements(req, res) {
       note: tx.note,
       printCount: tx.printCount,
       customer: tx.customer,
+      collectedById: tx.collectedById,
+      collectedByName: tx.collectedBy?.name || 'System / Admin',
+      collectedByRole: tx.collectedBy?.role || null,
       isSalesReturn: tx.isSalesReturn || false,
       returnRefId: tx.returnRefId || null,
       returnReason: tx.returnReason || null
