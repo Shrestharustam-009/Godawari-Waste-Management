@@ -160,9 +160,11 @@ async function backfillCurrentMonthPeriods({
       const outBal = new Decimal(cust.outstandingPayment.toString());
       const advBal = new Decimal(cust.advanceBalance.toString());
 
-      if (outBal.gt(0) && (!cust.dueStartDate || !cust.dueEndDate)) {
+      if (outBal.gt(0) && (!cust.dueStartDate || !cust.dueEndDate || new Date(cust.dueEndDate) < periodEndDate)) {
         updateData.dueStartDate = cust.dueStartDate || periodStartDate;
-        updateData.dueEndDate = cust.dueEndDate || periodEndDate;
+        if (!cust.dueEndDate || new Date(cust.dueEndDate) < periodEndDate) {
+          updateData.dueEndDate = periodEndDate;
+        }
       }
 
       if (advBal.gt(0) && (!cust.advanceStartDate || !cust.advanceEndDate)) {
