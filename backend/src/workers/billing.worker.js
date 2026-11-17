@@ -55,6 +55,139 @@ function isCustomerBilledForCurrentMonth(lastBilledDate, calendarType, localNepa
   return billedYMD.year === curYMD.year && billedYMD.month === curYMD.month;
 }
 
+const bsMonths = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Aswin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+
+function getMonthBounds(year, month0Indexed, calendarType) {
+  if (calendarType === 'BS') {
+    const monthName = bsMonths[month0Indexed];
+    const days = dateConfigMap[year.toString()] ? dateConfigMap[year.toString()][monthName] : 30;
+    const startBs = new NepaliDate(year, month0Indexed, 1);
+    const endBs = new NepaliDate(year, month0Indexed, days);
+    const sAd = startBs.getAD();
+    const eAd = endBs.getAD();
+    const mm = String(month0Indexed + 1).padStart(2, '0');
+    const dd = String(days).padStart(2, '0');
+    return {
+      days,
+      monthName,
+      startDate: new Date(Date.UTC(sAd.year, sAd.month, sAd.date)),
+      endDate: new Date(Date.UTC(eAd.year, eAd.month, eAd.date)),
+      rangeStr: `${year}-${mm}-01 — ${year}-${mm}-${dd} (BS)`,
+    };
+  }
+  const days = new Date(year, month0Indexed + 1, 0).getDate();
+  const adMonthName = new Date(Date.UTC(year, month0Indexed, 1)).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+  const mm = String(month0Indexed + 1).padStart(2, '0');
+  const dd = String(days).padStart(2, '0');
+  return {
+    days,
+    monthName: adMonthName,
+    startDate: new Date(Date.UTC(year, month0Indexed, 1)),
+    endDate: new Date(Date.UTC(year, month0Indexed, days)),
+    rangeStr: `${year}-${mm}-01 — ${year}-${mm}-${dd} (AD)`,
+  };
+}
+
+function addMonthsToYM(year, month0Indexed, offsetMonths) {
+  const total = year * 12 + month0Indexed + offsetMonths;
+  return { year: Math.floor(total / 12), month: total % 12 };
+}
+
+/**
+ * Backfills missing From/To period dates and BillingLedger descriptions
+ * for customers who already received an automated bill in the current month.
+ */
+async function backfillCurrentMonthPeriods({
+  now,
+  calendarType,
+  periodStartDate,
+  periodEndDate,
+  periodRangeStr,
+  customerId,
+}) {
+  try {
+    const windowStart = new Date(periodStartDate.getTime() - 24 * 60 * 60 * 1000);
+    const recentEntries = await prisma.billingLedger.findMany({
+      where: {
+        date: { gte: windowStart },
+        ...(customerId ? { customerId } : {}),
+      },
+      include: {
+        customer: {
+          select: {
+            customerId: true,
+            isActive: true,
+            outstandingPayment: true,
+            advanceBalance: true,
+            monthlyFee: true,
+            increasedFee: true,
+            dueStartDate: true,
+            dueEndDate: true,
+            advanceStartDate: true,
+            advanceEndDate: true,
+          },
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    const curMonthEntries = recentEntries.filter((e) =>
+      isCustomerBilledForCurrentMonth(e.date, calendarType, now)
+    );
+    if (curMonthEntries.length === 0) return;
+
+    const curYMD = getCalendarYMD(now, calendarType);
+    const updatedCustomers = new Set();
+
+    for (const entry of curMonthEntries) {
+      if (entry.description && !entry.description.includes('Period:')) {
+        const nextDesc = `${entry.description} | Period: ${periodRangeStr}`.slice(0, 255);
+        await prisma.billingLedger.update({
+          where: { id: entry.id },
+          data: { description: nextDesc },
+        });
+      }
+
+      const cust = entry.customer;
+      if (!cust || !cust.isActive || updatedCustomers.has(cust.customerId)) continue;
+      updatedCustomers.add(cust.customerId);
+
+      const updateData = {};
+      const outBal = new Decimal(cust.outstandingPayment.toString());
+      const advBal = new Decimal(cust.advanceBalance.toString());
+
+      if (outBal.gt(0) && (!cust.dueStartDate || !cust.dueEndDate)) {
+        updateData.dueStartDate = cust.dueStartDate || periodStartDate;
+        updateData.dueEndDate = cust.dueEndDate || periodEndDate;
+      }
+
+      if (advBal.gt(0) && (!cust.advanceStartDate || !cust.advanceEndDate)) {
+        const baseFee = new Decimal(cust.monthlyFee.toString());
+        const feeAmount = cust.increasedFee && new Decimal(cust.increasedFee.toString()).gt(0)
+          ? new Decimal(cust.increasedFee.toString())
+          : baseFee;
+        const remainingMonths = feeAmount.gt(0)
+          ? Math.max(1, Math.ceil(advBal.dividedBy(feeAmount).toNumber()))
+          : 1;
+        const endYM = addMonthsToYM(curYMD.year, curYMD.month, remainingMonths - 1);
+        const endBounds = getMonthBounds(endYM.year, endYM.month, calendarType);
+
+        updateData.advanceStartDate = cust.advanceStartDate || periodStartDate;
+        updateData.advanceEndDate = cust.advanceEndDate || endBounds.endDate || periodEndDate;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.customer.update({
+          where: { customerId: cust.customerId },
+          data: updateData,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[WORKER: BILLING] Period backfill warning:', err.message);
+  }
+}
+
 /**
  * Checks if a customer was newly registered in the current month AFTER the billing day had already passed.
  * Prevents charging a newly created customer on Day 28 for a Day 1 billing cycle that passed before they joined.
@@ -88,28 +221,32 @@ async function runBillingCycle(options = {}) {
     }
 
     const now = new Date();
-    const localNepalDate = toNepalWallDate(now);
     const curYMD = getCalendarYMD(now, settings.calendarType);
+    const currentDay = curYMD.day;
+    const {
+      days: daysInMonth,
+      monthName,
+      startDate: periodStartDate,
+      endDate: periodEndDate,
+      rangeStr: periodRangeStr,
+    } = getMonthBounds(curYMD.year, curYMD.month, settings.calendarType);
+    const periodName = `${monthName} ${curYMD.year} (${settings.calendarType === 'BS' ? 'BS' : 'AD'})`;
 
-    let currentDay = curYMD.day;
-    let daysInMonth;
-    let periodName = '';
-
-    const bsMonths = ['Baisakh', 'Jestha', 'Asar', 'Shrawan', 'Bhadra', 'Aswin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
-
-    if (settings.calendarType === 'BS') {
-      const monthName = bsMonths[curYMD.month];
-      daysInMonth = dateConfigMap[curYMD.year.toString()] ? dateConfigMap[curYMD.year.toString()][monthName] : 30;
-      periodName = `${monthName} ${curYMD.year} (BS)`;
-      console.log(`[WORKER: BILLING] Operating in BS Calendar Mode: ${curYMD.year}-${curYMD.month + 1}-${curYMD.day} (${periodName}, Days in month: ${daysInMonth})`);
-    } else {
-      daysInMonth = new Date(curYMD.year, curYMD.month + 1, 0).getDate();
-      const adMonthName = now.toLocaleString('en-US', { month: 'long', timeZone: 'Asia/Kathmandu' });
-      periodName = `${adMonthName} ${curYMD.year} (AD)`;
-      console.log(`[WORKER: BILLING] Operating in AD Calendar Mode: ${curYMD.year}-${curYMD.month + 1}-${curYMD.day} (${periodName}, Days in month: ${daysInMonth})`);
-    }
+    console.log(
+      `[WORKER: BILLING] Operating in ${settings.calendarType} Calendar Mode: ${curYMD.year}-${curYMD.month + 1}-${curYMD.day} (${periodName}, Period: ${periodRangeStr}, Days in month: ${daysInMonth})`
+    );
 
     const globalTargetDay = settings.billingCycleDay || 1;
+
+    // 1b. Backfill missing From/To period dates & descriptions for customers already billed this month
+    await backfillCurrentMonthPeriods({
+      now,
+      calendarType: settings.calendarType,
+      periodStartDate,
+      periodEndDate,
+      periodRangeStr,
+      customerId,
+    });
 
     // 2. Process active customers in batches
     let cursor = null;
@@ -185,7 +322,8 @@ async function runBillingCycle(options = {}) {
 
           // LOCK THE ROW to prevent concurrent balance drift
           const lockedRows = await tx.$queryRaw`
-            SELECT "outstandingPayment"::text, "advanceBalance"::text, "debtStartDate"
+            SELECT "outstandingPayment"::text, "advanceBalance"::text, "debtStartDate",
+                   "dueStartDate", "dueEndDate", "advanceStartDate", "advanceEndDate"
             FROM "customers"
             WHERE "customerId" = ${customer.customerId}
             FOR UPDATE
@@ -199,23 +337,25 @@ async function runBillingCycle(options = {}) {
 
           let newAdvance = currentAdvance;
           let newOutstanding = currentOutstanding;
-          let billingDescription = `Automated Monthly Waste Collection Fee - ${periodName}`;
+          let billingDescription = `Automated Monthly Fee - ${periodName} | Period: ${periodRangeStr} | Added ₹${feeAmount.toFixed(2)} to Outstanding Due`;
 
           // Smart Wallet Deduction Logic
           if (currentAdvance.gte(feeAmount)) {
             // Fully covered by advance wallet (e.g. Advance 1000 - Fee 500 = 500 left)
             newAdvance = currentAdvance.minus(feeAmount);
-            billingDescription = `Automated Monthly Fee - ${periodName} (Deducted ₹${feeAmount.toFixed(2)} from Smart Wallet)`;
+            billingDescription = `Automated Monthly Fee - ${periodName} | Period: ${periodRangeStr} | Deducted ₹${feeAmount.toFixed(2)} from Smart Wallet`;
           } else if (currentAdvance.gt(0)) {
             // Partially covered by advance wallet
             const remainingFee = feeAmount.minus(currentAdvance);
             newAdvance = new Decimal('0.00');
             newOutstanding = currentOutstanding.plus(remainingFee);
-            billingDescription = `Automated Monthly Fee - ${periodName} (₹${currentAdvance.toFixed(2)} from Wallet, ₹${remainingFee.toFixed(2)} added to Due)`;
+            billingDescription = `Automated Monthly Fee - ${periodName} | Period: ${periodRangeStr} | ₹${currentAdvance.toFixed(2)} from Wallet, ₹${remainingFee.toFixed(2)} added to Due`;
           } else {
             // No advance wallet — full amount added to outstanding due
             newOutstanding = currentOutstanding.plus(feeAmount);
           }
+
+          billingDescription = billingDescription.slice(0, 255);
 
           // Track debt start date if customer just went into debt
           let newDebtStartDate = lockedCustomer.debtStartDate;
@@ -233,7 +373,33 @@ async function runBillingCycle(options = {}) {
             debtStartDate: newDebtStartDate,
           };
 
-          if (newAdvance.eq(0) && currentAdvance.gt(0)) {
+          // Maintain Due From/To Date for Outstanding Due
+          if (newOutstanding.gt(0)) {
+            if (currentOutstanding.lte(0) || !lockedCustomer.dueStartDate) {
+              updateData.dueStartDate = periodStartDate;
+              updateData.dueEndDate = periodEndDate;
+            } else {
+              updateData.dueEndDate = periodEndDate;
+            }
+          } else {
+            updateData.dueStartDate = null;
+            updateData.dueEndDate = null;
+          }
+
+          // Maintain Advance From/To Date for Smart Wallet
+          if (newAdvance.gt(0)) {
+            if (!lockedCustomer.advanceStartDate) {
+              updateData.advanceStartDate = periodStartDate;
+            }
+            if (!lockedCustomer.advanceEndDate) {
+              const remainingMonths = feeAmount.gt(0)
+                ? Math.max(1, Math.ceil(newAdvance.dividedBy(feeAmount).toNumber()))
+                : 1;
+              const endYM = addMonthsToYM(curYMD.year, curYMD.month, remainingMonths - 1);
+              const endBounds = getMonthBounds(endYM.year, endYM.month, settings.calendarType);
+              updateData.advanceEndDate = endBounds.endDate || periodEndDate;
+            }
+          } else if (currentAdvance.gt(0)) {
             updateData.advanceStartDate = null;
             updateData.advanceEndDate = null;
           }

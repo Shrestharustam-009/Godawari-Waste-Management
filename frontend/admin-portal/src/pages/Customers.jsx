@@ -876,7 +876,7 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
           <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 12px; font-size: 13px; color: #1e293b;">${formatDate(tx.date)}</td>
             <td style="padding: 12px; font-size: 13px; color: #475569; font-family: monospace;">#${tx.id || 'N/A'}</td>
-            <td style="padding: 12px; font-size: 13px; color: #475569;">System Billing - Monthly Fee</td>
+            <td style="padding: 12px; font-size: 13px; color: #475569;">${tx.description || 'System Billing - Monthly Fee'}</td>
             <td style="padding: 12px; font-size: 13px; color: #64748b;">System</td>
             <td style="padding: 12px; font-size: 13px; font-weight: bold; text-align: right; color: #dc2626;">-₹${Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
           </tr>
@@ -1226,29 +1226,29 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                   {filteredTransactions.map((tx) => {
                     if (tx.type === 'CHARGE') {
                       return (
-                        <li key={tx.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                        <li key={`${tx.type}-${tx.id}`} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5">
                                 <FileText className="w-4 h-4" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-slate-900 dark:text-white">
                                   System Billing
                                 </p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                    {formatDate(tx.date)}
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                  Billed On: {formatDate(tx.date)}
+                                </p>
+                                {tx.description && (
+                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed break-words">
+                                    {tx.description}
                                   </p>
-                                </div>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right shrink-0">
                               <p className="text-sm font-bold text-orange-600">
                                 -₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                              </p>
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[120px]" title={tx.description}>
-                                {tx.description}
                               </p>
                             </div>
                           </div>
