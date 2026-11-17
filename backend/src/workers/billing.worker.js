@@ -102,15 +102,17 @@ async function backfillCurrentMonthPeriods({
   calendarType,
   periodStartDate,
   periodEndDate,
-  periodRangeStr,
   customerId,
 }) {
   try {
     const windowStart = new Date(periodStartDate.getTime() - 24 * 60 * 60 * 1000);
-    const recentEntries = await prisma.billingLedger.findMany({
+    const entries = await prisma.billingLedger.findMany({
       where: {
-        date: { gte: windowStart },
         ...(customerId ? { customerId } : {}),
+        OR: [
+          { date: { gte: windowStart } },
+          { NOT: { description: { contains: 'Period:' } } },
+        ],
       },
       include: {
         customer: {
@@ -131,22 +133,24 @@ async function backfillCurrentMonthPeriods({
       orderBy: { date: 'desc' },
     });
 
-    const curMonthEntries = recentEntries.filter((e) =>
-      isCustomerBilledForCurrentMonth(e.date, calendarType, now)
-    );
-    if (curMonthEntries.length === 0) return;
+    if (entries.length === 0) return;
 
     const curYMD = getCalendarYMD(now, calendarType);
     const updatedCustomers = new Set();
 
-    for (const entry of curMonthEntries) {
+    for (const entry of entries) {
+      const entryYMD = getCalendarYMD(entry.date, calendarType);
+      const entryBounds = getMonthBounds(entryYMD.year, entryYMD.month, calendarType);
+
       if (entry.description && !entry.description.includes('Period:')) {
-        const nextDesc = `${entry.description} | Period: ${periodRangeStr}`.slice(0, 255);
+        const nextDesc = `${entry.description} | Period: ${entryBounds.rangeStr}`.slice(0, 255);
         await prisma.billingLedger.update({
           where: { id: entry.id },
           data: { description: nextDesc },
         });
       }
+
+      if (!isCustomerBilledForCurrentMonth(entry.date, calendarType, now)) continue;
 
       const cust = entry.customer;
       if (!cust || !cust.isActive || updatedCustomers.has(cust.customerId)) continue;
@@ -244,7 +248,6 @@ async function runBillingCycle(options = {}) {
       calendarType: settings.calendarType,
       periodStartDate,
       periodEndDate,
-      periodRangeStr,
       customerId,
     });
 

@@ -30,9 +30,33 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
-import { toBS } from '@zener/nepali-datepicker-react';
+import { toBS, yearMonthDays } from '@zener/nepali-datepicker-react';
 import invoiceHeaderImg from '../assets/company_logo.png';
 import { generateInvoiceHTML, generateSalesReturnHTML } from '../lib/printTemplates';
+
+function getBillingPeriodLabel(dateInput, isBS = true) {
+  if (!dateInput) return '';
+  try {
+    const ymd = toNepalYMD(dateInput);
+    if (!ymd) return '';
+    if (isBS) {
+      const bs = toBS(ymd);
+      if (!bs || isNaN(bs.year) || isNaN(bs.month)) return '';
+      const daysArr = yearMonthDays[bs.year - 2000];
+      const days = Array.isArray(daysArr) && daysArr[bs.month] ? daysArr[bs.month] : 30;
+      const mm = String(bs.month + 1).padStart(2, '0');
+      const dd = String(days).padStart(2, '0');
+      return `${bs.year}-${mm}-01 — ${bs.year}-${mm}-${dd} (BS)`;
+    }
+    const [yStr, mStr] = ymd.split('-');
+    const y = Number(yStr);
+    const m = Number(mStr);
+    const days = new Date(y, m, 0).getDate();
+    return `${yStr}-${mStr}-01 — ${yStr}-${mStr}-${String(days).padStart(2, '0')} (AD)`;
+  } catch (e) {
+    return '';
+  }
+}
 
 function toNepalYMD(dateInput) {
   if (!dateInput) return '';
@@ -1225,6 +1249,7 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                 <ul className="space-y-2">
                   {filteredTransactions.map((tx) => {
                     if (tx.type === 'CHARGE') {
+                      const periodLabel = getBillingPeriodLabel(tx.date, settings?.calendarType !== 'AD');
                       return (
                         <li key={`${tx.type}-${tx.id}`} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
                           <div className="flex items-start justify-between gap-3">
@@ -1239,6 +1264,11 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                                   Billed On: {formatDate(tx.date)}
                                 </p>
+                                {periodLabel && (
+                                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                                    Period: {periodLabel}
+                                  </p>
+                                )}
                                 {tx.description && (
                                   <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed break-words">
                                     {tx.description}
@@ -1257,7 +1287,7 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                     }
 
                     return (
-                      <li key={tx.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
+                      <li key={`${tx.type}-${tx.id}`} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="p-2 rounded-full bg-green-100 text-green-600">
@@ -1282,6 +1312,11 @@ function CustomerProfile({ customerId, onClose, onReturnTx }) {
                                   {formatDate(tx.date)}
                                 </p>
                               </div>
+                              {(tx.paymentForStartDate || tx.paymentForEndDate) && (
+                                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                                  Period: {tx.paymentForStartDate ? formatDate(tx.paymentForStartDate) : 'N/A'} — {tx.paymentForEndDate ? formatDate(tx.paymentForEndDate) : 'N/A'}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
