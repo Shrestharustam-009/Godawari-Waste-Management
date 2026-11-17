@@ -24,6 +24,30 @@
 
 const { Decimal } = require('decimal.js');
 const prisma = require('../lib/prisma');
+const NepaliDate = require('nepali-date-converter').default;
+
+function getNextMonthStartDate(dateInput, calendarType = 'BS') {
+  if (!dateInput) return null;
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+
+  const nepalStr = d.toLocaleString('en-US', { timeZone: 'Asia/Kathmandu' });
+  const wall = new Date(nepalStr);
+
+  if (calendarType === 'BS') {
+    const bs = new NepaliDate(wall).getBS();
+    let nextYear = bs.year;
+    let nextMonth = bs.month + 1;
+    if (nextMonth > 11) {
+      nextYear += 1;
+      nextMonth = 0;
+    }
+    const nextAd = new NepaliDate(nextYear, nextMonth, 1).getAD();
+    return new Date(Date.UTC(nextAd.year, nextAd.month, nextAd.date));
+  }
+
+  return new Date(Date.UTC(wall.getFullYear(), wall.getMonth() + 1, 1));
+}
 
 // ── Configure Decimal.js for financial precision ──
 // Use ROUND_HALF_UP (banker's rounding) to match standard accounting behavior
@@ -192,7 +216,7 @@ async function processFieldPayment({
   const result = await prisma.$transaction(async (tx) => {
     // ── 5a. Fetch the customer with row-level lock (FOR UPDATE) ──
     const lockedRows = await tx.$queryRaw`
-      SELECT "customerId", "name", "outstandingPayment"::text, "advanceBalance"::text, "isActive"
+      SELECT "customerId", "name", "outstandingPayment"::text, "advanceBalance"::text, "isActive", "dueStartDate", "dueEndDate"
       FROM "customers"
       WHERE "customerId" = ${customerId}
       FOR UPDATE
@@ -282,11 +306,24 @@ async function processFieldPayment({
       advanceBalance: newAdvance.toFixed(2),
     };
 
-    // Clear debtStartDate when debt is fully paid off
+    // Clear debtStartDate when debt is fully paid off, OR advance dueStartDate on partial debt payment
     if (newOutstanding.eq(0) && previousOutstanding.gt(0)) {
       updateData.debtStartDate = null;
       updateData.dueStartDate = null;
       updateData.dueEndDate = null;
+    } else if (newOutstanding.gt(0) && paymentForEndDate && !isNaN(new Date(paymentForEndDate).getTime())) {
+      const sysSettings = await tx.globalSettings.findFirst({ select: { calendarType: true } });
+      const calType = sysSettings?.calendarType || 'BS';
+      const nextDueStart = getNextMonthStartDate(paymentForEndDate, calType);
+      if (nextDueStart) {
+        const curDueStart = customer.dueStartDate ? new Date(customer.dueStartDate) : null;
+        const curDueEnd = customer.dueEndDate ? new Date(customer.dueEndDate) : null;
+        const shouldAdvance = !curDueStart || nextDueStart > curDueStart;
+        const withinEnd = !curDueEnd || nextDueStart <= curDueEnd;
+        if (shouldAdvance && withinEnd) {
+          updateData.dueStartDate = nextDueStart;
+        }
+      }
     }
 
     // If this payment adds/keeps money in the Smart Wallet, push the dates to the profile
@@ -711,8 +748,14 @@ async function processSalesReturn({
 
     if (newOutstanding.gt(0) && currentOutstanding.eq(0)) {
       updateData.debtStartDate = today;
-      updateData.dueStartDate = today;
-      updateData.dueEndDate = today;
+      updateData.dueStartDate = originalLedger.paymentForStartDate || today;
+      updateData.dueEndDate = originalLedger.paymentForEndDate || today;
+    } else if (
+      newOutstanding.gt(0) &&
+      originalLedger.paymentForStartDate &&
+      (!customer.dueStartDate || new Date(originalLedger.paymentForStartDate) < new Date(customer.dueStartDate))
+    ) {
+      updateData.dueStartDate = originalLedger.paymentForStartDate;
     }
     
     if (newAdvance.eq(0) && currentAdvance.gt(0)) {
