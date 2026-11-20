@@ -46,6 +46,7 @@ export default function Collection() {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
+  const [selectedMonths, setSelectedMonths] = useState('');
   const [isAdvance, setIsAdvance] = useState(false);
   const [paymentForStartDate, setPaymentForStartDate] = useState('');
   const [paymentForEndDate, setPaymentForEndDate] = useState('');
@@ -318,6 +319,37 @@ export default function Collection() {
               </button>
             </div>
           </div>
+          {!isAdvance && (() => {
+            const activeFee = Number(customer.increasedFee) > 0 ? Number(customer.increasedFee) : Number(customer.monthlyFee || 0);
+            if (activeFee <= 0) return null;
+            return (
+              <div className="mb-3">
+                <label className="block text-xs font-semibold text-slate-500 mb-1">
+                  Quick Select Months (1–12 × ₹{formatCurrency(activeFee)})
+                </label>
+                <select
+                  value={selectedMonths}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedMonths(val);
+                    if (!val) return;
+                    const m = parseInt(val, 10);
+                    if (!isNaN(m) && m >= 1 && m <= 12) {
+                      setAmount((m * activeFee).toFixed(2));
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                >
+                  <option value="">Select Months (1 to 12)...</option>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <option key={m} value={m}>
+                      {m} {m === 1 ? 'Month' : 'Months'} — ₹{formatCurrency(m * activeFee)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <IndianRupee className="h-6 w-6 text-slate-400" />
@@ -327,7 +359,10 @@ export default function Collection() {
               inputMode="decimal"
               placeholder="0.00"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setSelectedMonths('');
+              }}
               className="w-full pl-12 pr-4 py-4 text-2xl font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
             />
           </div>
